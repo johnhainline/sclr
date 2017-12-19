@@ -1,6 +1,7 @@
 package cluster.sclr
 
-import akka.actor.{Actor, ActorLogging, ActorRef, Props}
+import akka.Done
+import akka.actor.{Actor, ActorLogging, ActorRef, PoisonPill, Props}
 import akka.cluster.pubsub.{DistributedPubSub, DistributedPubSubMediator}
 import akka.cluster.pubsub.DistributedPubSubMediator.Publish
 import cluster.sclr.Messages._
@@ -8,6 +9,7 @@ import cluster.sclr.Messages._
 import scala.collection.mutable
 
 class DoWorkActor extends Actor with ActorLogging {
+  var done = false
   val requests = new mutable.Queue[ActorRef]()
 
   val mediator = DistributedPubSub(context.system).mediator
@@ -20,15 +22,24 @@ class DoWorkActor extends Actor with ActorLogging {
 
   def receive = {
     case RequestResult(to) => {
-      log.debug(s"DoWorkActor <- RequestResult($to)")
-      requests.enqueue(to)
-      askForWork()
+//      log.debug(s"DoWorkActor <- RequestResult($to)")
+      if (done) {
+        to ! Done
+      } else {
+        requests.enqueue(to)
+        askForWork()
+      }
     }
     case work: Work => {
       val result = work
       val to = requests.dequeue()
-      log.debug(s"DoWorkActor -> $work to $to")
+//      log.debug(s"DoWorkActor -> $work to $to")
       to ! result
+    }
+    case Done => {
+      val to = requests.dequeue()
+      to ! Done
+      done = true
     }
   }
 }
