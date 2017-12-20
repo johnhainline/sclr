@@ -1,10 +1,7 @@
 package combinations
 
-import scala.collection.mutable
-
 class CombinationAggregation(val combinations: Vector[CombinationBuilder]) {
-  val count = combinations.foldLeft(BigInt(1))((total, combo) => total * combo.count)
-  private def aggregateCount = count
+  val count: BigInt = combinations.foldLeft(BigInt(1))((total, combo) => total * combo.count)
 
   def all(): Iterator[Vector[Combination]] = {
     new CombinationsAggregationIterator(combinations)
@@ -33,15 +30,24 @@ class CombinationAggregation(val combinations: Vector[CombinationBuilder]) {
     }
     override def hasNext: Boolean = iterators.last.hasNext
 
-    private val valueStack: mutable.Stack[Combination] = new mutable.Stack().push(Vector(0)) // an initial useless value
+    private var valueStack: List[Combination] = List(Vector(0)) // an initial useless value
+    private def stackPop() = {
+      val head = valueStack.head
+      valueStack = valueStack.tail
+      head
+    }
+    private def stackPush(combination: Combination): Unit = {
+      valueStack = combination :: valueStack
+    }
+
     override def next(): Vector[Combination] = {
       // Always pop the first value, as it always changes.
-      var last = valueStack.pop()
+      var last = stackPop()
       while(valueStack.nonEmpty && last == combinations(valueStack.length).last) {
-        last = valueStack.pop()
+        last = stackPop()
       }
-      while(valueStack.length < combinations.length) {
-        valueStack.push(iterators(valueStack.length).next())
+      while(valueStack.lengthCompare(combinations.length) < 0) {
+        stackPush(iterators(valueStack.length).next())
       }
       valueStack.toVector.reverse
     }

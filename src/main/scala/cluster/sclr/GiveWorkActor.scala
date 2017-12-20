@@ -16,13 +16,10 @@ class GiveWorkActor extends Actor with ActorLogging {
 
   override def receive: Receive = {
     case RequestWork(to) => {
-//      log.debug(s"GiveWorkActor <- RequestWork($to)")
       if (iterator.hasNext) {
         val next = iterator.next()
-//        log.debug(s"GiveWorkActor -> $next to $to")
         to ! next
       } else {
-//        log.debug(s"GiveWorkActor -> done to $to")
         to ! Done
       }
     }

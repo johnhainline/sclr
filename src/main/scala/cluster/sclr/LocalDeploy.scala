@@ -15,16 +15,16 @@ object LocalDeploy {
     val joinAddress = Cluster(system).selfAddress
     Cluster(system).join(joinAddress)
 
-    val giveWorkActor = system.actorOf(GiveWorkActor.props())
-    val doWorkActors = (1 to parallel).foreach(_ => system.actorOf(DoWorkActor.props()))
-    val saveResultActor = system.actorOf(SaveResultActor.props())
+    system.actorOf(GiveWorkActor.props(), "giveWork")
+    (1 to parallel).foreach(i => system.actorOf(DoWorkActor.props(), s"doWork$i"))
+    val saveResultActor = system.actorOf(SaveResultActor.props(), "saveResult")
 
 
     Thread.sleep(1000)
 
-    for (i <- 1 to parallel) {
+    (1 to parallel).foreach(_ =>
       saveResultActor ! SaveResultActor.AskForResult
-    }
+    )
 
     Await.result(system.whenTerminated, Duration.Inf)
   }

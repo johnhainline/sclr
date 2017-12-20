@@ -26,11 +26,12 @@ class SaveResultActor() extends Actor with ActorLogging {
 //      log.debug(s"SaveResultActor -> RequestResult($self)")
       askForResult()
     }
-    case result: Result => {
+    case JobComplete(result) => {
       activeRequests -= 1
       log.debug(s"activeRequests-1 : $activeRequests")
 //      log.debug(s"SaveResultActor <- $result")
       // Save result!
+      log.debug(s"$result")
 //      log.debug(s"SaveResultActor -> RequestResult($self)")
       askForResult()
       if (activeRequests == 0 && done) {
