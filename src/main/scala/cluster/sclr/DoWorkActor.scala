@@ -9,11 +9,10 @@ import cluster.sclr.Messages._
 import scala.collection.mutable
 
 class DoWorkActor extends Actor with ActorLogging {
-  var done = false
-  val requests = new mutable.Queue[ActorRef]()
+  private var done = false
+  private val requests = new mutable.Queue[ActorRef]()
 
-  val mediator = DistributedPubSub(context.system).mediator
-
+  private val mediator = DistributedPubSub(context.system).mediator
   mediator ! DistributedPubSubMediator.Subscribe(topicRequestResult, Some(requestResultGroup), self)
 
   private def askForWork() = {
@@ -21,8 +20,8 @@ class DoWorkActor extends Actor with ActorLogging {
   }
 
   def receive = {
+
     case RequestResult(to) => {
-//      log.debug(s"DoWorkActor <- RequestResult($to)")
       if (done) {
         to ! Done
       } else {
@@ -30,12 +29,13 @@ class DoWorkActor extends Actor with ActorLogging {
         askForWork()
       }
     }
+
     case Job(lookups) => {
       val result = lookups.toString()
       val to = requests.dequeue()
-//      log.debug(s"DoWorkActor -> $work to $to")
       to ! JobComplete(result)
     }
+
     case Done => {
       val to = requests.dequeue()
       to ! Done

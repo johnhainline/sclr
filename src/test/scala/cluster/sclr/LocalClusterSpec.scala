@@ -2,19 +2,29 @@ package cluster.sclr
 
 import akka.actor.ActorSystem
 import akka.cluster.Cluster
-import akka.testkit.{ImplicitSender, TestActors, TestKit}
+import akka.cluster.pubsub.DistributedPubSubMediator.SubscribeAck
+import akka.cluster.pubsub.{DistributedPubSub, DistributedPubSubMediator}
+import akka.testkit.{ImplicitSender, TestKit}
+import cluster.sclr.Messages._
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
 
-import scala.concurrent.Await
-import scala.concurrent.duration.Duration
+import scala.language.postfixOps
+import scala.concurrent.duration._
 
 class LocalClusterSpec extends TestKit(ActorSystem("LocalClusterSpec")) with ImplicitSender
   with WordSpecLike with Matchers with BeforeAndAfterAll {
 
-  override def afterAll {
+  val mediator = DistributedPubSub(system).mediator
+
+  override def beforeAll: Unit = {
+    ignoreMsg {case SubscribeAck(_) => true}
+    mediator ! DistributedPubSubMediator.Subscribe(topicProcessingComplete, self)
+  }
+
+  override def afterAll: Unit = {
+    mediator ! DistributedPubSubMediator.Unsubscribe(topicProcessingComplete, self)
     TestKit.shutdownActorSystem(system)
   }
-  val parallel = 10
 
   "The local cluster" must {
 
@@ -31,11 +41,7 @@ class LocalClusterSpec extends TestKit(ActorSystem("LocalClusterSpec")) with Imp
 
       saveResultActor ! SaveResultActor.AskForResult
 
-      Await.result(system.whenTerminated, Duration.Inf)
-
-      val echo = system.actorOf(TestActors.echoActorProps)
-      echo ! "hello world"
-      expectMsg("hello world")
+      expectMsg(5 seconds, ProcessingComplete)
     }
 
   }

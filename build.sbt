@@ -11,7 +11,7 @@ lazy val `sparce-cond-linear-reg` = project
   .in(file("."))
   .settings(multiJvmSettings: _*)
   .settings(
-    name := "sparce-cond-linear-reg",
+    name := "sparse-conditional-linear-regression",
     organization := "wustl.engineering",
     scalaVersion := "2.12.4",
     version := "0.1",

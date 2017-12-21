@@ -11,14 +11,14 @@ class GiveWorkActor extends Actor with ActorLogging {
   private val iterator = combinations.all()
 
   private val mediator = DistributedPubSub(context.system).mediator
-
   mediator ! DistributedPubSubMediator.Subscribe(topicRequestWork, Some(requestWorkGroup), self)
 
   override def receive: Receive = {
+
     case RequestWork(to) => {
       if (iterator.hasNext) {
         val next = iterator.next()
-        to ! next
+        to ! Job(next)
       } else {
         to ! Done
       }

@@ -15,4 +15,7 @@ object Messages {
 
   val requestWorkGroup = "workGroup"
   val requestResultGroup = "resultGroup"
+
+  final case object ProcessingComplete
+  val topicProcessingComplete = "processingComplete"
 }
