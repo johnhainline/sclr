@@ -7,7 +7,7 @@ val httpVersion = "10.0.11"
 
 resolvers += "Sonatype Releases" at "https://oss.sonatype.org/content/repositories/releases/"
 
-lazy val `sparce-cond-linear-reg` = project
+lazy val `sclr` = project
   .in(file("."))
   .settings(multiJvmSettings: _*)
   .settings(
@@ -23,6 +23,9 @@ lazy val `sparce-cond-linear-reg` = project
       "com.lightbend.akka" %% "akka-management-cluster-http" % "0.6",
 
       "org.scalatest" %% "scalatest" % "3.0.4" % Test,
+
+      // Weka, a Machine Learning library.
+      "nz.ac.waikato.cms.weka" % "weka-stable" % "3.8.1",
 
       "com.typesafe.akka" %% "akka-http"               % httpVersion,
       "com.typesafe.akka" %% "akka-http-testkit"       % httpVersion   % Test,
@@ -48,8 +51,4 @@ lazy val `sparce-cond-linear-reg` = project
     mainClass in (Compile, run) := Some("cluster.sclr.LocalDeploy"),
     parallelExecution in Test := false
 ).configs(MultiJvm)
-
-
-
-
 
