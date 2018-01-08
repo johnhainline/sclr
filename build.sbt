@@ -1,15 +1,25 @@
-import com.typesafe.sbt.SbtMultiJvm.MultiJvmKeys.MultiJvm
-import com.typesafe.sbt.SbtMultiJvm.multiJvmSettings
 import sbt.Keys.fork
 
 val akkaVersion = "2.5.8"
 val httpVersion = "10.0.11"
+val doobieVersion = "0.5.0-M12"
 
-resolvers += "Sonatype Releases" at "https://oss.sonatype.org/content/repositories/releases/"
+scalacOptions += "-Ypartial-unification" // 2.11.9+
+
+
+val Frontend = config("frontend") extend Compile
+val Worker = config("worker") extend Compile
+def customAssemblySettings =
+  inConfig(Frontend)(baseAssemblySettings ++
+    inTask(assembly)(mainClass := Some("cluster.main.FrontendApp")) ++
+    inTask(assembly)(assemblyJarName := "sclr-frontend.jar")) ++
+    inConfig(Worker)(baseAssemblySettings ++
+      inTask(assembly)(mainClass := Some("cluster.main.WorkerApp")) ++
+      inTask(assembly)(assemblyJarName := "sclr-worker.jar"))
 
 lazy val `sclr` = project
   .in(file("."))
-  .settings(multiJvmSettings: _*)
+  .settings(customAssemblySettings: _*)
   .settings(
     name := "sparse-conditional-linear-regression",
     organization := "wustl.engineering",
@@ -17,15 +27,23 @@ lazy val `sclr` = project
     version := "0.1",
 
     libraryDependencies ++= Seq(
+
       // sigar is a os dependent toolset to make akka-cluster-metrics give more details
       "io.kamon" % "sigar-loader" % "1.6.6-rev002",
 
       "com.lightbend.akka" %% "akka-management-cluster-http" % "0.6",
 
       "org.scalatest" %% "scalatest" % "3.0.4" % Test,
+      "org.scalamock" %% "scalamock" % "4.0.0" % Test,
+
+      // Doobie, a JDBC functional programming layer
+      "org.tpolecat" %% "doobie-core"     % doobieVersion,
+      "org.tpolecat" %% "doobie-specs2"   % doobieVersion,
+      // mysql connection driver
+      "mysql" % "mysql-connector-java" % "5.1.45",
 
       // Weka, a Machine Learning library.
-      "nz.ac.waikato.cms.weka" % "weka-stable" % "3.8.1",
+      "nz.ac.waikato.cms.weka" % "weka-stable" % "3.8.2",
 
       "com.typesafe.akka" %% "akka-http"               % httpVersion,
       "com.typesafe.akka" %% "akka-http-testkit"       % httpVersion   % Test,
@@ -48,7 +66,6 @@ lazy val `sclr` = project
     javaOptions in run ++= Seq("-Xms128m", "-Xmx1024m", "-Djava.library.path=./target/native"),
 
     fork in run := true,
-    mainClass in (Compile, run) := Some("cluster.sclr.LocalDeploy"),
+    mainClass in (Compile, run) := Some("cluster.main.LocalApp"),
     parallelExecution in Test := false
-).configs(MultiJvm)
-
+)

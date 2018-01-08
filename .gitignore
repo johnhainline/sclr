@@ -4,3 +4,4 @@ target/
 *.class
 *.log
 .~lock.*
+sclr-mysql-access-key.json

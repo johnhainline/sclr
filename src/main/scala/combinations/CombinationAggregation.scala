@@ -22,7 +22,7 @@ class CombinationAggregation(val combinations: Vector[CombinationBuilder]) {
       combo.count * vector.head +: vector
     }.tail
 
-    private var iterators: Vector[Iterator[Combination]] = combinations.zipWithIndex.map { case(combo, index) =>
+    private val iterators: Vector[Iterator[Combination]] = combinations.zipWithIndex.map { case(combo, index) =>
       val base = bases(index)
       val startIndex = i / base
       val stopIndex = ((j-1) / base) + 1
