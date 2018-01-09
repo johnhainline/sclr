@@ -2,7 +2,7 @@ package cluster.main
 
 import java.sql.{Connection, DriverManager}
 
-object CheckDatabase {
+object JDBCCheckDatabase {
   def main(args: Array[String]): Unit = {
     // connect to the database named "mysql" on the localhost
     val driver = "com.mysql.jdbc.Driver"

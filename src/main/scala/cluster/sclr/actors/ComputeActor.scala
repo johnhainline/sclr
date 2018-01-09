@@ -11,7 +11,7 @@ class ComputeActor extends Actor with ActorLogging {
 
   def compute(work: Work): Result = {
     Result(Try {
-      Data("blah")
+      Data(work.lookups.toString())
     })
   }
 

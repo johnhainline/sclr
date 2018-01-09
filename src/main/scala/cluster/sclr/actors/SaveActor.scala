@@ -1,57 +1,52 @@
 package cluster.sclr.actors
 
-import java.sql.{Connection, DriverManager}
-
 import akka.actor.{Actor, ActorLogging, Props}
+import cats.effect.{Async, IO}
 import cluster.sclr.Messages._
-import com.typesafe.config.ConfigFactory
+import cluster.sclr.doobie.ResultsDao
+import doobie.implicits._
 
-import scala.collection.mutable.ListBuffer
+import scala.util.Success
 
-class SaveActor(makeConnection: () => Connection) extends Actor with ActorLogging {
+class SaveActor() extends Actor with ActorLogging {
 
-  private lazy val connection = makeConnection()
-  private def checkDatabase() = {
+  private lazy val xa = ResultsDao.makeDefaultTransactor()
+
+  private def setupDatabase() = {
     try {
-      val statement = connection.createStatement()
-      val names = ListBuffer[String]()
-      val resultSet = statement.executeQuery("SHOW DATABASES")
-      while (resultSet.next()) {
-        names.append(resultSet.getString("Database"))
-      }
-      if (!names.contains("sclr")) {
-        statement.execute("CREATE DATABASE sclr")
-      }
-      statement.execute("USE sclr")
+      ResultsDao.createSchemaIfNeeded()
+      ResultsDao.up1.run.transact(xa).unsafeRunSync()
     } catch {
-      case e: Exception => e.printStackTrace()
+      case e: Exception =>
+        log.error(e, "Could not set up database.")
+        throw e
     }
   }
 
-  override def preStart: Unit = {
-    checkDatabase()
+  override def preStart(): Unit = {
+    setupDatabase()
+  }
+
+  override def postStop(): Unit = {
+    xa.configure(ds => Async[IO].delay(ds.close)).unsafeRunSync()
   }
 
   def receive = {
-    case Result(result) => {
+    case Result(Success(data)) => {
       // Save result!
-      log.debug(s"$result")
+      val insert = ResultsDao.insertResult(data.something)
+      log.debug(s"sql: ${insert.sql}")
+      try {
+        val insertedRowCount = insert.run.transact(xa).unsafeRunSync()
+        log.debug(s"insertedRows: $insertedRowCount")
+      } catch {
+        case e: Exception => e.printStackTrace()
+      }
     }
   }
 
 }
 
 object SaveActor {
-  def props(makeConnection: () => Connection = makeDefaultConnection) = Props(new SaveActor(makeConnection))
-
-  def makeDefaultConnection() = {
-    val config = ConfigFactory.load()
-    val databaseDriver = config.getString("database.driver")
-    Class.forName(databaseDriver)
-    val url      = config.getString("database.url")
-    val username = config.getString("database.username")
-    val password = config.getString("database.passsword")
-    val connection = DriverManager.getConnection(url, username, password)
-    connection
-  }
+  def props() = Props(new SaveActor())
 }

@@ -10,6 +10,7 @@ class ManageActor(combinations: CombinationAggregation) extends Actor with Actor
   private val iterator = combinations.all()
 
   val compute = context.actorOf(FromConfig.props(), name = "computeRouter")
+  val save = context.actorOf(FromConfig.props(), name = "computeRouter")
 
   val cluster = Cluster(context.system)
 

@@ -2,7 +2,7 @@ import sbt.Keys.fork
 
 val akkaVersion = "2.5.8"
 val httpVersion = "10.0.11"
-val doobieVersion = "0.5.0-M12"
+val doobieVersion = "0.5.0-M13"
 
 scalacOptions += "-Ypartial-unification" // 2.11.9+
 
@@ -36,9 +36,13 @@ lazy val `sclr` = project
       "org.scalatest" %% "scalatest" % "3.0.4" % Test,
       "org.scalamock" %% "scalamock" % "4.0.0" % Test,
 
+      "ch.qos.logback" % "logback-classic" % "1.2.3",
+
       // Doobie, a JDBC functional programming layer
-      "org.tpolecat" %% "doobie-core"     % doobieVersion,
-      "org.tpolecat" %% "doobie-specs2"   % doobieVersion,
+      "org.tpolecat" %% "doobie-core"      % doobieVersion,
+      "org.tpolecat" %% "doobie-hikari"    % doobieVersion,
+      "org.tpolecat" %% "doobie-specs2"    % doobieVersion % Test,
+      "org.tpolecat" %% "doobie-scalatest" % doobieVersion % Test,
       // mysql connection driver
       "mysql" % "mysql-connector-java" % "5.1.45",
 
