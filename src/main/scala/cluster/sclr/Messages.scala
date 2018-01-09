@@ -7,6 +7,11 @@ object Messages {
   final case class Data(something: String)
   final case class Result(attempt: Try[Data])
 
-  final case object Begin
-  final case object Complete
+  final case object Ready
+  final case object GetWork
+  final case object Finished
+
+  val topicComputer = "worker"
+  val topicManager  = "manager"
+  val topicStatus   = "status"
 }

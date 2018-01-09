@@ -2,7 +2,8 @@ package cluster.main
 
 import akka.actor.ActorSystem
 import akka.cluster.Cluster
-import cluster.sclr.actors.{ComputeActor, ManageActor, SaveActor}
+import cluster.sclr.Messages
+import cluster.sclr.actors.{ComputeActor, ManageActor}
 import combinations.{CombinationAggregation, CombinationBuilder}
 
 import scala.concurrent.Await
@@ -19,16 +20,10 @@ object LocalApp {
     Cluster(system).join(joinAddress)
 
     val combinations = new CombinationAggregation(Vector(new CombinationBuilder(4,3), new CombinationBuilder(2,2)))
-    system.actorOf(ManageActor.props(combinations), "manage")
+    val manageActor = system.actorOf(ManageActor.props(combinations), "manage")
     (1 to parallel).foreach(i => system.actorOf(ComputeActor.props()))
-    val saveResultActor = system.actorOf(SaveActor.props(), "save")
 
-
-    Thread.sleep(1000)
-
-//    (1 to parallel).foreach(_ =>
-//      saveResultActor ! SaveActor.AskForResult
-//    )
+    manageActor ! Messages.Ready
 
     Await.result(system.whenTerminated, Duration.Inf)
   }

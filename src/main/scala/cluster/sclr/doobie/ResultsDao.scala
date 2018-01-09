@@ -3,16 +3,12 @@ package cluster.sclr.doobie
 import java.sql.Timestamp
 import java.time.{Instant, ZoneId, ZonedDateTime}
 
+import cats.effect.IO
 import com.typesafe.config.ConfigFactory
 import doobie.{Fragment, _}
 import doobie.hikari.HikariTransactor
-import doobie._
 import doobie.implicits._
 import doobie.util.transactor.Transactor
-import cats.effect.IO
-import cats._
-import cats.implicits._
-import doobie.syntax.SqlInterpolator
 
 object ResultsDao {
 
@@ -46,12 +42,17 @@ object ResultsDao {
     createIfNotExists.run.transact(xa).unsafeRunSync()
   }
 
-  def makeDefaultTransactor() = {
+  def makeSimpleTransactor() = {
+    val (driver, url, schema, username, password) = getConfigSettings()
+    Transactor.fromDriverManager[IO](driver, s"$url/$schema", username, password)
+  }
+
+  def makeHikariTransactor() = {
     val (driver, url, schema, username, password) = getConfigSettings()
     HikariTransactor.newHikariTransactor[IO](driver, s"$url/$schema", username, password).unsafeRunSync()
   }
 
-  def getConfigSettings() = {
+  private def getConfigSettings() = {
     val config = ConfigFactory.load()
     val driver   = config.getString("database.driver")
     val url      = config.getString("database.url")

@@ -1,30 +1,59 @@
 package cluster.sclr.actors
 
-import akka.actor.{Actor, ActorLogging, Props}
-import akka.cluster.Cluster
-import akka.routing.FromConfig
+import akka.actor.{Actor, ActorLogging, Cancellable, Props}
+import akka.cluster.pubsub.DistributedPubSubMediator.Publish
+import akka.cluster.pubsub.{DistributedPubSub, DistributedPubSubMediator}
 import cluster.sclr.Messages._
+import cluster.sclr.actors.ManageActor.SendReadyMessage
 import combinations.CombinationAggregation
 
+import scala.concurrent.duration._
+
 class ManageActor(combinations: CombinationAggregation) extends Actor with ActorLogging {
+
   private val iterator = combinations.all()
+  private var sendSchedule: Cancellable = _
 
-  val compute = context.actorOf(FromConfig.props(), name = "computeRouter")
-  val save = context.actorOf(FromConfig.props(), name = "computeRouter")
+  private val mediator = DistributedPubSub(context.system).mediator
+  mediator ! DistributedPubSubMediator.Subscribe(topicManager, self)
 
-  val cluster = Cluster(context.system)
-
-  override def receive: Receive = {
-    case Begin => {
-      if (iterator.hasNext) {
-        val next = iterator.next()
-        compute ! Work(next)
-      }
-    }
+  def waiting: Receive = {
+    case Ready =>
+      log.debug("waiting -> sending")
+      context.become(sending)
+      import scala.concurrent.ExecutionContext.Implicits.global
+      import scala.language.postfixOps
+      sendSchedule = context.system.scheduler.schedule(0 seconds, 5 seconds, self, SendReadyMessage)
+      mediator ! Publish(topicStatus, Ready)
   }
 
+  def sending: Receive = {
+    case SendReadyMessage =>
+      mediator ! Publish(topicComputer, Ready)
+      log.debug("sending Ready")
+    case GetWork =>
+      if (iterator.hasNext) {
+        val next = iterator.next()
+        sender() ! Work(next)
+        log.debug("sending Work")
+      } else {
+        log.debug("sending -> finished")
+        context.become(finished)
+        sendSchedule.cancel()
+        sender() ! Finished
+        mediator ! Publish(topicStatus, Finished)
+      }
+  }
+
+  def finished: Receive = {
+    case GetWork =>
+      sender() ! Finished
+  }
+
+  def receive: Receive = waiting
 }
 
 object ManageActor {
+  private case object SendReadyMessage
   def props(combinations: CombinationAggregation) = Props(new ManageActor(combinations))
 }
