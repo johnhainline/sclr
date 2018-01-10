@@ -1,0 +1,6 @@
+FROM openjdk:8-jre-alpine
+
+ADD target/scala-2.12/sclr-manage.jar .
+
+# Add curl, ping, etc for debugging purposes.
+RUN apk --no-cache add --update bash coreutils curl

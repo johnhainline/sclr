@@ -14,7 +14,7 @@ import scala.concurrent.duration.Duration
 
 
 class Terminator extends Actor {
-  val mediator = DistributedPubSub(context.system).mediator
+  private val mediator = DistributedPubSub(context.system).mediator
   mediator ! DistributedPubSubMediator.Subscribe(Messages.topicStatus, self)
   def receive: Receive = {
     case Finished =>

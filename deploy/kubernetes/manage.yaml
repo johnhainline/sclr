@@ -1,0 +1,29 @@
+apiVersion: extensions/v1
+kind: Deployment
+metadata:
+  name: manage
+  labels:
+    name: manage
+    app: sclr
+spec:
+  replicas: 1
+  template:
+    metadata:
+      name: manage
+      labels:
+        name: manage
+    spec:
+      containers:
+      - name: manage
+        image: gcr.io/affable-skill-147422/akka-sample-cluster-frontend
+        command: ["/bin/sh","-c"]
+        args: ["java -jar sclr-manage.jar"]
+        env:
+#          - name: AKKA_SEED_DISCOVERY_SERVICE
+#            value: discovery-svc.default.svc.cluster.local
+          - name: AKKA_THIS_IP
+            valueFrom:
+              fieldRef:
+                fieldPath: status.podIP
+#          - name: AKKA_SEED_PORT
+#            value: "2551"

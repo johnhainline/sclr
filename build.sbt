@@ -6,16 +6,15 @@ val doobieVersion = "0.5.0-M13"
 
 scalacOptions += "-Ypartial-unification" // 2.11.9+
 
-
-val Frontend = config("frontend") extend Compile
-val Worker = config("worker") extend Compile
+val Manage = config("manage") extend Compile
+val Compute = config("compute") extend Compile
 def customAssemblySettings =
-  inConfig(Frontend)(baseAssemblySettings ++
-    inTask(assembly)(mainClass := Some("cluster.main.FrontendApp")) ++
-    inTask(assembly)(assemblyJarName := "sclr-frontend.jar")) ++
-    inConfig(Worker)(baseAssemblySettings ++
-      inTask(assembly)(mainClass := Some("cluster.main.WorkerApp")) ++
-      inTask(assembly)(assemblyJarName := "sclr-worker.jar"))
+  inConfig(Manage)(baseAssemblySettings ++
+    inTask(assembly)(mainClass := Some("cluster.main.ManageApp")) ++
+    inTask(assembly)(assemblyJarName := "sclr-manage.jar")) ++
+    inConfig(Compute)(baseAssemblySettings ++
+      inTask(assembly)(mainClass := Some("cluster.main.ComputeApp")) ++
+      inTask(assembly)(assemblyJarName := "sclr-compute.jar"))
 
 lazy val `sclr` = project
   .in(file("."))
