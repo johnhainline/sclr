@@ -5,34 +5,16 @@ import akka.cluster.pubsub.DistributedPubSubMediator.Publish
 import akka.cluster.pubsub.{DistributedPubSub, DistributedPubSubMediator}
 import cluster.sclr.Messages._
 import cluster.sclr.doobie.ResultsDao
-import doobie.implicits._
 
-import scala.util.{Success, Try}
+import scala.util.{Failure, Try}
 
-class ComputeActor extends Actor with ActorLogging {
+class ComputeActor(resultsDao: ResultsDao) extends Actor with ActorLogging {
 
   private val mediator = DistributedPubSub(context.system).mediator
   mediator ! DistributedPubSubMediator.Subscribe(topicComputer, self)
 
   private def askForWork(): Unit = {
     mediator ! Publish(topicManager, GetWork)
-  }
-
-  private lazy val xa = ResultsDao.makeSimpleTransactor()
-
-  private def setupDatabase() = {
-    try {
-      ResultsDao.createSchemaIfNeeded()
-      ResultsDao.up1.run.transact(xa).unsafeRunSync()
-    } catch {
-      case e: Exception =>
-        log.error(e, "Could not set up database.")
-        throw e
-    }
-  }
-
-  override def preStart(): Unit = {
-    setupDatabase()
   }
 
   def waiting: Receive = {
@@ -45,14 +27,12 @@ class ComputeActor extends Actor with ActorLogging {
   def computing: Receive = {
     case (work: Work) =>
       Try {
-        Data(work.lookups.toString())
+        val data = work.lookups.toString()
+        resultsDao.insertResult(data)
       } match {
-        case Success(data) =>
-          try {
-            ResultsDao.insertResult(data.something).run.transact(xa).unsafeRunSync()
-          } catch {
-            case e: Exception => e.printStackTrace()
-          }
+        case Failure(e) =>
+          e.printStackTrace()
+        case _ =>
       }
       askForWork()
     case Finished =>
@@ -68,5 +48,5 @@ class ComputeActor extends Actor with ActorLogging {
 }
 
 object ComputeActor {
-  def props() = Props(new ComputeActor())
+  def props(resultsDao: ResultsDao) = Props(new ComputeActor(resultsDao))
 }

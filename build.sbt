@@ -36,6 +36,8 @@ lazy val `sclr` = project
       "org.scalatest" %% "scalatest" % "3.0.4" % Test,
       "org.scalamock" %% "scalamock" % "4.0.0" % Test,
 
+      // Logging
+      "com.typesafe.scala-logging" %% "scala-logging" % "3.7.2",
       "ch.qos.logback" % "logback-classic" % "1.2.3",
 
       // Doobie, a JDBC functional programming layer
