@@ -26,16 +26,13 @@ object LocalApp {
 
   def main(args: Array[String]): Unit = {
 
-    val xa = ResultsDao.makeHikariTransactor()
-    val resultsDao = new ResultsDao(xa)
-    resultsDao.setupDatabase()
-
     val parallel = 3
     implicit val system: ActorSystem = ActorSystem("sclr")
     val joinAddress = Cluster(system).selfAddress
     Cluster(system).join(joinAddress)
     system.actorOf(Props(new Terminator()), "terminator")
 
+    val resultsDao = new ResultsDao()
     val combinations = new CombinationAggregation(Vector(new CombinationBuilder(20,3), new CombinationBuilder(2,1)))
     val manageActor = system.actorOf(ManageActor.props(combinations), "manage")
     (1 to parallel).foreach(i => system.actorOf(ComputeActor.props(resultsDao)))

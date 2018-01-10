@@ -13,7 +13,12 @@ import doobie.implicits._
 import doobie.util.transactor.Transactor
 import doobie.{Fragment, _}
 
-class ResultsDao(xa: Transactor[IO]) extends LazyLogging {
+class ResultsDao extends LazyLogging {
+
+  // Do initial work to prevent bad database connection.
+  setupDatabase()
+
+  private lazy val xa: Transactor[IO] = ResultsDao.makeHikariTransactor()
 
   def getResultCount() = {
     sql"SELECT COUNT(*) FROM results".asInstanceOf[Fragment].query[Long].unique.transact(xa).unsafeRunSync()
@@ -28,7 +33,7 @@ class ResultsDao(xa: Transactor[IO]) extends LazyLogging {
     Update[String]("INSERT INTO results (data) VALUES (?)").toUpdate0(data).run.transact(xa).unsafeRunSync()
   }
 
-  def setupDatabase() = {
+  private def setupDatabase() = {
     try {
       createSchemaIfNeeded()
       ResultsDao.up1.run.transact(xa).unsafeRunSync()
@@ -67,12 +72,12 @@ object ResultsDao {
       PRIMARY KEY       (id)
     )""".asInstanceOf[Fragment].update
 
-  def makeSimpleTransactor(): Transactor[IO] = {
+  private def makeSimpleTransactor(): Transactor[IO] = {
     val (driver, url, schema, username, password) = getConfigSettings
     Transactor.fromDriverManager[IO](driver, s"$url/$schema", username, password)
   }
 
-  def makeHikariTransactor(): HikariTransactor[IO] = {
+  private def makeHikariTransactor(): HikariTransactor[IO] = {
     val (driver, url, schema, username, password) = getConfigSettings
     Class.forName(driver)
     val config = new HikariConfig()
