@@ -45,25 +45,34 @@ class LocalClusterSpec extends TestKit(ActorSystem("LocalClusterSpec")) with Imp
       expectMsg(5 seconds, Finished)
       import akka.pattern.gracefulStop
       Await.result(gracefulStop(computeActor, 5 seconds), Duration.Inf)
+      Await.result(gracefulStop(manageActor, 5 seconds), Duration.Inf)
     }
 
-//    "process work using 10 compute nodes" in {
-//      val stubConnection = stub[Connection]
-//      val joinAddress = Cluster(system).selfAddress
-//      Cluster(system).join(joinAddress)
-//
-//      val combinations = new CombinationAggregation(Vector(new CombinationBuilder(4,3), new CombinationBuilder(2,2)))
-//      system.actorOf(ManageActor.props(combinations), "manage")
-//      (1 to 10).foreach(i => system.actorOf(ComputeActor.props()))
-//      val saveResultActor = system.actorOf(SaveActor.props(() => stubConnection), "save")
-//
-//      // Wait for actors to connect...
-//      Thread.sleep(1000)
-//
-//      //      saveResultActor ! SaveActor.AskForResult
-//
-//      expectMsg(5 seconds, Complete)
-//    }
+    "process work using 3 compute nodes" in {
+      val resultsDao = mock[ResultsDao]
+      (resultsDao.insertResult _).expects("Vector(Vector(0, 1, 2), Vector(0))")
+      (resultsDao.insertResult _).expects("Vector(Vector(0, 1, 2), Vector(1))")
+      (resultsDao.insertResult _).expects("Vector(Vector(0, 1, 3), Vector(0))")
+      (resultsDao.insertResult _).expects("Vector(Vector(0, 1, 3), Vector(1))")
+      (resultsDao.insertResult _).expects("Vector(Vector(0, 2, 3), Vector(0))")
+      (resultsDao.insertResult _).expects("Vector(Vector(0, 2, 3), Vector(1))")
+      (resultsDao.insertResult _).expects("Vector(Vector(1, 2, 3), Vector(0))")
+      (resultsDao.insertResult _).expects("Vector(Vector(1, 2, 3), Vector(1))")
+
+      val combinations = new CombinationAggregation(Vector(new CombinationBuilder(4,3), new CombinationBuilder(2,1)))
+      val manageActor = system.actorOf(ManageActor.props(combinations), "manage")
+      val computeActors = (for (i <- 1 to 3) yield system.actorOf(ComputeActor.props(resultsDao))).toVector
+
+      manageActor ! Ready
+
+      expectMsg(1 seconds, Ready)
+      expectMsg(5 seconds, Finished)
+      import akka.pattern.gracefulStop
+      for (actor <- computeActors) {
+        Await.result(gracefulStop(actor, 5 seconds), Duration.Inf)
+      }
+      Await.result(gracefulStop(manageActor, 5 seconds), Duration.Inf)
+    }
 
   }
 }
