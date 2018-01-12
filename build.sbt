@@ -21,8 +21,6 @@ lazy val sclr = project
     // sigar is a os dependent toolset to make akka-cluster-metrics give more details
     "io.kamon" % "sigar-loader" % "1.6.6-rev002",
 
-    "com.lightbend.akka" %% "akka-management-cluster-http" % "0.6",
-
     "org.scalatest" %% "scalatest" % "3.0.4" % Test,
     "org.scalamock" %% "scalamock" % "4.0.0" % Test,
 
@@ -31,9 +29,9 @@ lazy val sclr = project
     "ch.qos.logback" % "logback-classic" % "1.2.3",
 
     // Doobie, a JDBC functional programming layer
-    "org.tpolecat" %% "doobie-core" % doobieVersion,
-    "org.tpolecat" %% "doobie-hikari" % doobieVersion,
-    "org.tpolecat" %% "doobie-specs2" % doobieVersion % Test,
+    "org.tpolecat" %% "doobie-core"      % doobieVersion,
+    "org.tpolecat" %% "doobie-hikari"    % doobieVersion,
+    "org.tpolecat" %% "doobie-specs2"    % doobieVersion % Test,
     "org.tpolecat" %% "doobie-scalatest" % doobieVersion % Test,
     // mysql connection driver
     "mysql" % "mysql-connector-java" % "5.1.45",
@@ -41,20 +39,23 @@ lazy val sclr = project
     // Weka, a Machine Learning library.
     "nz.ac.waikato.cms.weka" % "weka-stable" % "3.8.2",
 
-    "com.typesafe.akka" %% "akka-http" % httpVersion,
-    "com.typesafe.akka" %% "akka-http-testkit" % httpVersion % Test,
-    "com.typesafe.akka" %% "akka-actor" % akkaVersion,
-    "com.typesafe.akka" %% "akka-testkit" % akkaVersion % Test,
-    "com.typesafe.akka" %% "akka-stream" % akkaVersion,
-    "com.typesafe.akka" %% "akka-stream-testkit" % akkaVersion % Test,
-    "com.typesafe.akka" %% "akka-cluster" % akkaVersion,
-    "com.typesafe.akka" %% "akka-cluster-metrics" % akkaVersion,
-    "com.typesafe.akka" %% "akka-cluster-tools" % akkaVersion,
+    "com.lightbend.akka.management" %% "akka-management" % "0.8.0",
+    "com.lightbend.akka.management" %% "akka-management-cluster-http" % "0.8.0",
+
+    "com.typesafe.akka" %% "akka-http"             % httpVersion,
+    "com.typesafe.akka" %% "akka-http-spray-json"  % httpVersion,
+    "com.typesafe.akka" %% "akka-http-testkit"     % httpVersion % Test,
+    "com.typesafe.akka" %% "akka-actor"            % akkaVersion,
+    "com.typesafe.akka" %% "akka-testkit"          % akkaVersion % Test,
+    "com.typesafe.akka" %% "akka-stream"           % akkaVersion,
+    "com.typesafe.akka" %% "akka-stream-testkit"   % akkaVersion % Test,
+    "com.typesafe.akka" %% "akka-cluster"          % akkaVersion,
+    "com.typesafe.akka" %% "akka-cluster-metrics"  % akkaVersion,
+    "com.typesafe.akka" %% "akka-cluster-tools"    % akkaVersion,
     "com.typesafe.akka" %% "akka-cluster-sharding" % akkaVersion,
     "com.typesafe.akka" %% "akka-distributed-data" % akkaVersion,
-    "com.typesafe.akka" %% "akka-remote" % akkaVersion,
-    "com.typesafe.akka" %% "akka-distributed-data" % akkaVersion,
-    "com.typesafe.akka" %% "akka-multi-node-testkit" % akkaVersion
+    "com.typesafe.akka" %% "akka-remote"           % akkaVersion,
+    "com.typesafe.akka" %% "akka-distributed-data" % akkaVersion
   ),
 
   scalacOptions in Compile ++= Seq("-deprecation", "-feature", "-unchecked", "-Xlog-reflective-calls", "-Xlint"),

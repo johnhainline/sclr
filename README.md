@@ -31,7 +31,7 @@ Deploy to Google Kubernetes Engine or deploy and run locally!
 
 ## Deploy to Google Kubernetes Engine
 1. To build our base docker image, run
-   - `docker build -t local/openjdk-jre-8-bash:latest - < ./deploy/docker/Dockerfile-openjdk-jre-8-bash`
+   - `docker build -t local/openjdk-jre-8-bash:latest - < src/main/resources/docker/Dockerfile-openjdk-jre-8-bash`
    - This builds the docker image referenced in our build.sbt as `"local/openjdk-jre-8-bash"`.
 2. 
 3. 

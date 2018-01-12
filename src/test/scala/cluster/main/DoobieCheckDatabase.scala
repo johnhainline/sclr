@@ -1,7 +1,8 @@
 package cluster.main
 
-import doobie._, doobie.implicits._
-import cats._, cats.data._, cats.effect.IO, cats.implicits._
+import cats.effect.IO
+import doobie._
+import doobie.implicits._
 
 object DoobieCheckDatabase {
 

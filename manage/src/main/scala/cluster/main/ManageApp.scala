@@ -2,7 +2,7 @@ package cluster.main
 
 import akka.actor.{ActorSystem, Props}
 import akka.cluster.Cluster
-import cluster.sclr.actors.ManageActor
+import cluster.sclr.actors.{FrontendActor, ManageActor}
 import com.typesafe.config.ConfigFactory
 
 import scala.concurrent.duration._

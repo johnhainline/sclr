@@ -2,9 +2,10 @@
 apiVersion: v1
 kind: Service
 metadata:
+  name: compute-service
   labels:
-    app: sclr-service
-  name: sclr-service
+    name: compute-service
+    app: sclr
 spec:
   clusterIP: None
   ports:
@@ -12,28 +13,31 @@ spec:
     protocol: TCP
     targetPort: 2551
   selector:
-    app: sclr-service
+    name: compute-service
+    app: sclr
 ---
 apiVersion: apps/v1beta2
 kind: StatefulSet
 metadata:
-  name: sclr-compute
+  name: compute
 spec:
   selector:
     matchLabels:
-      app: sclr-akka
+      name: compute
+      app: sclr
   serviceName: sclr-service
   podManagementPolicy: Parallel
-  replicas: 3
+  replicas: 2
   template:
     metadata:
       labels:
-        app: sclr-akka
+        name: compute
+        app: sclr
     spec:
       containers:
-      - name: sclr-compute
+      - name: compute
         image: us.gcr.io/sclr-akka/compute:latest
-        imagePullPolicy: Always
+        imagePullPolicy: Never
         ports:
         - containerPort: 2551
           name: akka-remote
@@ -50,7 +54,7 @@ spec:
         - name: AKKA_REMOTING_BIND_HOST
           value: "$HOSTNAME.sclr.default.svc.cluster.local"
         - name: AKKA_SEED_NODES
-          value: 'sclr-compute-0.sclr.default.svc.cluster.local:2551'
+          value: 'compute-0.sclr.default.svc.cluster.local:2551'
         - name: CLUSTER_MEMBERSHIP_ASK_TIMEOUT
           value: '5000'
         - name: DATABASE_HOST

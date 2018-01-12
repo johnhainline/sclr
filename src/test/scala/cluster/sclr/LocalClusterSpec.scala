@@ -4,7 +4,7 @@ import akka.actor.ActorSystem
 import akka.cluster.pubsub.DistributedPubSubMediator.SubscribeAck
 import akka.cluster.pubsub.{DistributedPubSub, DistributedPubSubMediator}
 import akka.testkit.{ImplicitSender, TestKit}
-import cluster.sclr.Messages.{Finished, Ready}
+import cluster.sclr.Messages.{Begin, Finished, Ready}
 import cluster.sclr.actors.{ComputeActor, ManageActor}
 import cluster.sclr.doobie.ResultsDao
 import combinations.{CombinationAggregation, CombinationBuilder}
@@ -36,10 +36,10 @@ class LocalClusterSpec extends TestKit(ActorSystem("LocalClusterSpec")) with Imp
       (resultsDao.insertResult _).expects("Vector(Vector(0), Vector(0, 1))")
 
       val combinations = new CombinationAggregation(Vector(new CombinationBuilder(1,1), new CombinationBuilder(2,2)))
-      val manageActor  = system.actorOf(ManageActor.props(combinations), "manage")
+      val manageActor  = system.actorOf(ManageActor.props(), "manage")
       val computeActor = system.actorOf(ComputeActor.props(resultsDao), "compute")
 
-      manageActor ! Ready
+      manageActor ! Begin(combinations)
 
       expectMsg(1 seconds, Ready)
       expectMsg(5 seconds, Finished)
@@ -60,10 +60,10 @@ class LocalClusterSpec extends TestKit(ActorSystem("LocalClusterSpec")) with Imp
       (resultsDao.insertResult _).expects("Vector(Vector(1, 2, 3), Vector(1))")
 
       val combinations = new CombinationAggregation(Vector(new CombinationBuilder(4,3), new CombinationBuilder(2,1)))
-      val manageActor = system.actorOf(ManageActor.props(combinations), "manage")
+      val manageActor = system.actorOf(ManageActor.props(), "manage")
       val computeActors = (for (i <- 1 to 3) yield system.actorOf(ComputeActor.props(resultsDao))).toVector
 
-      manageActor ! Ready
+      manageActor ! Begin(combinations)
 
       expectMsg(1 seconds, Ready)
       expectMsg(5 seconds, Finished)

@@ -1,23 +1,25 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: sclr-mysql
+  name: mysql-service
   labels:
-    app: sclr-akka
+    name: mysql-service
+    app: sclr
 spec:
   clusterIP: None
   ports:
     - port: 3306
   selector:
-    app: sclr-akka
-    tier: mysql
+    name: mysql-service
+    app: sclr
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: mysql-pv-claim
   labels:
-    app: sclr-akka
+    name: mysql-pv-claim
+    app: sclr
 spec:
   accessModes:
     - ReadWriteOnce
@@ -28,21 +30,22 @@ spec:
 apiVersion: apps/v1beta2
 kind: Deployment
 metadata:
-  name: sclr-mysql
+  name: mysql
   labels:
-    app: sclr-akka
+    name: mysql
+    app: sclr
 spec:
   selector:
     matchLabels:
-      app: sclr-akka
-      tier: mysql
+      name: mysql
+      app: sclr
   strategy:
     type: Recreate
   template:
     metadata:
       labels:
-        app: sclr-akka
-        tier: mysql
+        name: mysql
+        app: sclr
     spec:
       containers:
       - image: mysql:5.6

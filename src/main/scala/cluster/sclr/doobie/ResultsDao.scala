@@ -15,9 +15,6 @@ import doobie.{Fragment, _}
 
 class ResultsDao extends LazyLogging {
 
-  // Do initial work to prevent bad database connection.
-  setupDatabase()
-
   private lazy val xa: Transactor[IO] = ResultsDao.makeHikariTransactor()
 
   def getResultCount() = {
@@ -33,7 +30,7 @@ class ResultsDao extends LazyLogging {
     Update[String]("INSERT INTO results (data) VALUES (?)").toUpdate0(data).run.transact(xa).unsafeRunSync()
   }
 
-  private def setupDatabase() = {
+  def setupDatabase() = {
     try {
       createSchemaIfNeeded()
       ResultsDao.up1.run.transact(xa).unsafeRunSync()

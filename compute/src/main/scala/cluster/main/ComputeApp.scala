@@ -22,7 +22,9 @@ object ComputeApp {
 
     Cluster(system) registerOnMemberUp {
       system.actorOf(Props(new Terminator()), "terminator")
-      system.actorOf(ComputeActor.props(new ResultsDao()), "compute")
+      val resultsDao = new ResultsDao()
+      resultsDao.setupDatabase()
+      system.actorOf(ComputeActor.props(resultsDao), "compute")
     }
 
     Cluster(system).registerOnMemberRemoved {
