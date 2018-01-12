@@ -15,15 +15,12 @@ spec:
     spec:
       containers:
       - name: manage
-        image: gcr.io/affable-skill-147422/akka-sample-cluster-frontend
-        command: ["/bin/sh","-c"]
-        args: ["java -jar sclr-manage.jar"]
+        image: us.gcr.io/sclr/sclr-manage:latest
+        ports:
+        - name: akka-remote
+          containerPort: 2551
         env:
-#          - name: AKKA_SEED_DISCOVERY_SERVICE
-#            value: discovery-svc.default.svc.cluster.local
           - name: AKKA_THIS_IP
             valueFrom:
               fieldRef:
                 fieldPath: status.podIP
-#          - name: AKKA_SEED_PORT
-#            value: "2551"

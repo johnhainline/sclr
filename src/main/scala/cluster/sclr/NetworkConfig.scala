@@ -6,7 +6,7 @@ import scala.collection.JavaConverters._
 
 object NetworkConfig {
 
-  def hostLocalAddress(): String = {
+  def hostLocalAddress: String = {
     NetworkInterface.getNetworkInterfaces.asScala.
       find(_.getName equals "eth0").
       flatMap(interface =>

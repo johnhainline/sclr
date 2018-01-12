@@ -1,0 +1,21 @@
+apiVersion: extensions/v1
+kind: Deployment
+metadata:
+  name: manage
+  labels:
+    name: manage
+    app: sclr-akka
+spec:
+  replicas: 1
+  template:
+    metadata:
+      name: manage
+      labels:
+        name: manage
+    spec:
+      containers:
+      - name: manage
+        image: us.gcr.io/sclr-akka/compute:latest
+        ports:
+        - name: akka-remote
+          containerPort: 2551

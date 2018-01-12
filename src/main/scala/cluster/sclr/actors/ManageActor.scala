@@ -5,20 +5,20 @@ import akka.cluster.pubsub.DistributedPubSubMediator.Publish
 import akka.cluster.pubsub.{DistributedPubSub, DistributedPubSubMediator}
 import cluster.sclr.Messages._
 import cluster.sclr.actors.ManageActor.SendReadyMessage
-import combinations.CombinationAggregation
 
 import scala.concurrent.duration._
 
-class ManageActor(combinations: CombinationAggregation) extends Actor with ActorLogging {
+class ManageActor extends Actor with ActorLogging {
 
-  private val iterator = combinations.all()
+  private var iterator: Iterator[Vector[combinations.Combination]] = _
   private var sendSchedule: Cancellable = _
 
   private val mediator = DistributedPubSub(context.system).mediator
   mediator ! DistributedPubSubMediator.Subscribe(topicManager, self)
 
   def waiting: Receive = {
-    case Ready =>
+    case Begin(combinationAggregation) =>
+      iterator = combinationAggregation.all()
       log.debug("waiting -> sending")
       context.become(sending)
       import scala.concurrent.ExecutionContext.Implicits.global
@@ -55,5 +55,5 @@ class ManageActor(combinations: CombinationAggregation) extends Actor with Actor
 
 object ManageActor {
   private case object SendReadyMessage
-  def props(combinations: CombinationAggregation) = Props(new ManageActor(combinations))
+  def props() = Props(new ManageActor())
 }

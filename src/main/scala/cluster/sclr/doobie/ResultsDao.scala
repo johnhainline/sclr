@@ -72,11 +72,6 @@ object ResultsDao {
       PRIMARY KEY       (id)
     )""".asInstanceOf[Fragment].update
 
-  private def makeSimpleTransactor(): Transactor[IO] = {
-    val (driver, url, schema, username, password) = getConfigSettings
-    Transactor.fromDriverManager[IO](driver, s"$url/$schema", username, password)
-  }
-
   private def makeHikariTransactor(): HikariTransactor[IO] = {
     val (driver, url, schema, username, password) = getConfigSettings
     Class.forName(driver)
@@ -85,16 +80,17 @@ object ResultsDao {
     config.setUsername(username)
     config.setPassword(password)
     config.setAutoCommit(false)
+    config.setMaximumPoolSize(2)
     HikariTransactor[IO](new HikariDataSource(config))
   }
 
   private def getConfigSettings = {
     val config = ConfigFactory.load()
     val driver   = config.getString("database.driver")
-    val url      = config.getString("database.url")
+    val host     = config.getString("database.host")
     val schema   = config.getString("database.schema")
     val username = config.getString("database.username")
     val password = config.getString("database.password")
-    (driver, url, schema, username, password)
+    (driver, s"jdbc:mysql://$host", schema, username, password)
   }
 }

@@ -1,0 +1,65 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: sclr-mysql
+  labels:
+    app: sclr-akka
+spec:
+  clusterIP: None
+  ports:
+    - port: 3306
+  selector:
+    app: sclr-akka
+    tier: mysql
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-pv-claim
+  labels:
+    app: sclr-akka
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  name: sclr-mysql
+  labels:
+    app: sclr-akka
+spec:
+  selector:
+    matchLabels:
+      app: sclr-akka
+      tier: mysql
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: sclr-akka
+        tier: mysql
+    spec:
+      containers:
+      - image: mysql:5.6
+        name: mysql
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-password
+              key: password
+        ports:
+        - containerPort: 3306
+          name: mysql
+        volumeMounts:
+        - name: mysql-persistent-storage
+          mountPath: /var/lib/mysql
+      volumes:
+      - name: mysql-persistent-storage
+        persistentVolumeClaim:
+          claimName: mysql-pv-claim

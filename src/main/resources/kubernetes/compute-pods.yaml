@@ -1,20 +1,38 @@
 ---
-apiVersion: apps/v1
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: sclr-service
+  name: sclr-service
+spec:
+  clusterIP: None
+  ports:
+  - port: 2551
+    protocol: TCP
+    targetPort: 2551
+  selector:
+    app: sclr-service
+---
+apiVersion: apps/v1beta2
 kind: StatefulSet
 metadata:
-  name: sclr
+  name: sclr-compute
 spec:
-  serviceName: sclr
+  selector:
+    matchLabels:
+      app: sclr-akka
+  serviceName: sclr-service
   podManagementPolicy: Parallel
   replicas: 3
   template:
     metadata:
       labels:
-        app: sclr
+        app: sclr-akka
     spec:
       containers:
-      - name: sclr
-        image: szihai/sclr:latest
+      - name: sclr-compute
+        image: us.gcr.io/sclr-akka/compute:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 2551
@@ -27,20 +45,23 @@ spec:
             cpu: 250m
             memory: 384Mi
         env:
-        - name: AKKA_ACTOR_SYSTEM_NAME
-          value: sclr
         - name: AKKA_REMOTING_BIND_PORT
           value: '2551'
         - name: AKKA_REMOTING_BIND_HOST
           value: "$HOSTNAME.sclr.default.svc.cluster.local"
         - name: AKKA_SEED_NODES
-          value: sclr-0.sclr.default.svc.cluster.local:2551,sclr-1.sclr.default.svc.cluster.local:2551
-        - name: HTTP_HOST
-          value: 0.0.0.0
-        - name: HTTP_PORT
-          value: '9000'
+          value: 'sclr-compute-0.sclr.default.svc.cluster.local:2551'
         - name: CLUSTER_MEMBERSHIP_ASK_TIMEOUT
           value: '5000'
+        - name: DATABASE_HOST
+          value: sclr-mysql
+        - name: DATABASE_USERNAME
+          value: 'root'
+        - name: DATABASE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-password
+              key: password
         readinessProbe:
           tcpSocket:
             port: 2551

@@ -21,17 +21,19 @@ the cluster so it can bootstrap.
 
 ## Notes
 The setup for this project was inspired by the following projects:
+* [SBT Docker Kubernetes](https://github.com/WarsawScala/sbt-docker-k8s): An example project that deploys multiple docker images to Kubernetes.
+* [Lightbend Akka Cluster on Kubernetes](https://developer.lightbend.com/guides/akka-cluster-kubernetes-k8s-deploy/): A tutorial on deploying an Akka Cluster to Kubernetes.
 * [Akka Cluster on GCP](https://developer.lightbend.com/guides/running-akka-cluster-on-google-platform/): An introduction to deploying an Akka Cluster to the Google Cloud Platform.
-* [Akka Cluster on Kubernetes](https://github.com/IBM/Akka-cluster-deploy-kubernetes): IBM's tutorial on deploying an Akka Cluster using Kubernetes
+* [IBM Akka Cluster on Kubernetes](https://github.com/IBM/Akka-cluster-deploy-kubernetes): IBM's tutorial on deploying an Akka Cluster using Kubernetes.
 
 # Steps
 Deploy to Google Kubernetes Engine or deploy and run locally!
 
 ## Deploy to Google Kubernetes Engine
-1. 
-
+1. To build our base docker image, run
+   - `docker build -t local/openjdk-jre-8-bash:latest - < ./deploy/docker/Dockerfile-openjdk-jre-8-bash`
+   - This builds the docker image referenced in our build.sbt as `"local/openjdk-jre-8-bash"`.
 2. 
-
 3. 
 
 ## Deploy and Run Locally

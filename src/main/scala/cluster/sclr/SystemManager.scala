@@ -5,9 +5,8 @@ import akka.actor.ActorSystem
 import akka.cluster.Cluster
 import akka.cluster.singleton.{ClusterSingletonManager, ClusterSingletonManagerSettings}
 import cluster.sclr.actors.ManageActor
-import combinations.CombinationAggregation
 
-class SystemManager(combinations: CombinationAggregation) {
+class SystemManager() {
   implicit val system = ActorSystem("sclr")
 
   val joinAddress = Cluster(system).selfAddress
@@ -15,7 +14,7 @@ class SystemManager(combinations: CombinationAggregation) {
 
   val singletonManager = system.actorOf(
     ClusterSingletonManager.props(
-      singletonProps = ManageActor.props(combinations),
+      singletonProps = ManageActor.props(),
       terminationMessage = Done,
       settings = ClusterSingletonManagerSettings(system).withRole("manager")),
     name = "consumer")
