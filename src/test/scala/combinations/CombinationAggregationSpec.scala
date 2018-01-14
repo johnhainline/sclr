@@ -5,8 +5,8 @@ import org.scalatest._
 class CombinationAggregationSpec extends FlatSpec with Matchers {
 
   "CombinationsAggregation" should "hold the total count of combos" in {
-    new CombinationAggregation(Vector(new CombinationBuilder(10,2), new CombinationBuilder(3,1))).count shouldEqual 135
-    new CombinationAggregation(Vector(new CombinationBuilder(5,2), new CombinationBuilder(6,2))).count shouldEqual 150
+    CombinationAggregation(Vector(CombinationBuilder(10,2), CombinationBuilder(3,1))).count shouldEqual 135
+    CombinationAggregation(Vector(CombinationBuilder(5,2), CombinationBuilder(6,2))).count shouldEqual 150
   }
 
   // For 6 choose 3 -> {0,1,3,3,4,5}
@@ -23,11 +23,11 @@ class CombinationAggregationSpec extends FlatSpec with Matchers {
 
   it should "provide an iterator for the combination" in {
 
-    val result = new CombinationAggregation(Vector(new CombinationBuilder(4,3), new CombinationBuilder(5,2), new CombinationBuilder(2,1))).all().toVector
+    val result = CombinationAggregation(Vector(CombinationBuilder(4,3), CombinationBuilder(5,2), CombinationBuilder(2,1))).all().toVector
 
-    val combo1 = new CombinationBuilder(4,3).all().toVector
-    val combo2 = new CombinationBuilder(5,2).all().toVector
-    val combo3 = new CombinationBuilder(2,1).all().toVector
+    val combo1 = CombinationBuilder(4,3).all().toVector
+    val combo2 = CombinationBuilder(5,2).all().toVector
+    val combo3 = CombinationBuilder(2,1).all().toVector
     val expected = for (a <- combo1; b <- combo2; c <- combo3) yield {
       Vector(a,b,c)
     }
@@ -36,7 +36,7 @@ class CombinationAggregationSpec extends FlatSpec with Matchers {
 
   it should "provide an iterator for a section of combinations" in {
 
-    val result1 = new CombinationAggregation(Vector(new CombinationBuilder(3,2), new CombinationBuilder(2,1), new CombinationBuilder(5,2))).rangeUntil(3,5).toVector
+    val result1 = CombinationAggregation(Vector(CombinationBuilder(3,2), CombinationBuilder(2,1), CombinationBuilder(5,2))).rangeUntil(3,5).toVector
     val expected1 = Vector(
 //      Vector(Vector(0,1),Vector(0),Vector(0,1)), // 0
 //      Vector(Vector(0,1),Vector(0),Vector(0,2)), // 1
@@ -46,7 +46,7 @@ class CombinationAggregationSpec extends FlatSpec with Matchers {
     )
     result1 shouldEqual expected1
 
-    val result2 = new CombinationAggregation(Vector(new CombinationBuilder(3,2), new CombinationBuilder(2,1), new CombinationBuilder(5,2))).rangeUntil(21,32).toVector
+    val result2 = CombinationAggregation(Vector(CombinationBuilder(3,2), CombinationBuilder(2,1), CombinationBuilder(5,2))).rangeUntil(21,32).toVector
     val expected2 = Vector(
       Vector(Vector(0,2),Vector(0),Vector(0,2)), // 21
       Vector(Vector(0,2),Vector(0),Vector(1,2)), // 22

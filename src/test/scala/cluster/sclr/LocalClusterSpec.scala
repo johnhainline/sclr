@@ -3,8 +3,9 @@ package cluster.sclr
 import akka.actor.ActorSystem
 import akka.cluster.pubsub.DistributedPubSubMediator.SubscribeAck
 import akka.cluster.pubsub.{DistributedPubSub, DistributedPubSubMediator}
+import akka.pattern.gracefulStop
 import akka.testkit.{ImplicitSender, TestKit}
-import cluster.sclr.Messages.{Begin, Finished, Ready}
+import cluster.sclr.Messages.{Begin, BeginAck, Finished, Ready}
 import cluster.sclr.actors.{ComputeActor, ManageActor}
 import cluster.sclr.doobie.ResultsDao
 import combinations.{CombinationAggregation, CombinationBuilder}
@@ -34,16 +35,15 @@ class LocalClusterSpec extends TestKit(ActorSystem("LocalClusterSpec")) with Imp
     "process work using a single compute node" in {
       val resultsDao = mock[ResultsDao]
       (resultsDao.insertResult _).expects("Vector(Vector(0), Vector(0, 1))")
-
       val combinations = new CombinationAggregation(Vector(new CombinationBuilder(1,1), new CombinationBuilder(2,2)))
       val manageActor  = system.actorOf(ManageActor.props(), "manage")
       val computeActor = system.actorOf(ComputeActor.props(resultsDao), "compute")
 
       manageActor ! Begin(combinations)
+      expectMsg(1 seconds, BeginAck)
 
       expectMsg(1 seconds, Ready)
       expectMsg(5 seconds, Finished)
-      import akka.pattern.gracefulStop
       Await.result(gracefulStop(computeActor, 5 seconds), Duration.Inf)
       Await.result(gracefulStop(manageActor, 5 seconds), Duration.Inf)
     }
@@ -64,10 +64,10 @@ class LocalClusterSpec extends TestKit(ActorSystem("LocalClusterSpec")) with Imp
       val computeActors = (for (i <- 1 to 3) yield system.actorOf(ComputeActor.props(resultsDao))).toVector
 
       manageActor ! Begin(combinations)
+      expectMsg(1 seconds, BeginAck)
 
       expectMsg(1 seconds, Ready)
       expectMsg(5 seconds, Finished)
-      import akka.pattern.gracefulStop
       for (actor <- computeActors) {
         Await.result(gracefulStop(actor, 5 seconds), Duration.Inf)
       }

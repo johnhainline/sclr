@@ -25,6 +25,7 @@ class ManageActor extends Actor with ActorLogging {
       import scala.language.postfixOps
       sendSchedule = context.system.scheduler.schedule(0 seconds, 5 seconds, self, SendReadyMessage)
       mediator ! Publish(topicStatus, Ready)
+      sender() ! BeginAck
   }
 
   def sending: Receive = {

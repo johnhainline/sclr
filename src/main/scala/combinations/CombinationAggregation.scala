@@ -1,6 +1,6 @@
 package combinations
 
-class CombinationAggregation(val combinations: Vector[CombinationBuilder]) {
+case class CombinationAggregation(combinations: Vector[CombinationBuilder]) {
   val count: BigInt = combinations.foldLeft(BigInt(1))((total, combo) => total * combo.count)
 
   def all(): Iterator[Vector[Combination]] = {

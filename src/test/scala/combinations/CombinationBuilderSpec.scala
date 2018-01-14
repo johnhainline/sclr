@@ -116,7 +116,7 @@ class CombinationBuilderSpec extends FlatSpec with Matchers {
 
   it should "provide an iterator for the combination" in {
 
-    val result = new CombinationBuilder(6,3).all().toVector
+    val result = CombinationBuilder(6,3).all().toVector
 
     result shouldEqual Vector(
       Vector(0,1,2), Vector(0,1,3), Vector(0,2,3), Vector(1,2,3), Vector(0,1,4),
@@ -127,16 +127,16 @@ class CombinationBuilderSpec extends FlatSpec with Matchers {
   }
 
   it should "provide an iterator for a section of the combination" in {
-    new CombinationBuilder(6, 3).rangeUntil(3, 8).toVector shouldEqual Vector(
+    CombinationBuilder(6, 3).rangeUntil(3, 8).toVector shouldEqual Vector(
       Vector(1,2,3), Vector(0,1,4), Vector(0,2,4), Vector(1,2,4), Vector(0,3,4)
     )
-    new CombinationBuilder(6, 3).rangeUntil(17, 20).toVector shouldEqual Vector(
+    CombinationBuilder(6, 3).rangeUntil(17, 20).toVector shouldEqual Vector(
       Vector(1,4,5), Vector(2,4,5), Vector(3,4,5)
     )
-    new CombinationBuilder(1, 1).rangeUntil(0, 1).toVector shouldEqual Vector(Vector(0))
-    new CombinationBuilder(2, 1).rangeUntil(0, 2).toVector shouldEqual Vector(Vector(0), Vector(1))
-    new CombinationBuilder(2, 1).rangeUntil(1, 2).toVector shouldEqual Vector(Vector(1))
-    new CombinationBuilder(9, 4).rangeUntil(116, 126).toVector shouldEqual Vector(
+    CombinationBuilder(1, 1).rangeUntil(0, 1).toVector shouldEqual Vector(Vector(0))
+    CombinationBuilder(2, 1).rangeUntil(0, 2).toVector shouldEqual Vector(Vector(0), Vector(1))
+    CombinationBuilder(2, 1).rangeUntil(1, 2).toVector shouldEqual Vector(Vector(1))
+    CombinationBuilder(9, 4).rangeUntil(116, 126).toVector shouldEqual Vector(
       Vector(1,5,7,8), Vector(2,5,7,8), Vector(3,5,7,8), Vector(4,5,7,8), Vector(0,6,7,8),
       Vector(1,6,7,8), Vector(2,6,7,8), Vector(3,6,7,8), Vector(4,6,7,8), Vector(5,6,7,8)
     )
@@ -144,7 +144,7 @@ class CombinationBuilderSpec extends FlatSpec with Matchers {
 
   it should "loop the iterator on a range that exceeds the combination" in {
 
-    val result1 = new CombinationBuilder(6,3).rangeUntil(10, 45).toVector
+    val result1 = CombinationBuilder(6,3).rangeUntil(10, 45).toVector
     result1 shouldEqual Vector(
       Vector(0,1,5), Vector(0,2,5), Vector(1,2,5), Vector(0,3,5), Vector(1,3,5),
       Vector(2,3,5), Vector(0,4,5), Vector(1,4,5), Vector(2,4,5), Vector(3,4,5),
@@ -157,7 +157,7 @@ class CombinationBuilderSpec extends FlatSpec with Matchers {
       Vector(0,1,2), Vector(0,1,3), Vector(0,2,3), Vector(1,2,3), Vector(0,1,4)
     )
 
-    val result2 = new CombinationBuilder(5,2).rangeUntil(21, 32).toVector
+    val result2 = CombinationBuilder(5,2).rangeUntil(21, 32).toVector
     result2 shouldEqual Vector(
       Vector(0,2), Vector(1,2), Vector(0,3), Vector(1,3), Vector(2,3), Vector(0,4), Vector(1,4), Vector(2,4), Vector(3,4), Vector(0,1),
       Vector(0,2)

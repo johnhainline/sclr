@@ -5,6 +5,7 @@ import combinations.CombinationAggregation
 object Messages {
   // Send `Begin` to the ManageActor to start work.
   final case class Begin(combinationAggregation: CombinationAggregation)
+  final case object BeginAck // acknowledgement response
 
   // ManageActor sends `Work` or `Finished` as a response to actors who send it the GetWork message.
   final case class Work(lookups: Vector[combinations.Combination])

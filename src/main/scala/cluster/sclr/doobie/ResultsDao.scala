@@ -18,12 +18,12 @@ class ResultsDao extends LazyLogging {
   private lazy val xa: Transactor[IO] = ResultsDao.makeHikariTransactor()
 
   def getResultCount() = {
-    sql"SELECT COUNT(*) FROM results".asInstanceOf[Fragment].query[Long].unique.transact(xa).unsafeRunSync()
+    sql"SELECT COUNT(*) FROM results".query[Long].unique.transact(xa).unsafeRunSync()
   }
 
   def getResults() = {
     import ResultsDao.ZonedDateTimeMeta
-    sql"SELECT id, data, created_at FROM results".asInstanceOf[Fragment].query[Result].list.transact(xa).unsafeRunSync()
+    sql"SELECT id, data, created_at FROM results".query[Result].list.transact(xa).unsafeRunSync()
   }
 
   def insertResult(data: String) = {
@@ -45,7 +45,7 @@ class ResultsDao extends LazyLogging {
     val (driver, url, schema, username, password) = ResultsDao.getConfigSettings
     val xa = Transactor.fromDriverManager[IO](driver, url, username, password)
 
-    val createIfNotExists = (fr"CREATE SCHEMA IF NOT EXISTS".asInstanceOf[Fragment] ++ Fragment.const(schema)).update
+    val createIfNotExists = (fr"CREATE SCHEMA IF NOT EXISTS" ++ Fragment.const(schema)).update
     createIfNotExists.run.transact(xa).unsafeRunSync()
   }
 
@@ -67,7 +67,7 @@ object ResultsDao {
       data              VARCHAR(255) NOT NULL,
       created_at        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
       PRIMARY KEY       (id)
-    )""".asInstanceOf[Fragment].update
+    )""".update
 
   private def makeHikariTransactor(): HikariTransactor[IO] = {
     val (driver, url, schema, username, password) = getConfigSettings

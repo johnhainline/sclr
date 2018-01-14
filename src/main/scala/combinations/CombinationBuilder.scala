@@ -9,7 +9,7 @@ import scala.util.Random
   * @param n the total number of choices
   * @param k how many of our choices to take
   */
-class CombinationBuilder(val n: Int, val k: Int) {
+case class CombinationBuilder(n: Int, k: Int) {
   val count = CombinationBuilder.choose(n, k)
   private def combinationCount = count
 
