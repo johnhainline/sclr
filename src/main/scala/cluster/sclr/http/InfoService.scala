@@ -26,8 +26,8 @@ class InfoService(manageActor: ActorRef)(implicit val system: ActorSystem, impli
   val route =
     path("begin") {
       get {
-        val combo = CombinationAggregation(Vector(CombinationBuilder(4,3), CombinationBuilder(2,1)))
-        onSuccess(manageActor ? Begin(combo)) {
+        val combinations = new CombinationAggregation(Vector(new CombinationBuilder(6,2), new CombinationBuilder(7,3)))
+        onSuccess(manageActor ? Begin(combinations, "house.csv")) {
           case BeginAck =>
             complete(StatusCodes.OK)
           case _ =>

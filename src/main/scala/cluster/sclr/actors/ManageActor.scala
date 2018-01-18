@@ -4,7 +4,6 @@ import akka.actor.{Actor, ActorLogging, Cancellable, Props}
 import akka.cluster.pubsub.DistributedPubSubMediator.Publish
 import akka.cluster.pubsub.{DistributedPubSub, DistributedPubSubMediator}
 import cluster.sclr.Messages._
-import cluster.sclr.actors.ManageActor.SendReadyMessage
 
 import scala.concurrent.duration._
 
@@ -17,21 +16,22 @@ class ManageActor extends Actor with ActorLogging {
   mediator ! DistributedPubSubMediator.Subscribe(topicManager, self)
 
   def waiting: Receive = {
-    case Begin(combinationAggregation) =>
+    case Begin(combinationAggregation, csvFilename) =>
       iterator = combinationAggregation.all()
       log.debug("waiting -> sending")
       context.become(sending)
       import scala.concurrent.ExecutionContext.Implicits.global
       import scala.language.postfixOps
-      sendSchedule = context.system.scheduler.schedule(0 seconds, 5 seconds, self, SendReadyMessage)
-      mediator ! Publish(topicStatus, Ready)
+      val readyMsg = Ready(csvFilename)
+      sendSchedule = context.system.scheduler.schedule(0 seconds, 5 seconds, self, readyMsg)
+      mediator ! Publish(topicStatus, readyMsg)
       sender() ! BeginAck
   }
 
   def sending: Receive = {
-    case SendReadyMessage =>
-      mediator ! Publish(topicComputer, Ready)
-      log.debug("sending Ready")
+    case readyMsg:Ready =>
+      mediator ! Publish(topicComputer, readyMsg)
+      log.debug(s"sending Ready(${readyMsg.csvFilename})")
     case GetWork =>
       if (iterator.hasNext) {
         val next = iterator.next()
@@ -55,6 +55,5 @@ class ManageActor extends Actor with ActorLogging {
 }
 
 object ManageActor {
-  private case object SendReadyMessage
   def props() = Props(new ManageActor())
 }

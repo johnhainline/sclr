@@ -1,0 +1,19 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: akka-remote
+  labels:
+    name: akka-remote
+    tier: akka
+    app: sclr
+spec:
+  clusterIP: None
+  ports:
+  - port: 2551
+    protocol: TCP
+    targetPort: 2551
+  selector:
+    name: akka-remote
+    tier: akka
+    app: sclr

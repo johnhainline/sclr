@@ -4,6 +4,7 @@ metadata:
   name: mysql-service
   labels:
     name: mysql-service
+    tier: database
     app: sclr
 spec:
   clusterIP: None
@@ -11,6 +12,7 @@ spec:
     - port: 3306
   selector:
     name: mysql-service
+    tier: database
     app: sclr
 ---
 apiVersion: v1
@@ -19,6 +21,7 @@ metadata:
   name: mysql-pv-claim
   labels:
     name: mysql-pv-claim
+    tier: database
     app: sclr
 spec:
   accessModes:
@@ -33,11 +36,13 @@ metadata:
   name: mysql
   labels:
     name: mysql
+    tier: database
     app: sclr
 spec:
   selector:
     matchLabels:
       name: mysql
+      tier: database
       app: sclr
   strategy:
     type: Recreate
@@ -45,6 +50,7 @@ spec:
     metadata:
       labels:
         name: mysql
+        tier: database
         app: sclr
     spec:
       containers:

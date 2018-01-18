@@ -26,8 +26,14 @@ class ResultsDao extends LazyLogging {
     sql"SELECT id, data, created_at FROM results".query[Result].list.transact(xa).unsafeRunSync()
   }
 
-  def insertResult(data: String) = {
-    Update[String]("INSERT INTO results (data) VALUES (?)").toUpdate0(data).run.transact(xa).unsafeRunSync()
+  def insertResult(isGood: Boolean, dim1: Int, dim2: Int, row1: Int, row2: Int, row3: Int,
+                   coeff1: Double, coeff2: Double, coeff3: Double) = {
+    sql"""
+      INSERT INTO results
+        (is_good, dim1, dim2, row1, row2, row3, coefficient1, coefficient2, coefficient3)
+      VALUES
+        ($isGood, $dim1, $dim2, $row1, $row2, $row3, $coeff1, $coeff2, $coeff3)
+      """.update.run.transact(xa).unsafeRunSync()
   }
 
   def setupDatabase() = {
@@ -64,7 +70,15 @@ object ResultsDao {
   private val up1: Update0 = sql"""
     CREATE TABLE IF NOT EXISTS results (
       id                BIGINT NOT NULL AUTO_INCREMENT,
-      data              VARCHAR(255) NOT NULL,
+      is_good           BOOLEAN NOT NULL,
+      dim1              INT NOT NULL,
+      dim2              INT NOT NULL,
+      row1              INT NOT NULL,
+      row2              INT NOT NULL,
+      row3              INT NOT NULL,
+      coefficient1      DOUBLE NOT NULL,
+      coefficient2      DOUBLE NOT NULL,
+      coefficient3      DOUBLE NOT NULL,
       created_at        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
       PRIMARY KEY       (id)
     )""".update

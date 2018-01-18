@@ -22,11 +22,12 @@ object LocalApp {
     system.actorOf(Props(new Terminator()), "terminator")
 
     val resultsDao = new ResultsDao()
+    resultsDao.setupDatabase()
     val manageActor = system.actorOf(ManageActor.props(), "manage")
     (1 to parallel).foreach(i => system.actorOf(ComputeActor.props(resultsDao)))
 
-    val combinations = new CombinationAggregation(Vector(new CombinationBuilder(20,3), new CombinationBuilder(2,1)))
-    manageActor ! Messages.Begin(combinations)
+    val combinations = new CombinationAggregation(Vector(new CombinationBuilder(5,2), new CombinationBuilder(7,3)))
+    manageActor ! Messages.Begin(combinations, "house.csv")
 
     Await.result(system.whenTerminated, Duration.Inf)
   }

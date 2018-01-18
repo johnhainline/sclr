@@ -9,7 +9,7 @@ scalacOptions += "-Ypartial-unification" // 2.11.9+
 
 organization in ThisBuild := "wustl.engineering"
 scalaVersion in ThisBuild := "2.12.4"
-version in ThisBuild := "0.2.0"
+version in ThisBuild := "0.4.8"
 
 lazy val sclr = project
   .in(file("."))
@@ -68,9 +68,9 @@ lazy val sclr = project
 
 val dockerSettings = Seq(
   dockerEntrypoint ++= Seq(
-    """-Dakka.remote.netty.tcp.hostname="$(eval "echo $AKKA_REMOTING_BIND_HOST")"""",
-    """-Dakka.remote.netty.tcp.port="$AKKA_REMOTING_BIND_PORT"""",
-    """$(IFS=','; I=0; for NODE in $AKKA_SEED_NODES; do echo "-Dakka.cluster.seed-nodes.$I=akka.tcp://$AKKA_ACTOR_SYSTEM_NAME@$NODE"; I=$(expr $I + 1); done)""",
+//    """-Dakka.remote.netty.tcp.hostname="$(eval "echo $AKKA_REMOTING_BIND_HOST")"""",
+//    """-Dakka.remote.netty.tcp.port="$AKKA_REMOTING_BIND_PORT"""",
+//    """$(IFS=','; I=0; for NODE in $AKKA_SEED_NODES; do echo "-Dakka.cluster.seed-nodes.$I=akka.tcp://$AKKA_ACTOR_SYSTEM_NAME@$NODE"; I=$(expr $I + 1); done)""",
     "-Dakka.io.dns.resolver=async-dns",
     "-Dakka.io.dns.async-dns.resolve-srv=true",
     "-Dakka.io.dns.async-dns.resolv-conf=on"
