@@ -1,20 +1,18 @@
 package cluster.sclr
 
-import combinations.CombinationAggregation
-
 object Messages {
-  // Send `Begin` to the ManageActor to start work.
-  final case class Begin(combinationAggregation: CombinationAggregation, csvFilename: String)
-  final case object BeginAck // acknowledgement response
+
+  // Send Workload to the ManageActor to start work.
+  // ManageActor sends `Workload` to topicComputer (sent every 5 sec, picked up by ComputeActors) and topicStatus.
+  final case class Workload(name: String, totalDimensions: Int, selectDimensions: Int, totalRows: Int, selectRows: Int)
+  final case object Ack // acknowledgement response
+
+  // GetWork is sent by ComputeActor to topicManager (i.e. ManageActor).
+  final case object GetWork
 
   // ManageActor sends `Work` or `Finished` as a response to actors who send it the GetWork message.
-  final case class Work(lookups: Vector[combinations.Combination])
+  final case class Work(selectedDimensions: Vector[Int], selectedRows: Vector[Int])
   final case object Finished
-
-  // Ready is sent by ManageActor to topicComputer and topicStatus.
-  final case class Ready(csvFilename: String)
-  // GetWork is sent by ComputeActor to topicManager.
-  final case object GetWork
 
   // DistributedPubSub Topics.
   val topicComputer = "worker"

@@ -8,7 +8,7 @@ import akka.http.scaladsl.server.Directives
 import akka.pattern.ask
 import akka.stream.ActorMaterializer
 import akka.util.Timeout
-import cluster.sclr.Messages.{Begin, BeginAck}
+import cluster.sclr.Messages.{Ack, Workload}
 import combinations.{CombinationAggregation, CombinationBuilder}
 import spray.json.{DefaultJsonProtocol, JsArray, JsNumber, JsObject, JsValue, JsonFormat, PrettyPrinter}
 
@@ -26,9 +26,8 @@ class InfoService(manageActor: ActorRef)(implicit val system: ActorSystem, impli
   val route =
     path("begin") {
       get {
-        val combinations = new CombinationAggregation(Vector(new CombinationBuilder(6,2), new CombinationBuilder(7,3)))
-        onSuccess(manageActor ? Begin(combinations, "house.csv")) {
-          case BeginAck =>
+        onSuccess(manageActor ? Workload("house", 6, 2, 7, 3)) {
+          case Ack =>
             complete(StatusCodes.OK)
           case _ =>
             complete(StatusCodes.InternalServerError)

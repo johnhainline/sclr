@@ -12,6 +12,7 @@ import scala.util.{Failure, Try}
 class ComputeActor(resultsDao: ResultsDao) extends Actor with ActorLogging {
 
   private var regression: Regression = _
+  private var workload: Workload = _
   private val mediator = DistributedPubSub(context.system).mediator
   mediator ! DistributedPubSubMediator.Subscribe(topicComputer, self)
 
@@ -20,8 +21,9 @@ class ComputeActor(resultsDao: ResultsDao) extends Actor with ActorLogging {
   }
 
   def waiting: Receive = {
-    case Ready(csvFilename) =>
-      regression = new Regression(csvFilename)
+    case work:Workload =>
+      workload = work
+      regression = new Regression(s"${workload.name}.csv")
       log.debug("waiting -> computing")
       context.become(computing)
       askForWork()
@@ -30,10 +32,8 @@ class ComputeActor(resultsDao: ResultsDao) extends Actor with ActorLogging {
   def computing: Receive = {
     case (work: Work) =>
       Try {
-        val (dim1, dim2) = (work.lookups.head(0), work.lookups.head(1))
-        val (row1, row2, row3) = (work.lookups.last(0), work.lookups.last(1), work.lookups.last(2))
-        val coefficients = regression.linearRegressionSubAttributes(work.lookups.head, work.lookups.last)
-        resultsDao.insertResult(isGood = true, dim1, dim2, row1, row2, row3, coefficients(0), coefficients(1), coefficients(2))
+        val coefficients = regression.linearRegressionSubAttributes(work.selectedDimensions, work.selectedRows)
+        resultsDao.insertResult(resultType = workload.name, isGood = true, work.selectedDimensions, work.selectedRows, coefficients)
       } match {
         case Failure(e) =>
           e.printStackTrace()

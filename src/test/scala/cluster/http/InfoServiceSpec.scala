@@ -5,7 +5,7 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import akka.stream.ActorMaterializer
 import akka.testkit.{TestActor, TestProbe}
-import cluster.sclr.Messages.{Begin, BeginAck}
+import cluster.sclr.Messages.{Workload, Ack}
 import cluster.sclr.http.InfoService
 import org.scalatest.{Matchers, WordSpec}
 
@@ -19,8 +19,8 @@ class InfoServiceSpec extends WordSpec with ScalatestRouteTest with Matchers {
     "return a response for GET requests to /begin" in {
       probe.setAutoPilot((sender: ActorRef, msg: Any) => {
         msg match {
-          case Begin(_) =>
-            sender ! BeginAck
+          case _: Workload =>
+            sender ! Ack
         }
         TestActor.KeepRunning
       })
