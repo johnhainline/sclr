@@ -14,6 +14,4 @@ spec:
     protocol: TCP
     targetPort: 2551
   selector:
-    name: akka-remote
     tier: akka
-    app: sclr

@@ -2,7 +2,8 @@ package cluster.main
 
 import akka.actor.{ActorSystem, Props}
 import akka.cluster.Cluster
-import cluster.sclr.actors.{FrontendActor, ManageActor}
+import cluster.sclr.actors.ManageActor
+import cluster.sclr.doobie.ResultsDao
 import com.typesafe.config.ConfigFactory
 
 import scala.concurrent.duration._
@@ -21,7 +22,8 @@ object ManageApp {
 
     Cluster(system) registerOnMemberUp {
       system.actorOf(Props(new Terminator()), "terminator")
-      system.actorOf(ManageActor.props(), "manage")
+      val resultsDao = new ResultsDao()
+      system.actorOf(ManageActor.props(resultsDao), "manage")
     }
 
     Cluster(system).registerOnMemberRemoved {

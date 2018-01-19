@@ -23,7 +23,6 @@ object ComputeApp {
     Cluster(system) registerOnMemberUp {
       system.actorOf(Props(new Terminator()), "terminator")
       val resultsDao = new ResultsDao()
-      resultsDao.setupDatabase()
       system.actorOf(ComputeActor.props(resultsDao), "compute")
     }
 
