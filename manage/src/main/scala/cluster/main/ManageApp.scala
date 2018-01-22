@@ -2,8 +2,10 @@ package cluster.main
 
 import akka.actor.{ActorSystem, Props}
 import akka.cluster.Cluster
-import cluster.sclr.actors.ManageActor
+import akka.stream.ActorMaterializer
+import cluster.sclr.actors.{FrontendActor, ManageActor}
 import cluster.sclr.doobie.ResultsDao
+import cluster.sclr.http.InfoService
 import com.typesafe.config.ConfigFactory
 
 import scala.concurrent.duration._
@@ -17,13 +19,17 @@ object ManageApp {
 //      withFallback(ConfigFactory.parseString(s"akka.remote.netty.tcp.bind-hostname=$internalIp")).
       withFallback(appConfig)
 
-    val system = ActorSystem("sclr", config)
+    implicit val system = ActorSystem("sclr", config)
+    implicit val materializer = ActorMaterializer()
     system.log.info(s"System will start when all roles have been filled by nodes in the cluster.")
 
     Cluster(system) registerOnMemberUp {
       system.actorOf(Props(new Terminator()), "terminator")
       val resultsDao = new ResultsDao()
-      system.actorOf(ManageActor.props(resultsDao), "manage")
+      val manageActor = system.actorOf(ManageActor.props(resultsDao), "manage")
+
+      val infoService = new InfoService(manageActor)
+      system.actorOf(FrontendActor.props(infoService), "frontend")
     }
 
     Cluster(system).registerOnMemberRemoved {

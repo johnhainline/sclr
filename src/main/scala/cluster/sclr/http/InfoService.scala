@@ -26,7 +26,7 @@ class InfoService(manageActor: ActorRef)(implicit val system: ActorSystem, impli
   val route =
     path("begin") {
       get {
-        onSuccess(manageActor ? Workload("house", 6, 2, 7, 3)) {
+        onSuccess(manageActor ? Workload("house", 5, 2, 7, 3)) {
           case Ack =>
             complete(StatusCodes.OK)
           case _ =>

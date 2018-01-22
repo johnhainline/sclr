@@ -9,7 +9,7 @@ scalacOptions += "-Ypartial-unification" // 2.11.9+
 
 organization in ThisBuild := "wustl.engineering"
 scalaVersion in ThisBuild := "2.12.4"
-version in ThisBuild := "0.5.3"
+version in ThisBuild := "0.5.7"
 
 lazy val sclr = project
   .in(file("."))
@@ -39,8 +39,8 @@ lazy val sclr = project
     // Weka, a Machine Learning library.
     "nz.ac.waikato.cms.weka" % "weka-stable" % "3.8.2",
 
-    "com.lightbend.akka.management" %% "akka-management" % "0.8.0",
-    "com.lightbend.akka.management" %% "akka-management-cluster-http" % "0.8.0",
+    "com.lightbend.akka.management" %% "akka-management" % "0.9.0",
+    "com.lightbend.akka.management" %% "akka-management-cluster-http" % "0.9.0",
 
     "com.typesafe.akka" %% "akka-http"             % httpVersion,
     "com.typesafe.akka" %% "akka-http-spray-json"  % httpVersion,
@@ -67,14 +67,14 @@ lazy val sclr = project
 )
 
 val dockerSettings = Seq(
-  dockerEntrypoint ++= Seq(
+//  dockerEntrypoint ++= Seq(
 //    """-Dakka.remote.netty.tcp.hostname="$(eval "echo $AKKA_REMOTING_BIND_HOST")"""",
 //    """-Dakka.remote.netty.tcp.port="$AKKA_REMOTING_BIND_PORT"""",
 //    """$(IFS=','; I=0; for NODE in $AKKA_SEED_NODES; do echo "-Dakka.cluster.seed-nodes.$I=akka.tcp://$AKKA_ACTOR_SYSTEM_NAME@$NODE"; I=$(expr $I + 1); done)""",
-    "-Dakka.io.dns.resolver=async-dns",
-    "-Dakka.io.dns.async-dns.resolve-srv=true",
-    "-Dakka.io.dns.async-dns.resolv-conf=on"
-  ),
+//    "-Dakka.io.dns.resolver=async-dns",
+//    "-Dakka.io.dns.async-dns.resolve-srv=true",
+//    "-Dakka.io.dns.async-dns.resolv-conf=on"
+//  ),
 
   dockerCommands := dockerCommands.value.flatMap {
     case ExecCmd("ENTRYPOINT", args@_*) => Seq(Cmd("ENTRYPOINT", args.mkString(" ")))
