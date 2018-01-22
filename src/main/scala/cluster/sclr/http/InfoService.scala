@@ -9,6 +9,8 @@ import akka.pattern.ask
 import akka.stream.ActorMaterializer
 import akka.util.Timeout
 import cluster.sclr.Messages.{Ack, Workload}
+import com.typesafe.config.ConfigFactory
+import com.typesafe.scalalogging.LazyLogging
 import combinations.{CombinationAggregation, CombinationBuilder}
 import spray.json.{DefaultJsonProtocol, JsArray, JsNumber, JsObject, JsValue, JsonFormat, PrettyPrinter}
 
@@ -16,7 +18,7 @@ import scala.concurrent.duration._
 import scala.language.postfixOps
 
 class InfoService(manageActor: ActorRef)(implicit val system: ActorSystem, implicit val materializer: ActorMaterializer)
-  extends Directives {
+  extends Directives with LazyLogging {
 
   implicit val printer = PrettyPrinter
   implicit val timeout = Timeout(30 seconds)
@@ -35,7 +37,9 @@ class InfoService(manageActor: ActorRef)(implicit val system: ActorSystem, impli
       }
     }
 
-  Http().bindAndHandle(route, "localhost", 8080)
+  val host = ConfigFactory.load().getString("akka.http.server.default-http-host")
+  logger.debug(s"Binding to host: $host")
+  Http().bindAndHandle(route, host)
 }
 
 object JsonFormatters extends DefaultJsonProtocol with SprayJsonSupport {

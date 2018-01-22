@@ -9,9 +9,27 @@ metadata:
 spec:
   clusterIP: None
   ports:
-  - port: 2551
-    protocol: TCP
+  - protocol: TCP
+    name: akka-remote
+    port: 2551
     targetPort: 2551
+  selector:
+    name: manage
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: http-service
+  labels:
+    name: http-service
+    app: sclr
+spec:
+  ports:
+  - protocol: TCP
+    name: http-service
+    port: 8080
+    targetPort: 8080
   selector:
     name: manage
 
@@ -26,8 +44,6 @@ spec:
     matchLabels:
       name: manage
       app: sclr
-
-
   template:
     metadata:
       labels:
@@ -40,9 +56,12 @@ spec:
         imagePullPolicy: Never
         ports:
         - containerPort: 2551
+          name: akka-remote
+        - containerPort: 8080
+          name: http-service
         env:
         - name: DATABASE_HOST
-          value: sclr-mysql
+          value: mysql-service
         - name: DATABASE_USERNAME
           value: 'root'
         - name: DATABASE_PASSWORD
@@ -54,13 +73,19 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.name
-        - name: FQDN
-          value: "compute-service.default.svc.cluster.local"
         - name: AKKA_REMOTING_BIND_HOST
-          value: "manage-service.default.svc.cluster.local"
+          value: 'manage-service.default.svc.cluster.local'
         - name: AKKA_REMOTING_BIND_PORT
           value: '2551'
         - name: AKKA_SEED_NODE
-          value: 'akka.tcp://sclr@compute-0.$(FQDN):2551'
+          value: 'akka.tcp://sclr@compute-0.compute-service.default.svc.cluster.local:2551'
+        - name: DNS_RESOLVER
+          value: 'async-dns'
+        - name: RESOLVE_SRV
+          value: 'true'
+        - name: RESOLV_CONF
+          value: 'on'
+        - name: HTTP_HOST
+          value: '0.0.0.0'
         - name: HTTP_PORT
-          value: '80'
+          value: '8080'

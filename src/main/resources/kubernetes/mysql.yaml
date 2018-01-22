@@ -4,16 +4,13 @@ metadata:
   name: mysql-service
   labels:
     name: mysql-service
-    tier: database
     app: sclr
 spec:
   clusterIP: None
   ports:
     - port: 3306
   selector:
-    name: mysql-service
-    tier: database
-    app: sclr
+    name: mysql
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -21,7 +18,6 @@ metadata:
   name: mysql-pv-claim
   labels:
     name: mysql-pv-claim
-    tier: database
     app: sclr
 spec:
   accessModes:
@@ -36,13 +32,11 @@ metadata:
   name: mysql
   labels:
     name: mysql
-    tier: database
     app: sclr
 spec:
   selector:
     matchLabels:
       name: mysql
-      tier: database
       app: sclr
   strategy:
     type: Recreate
@@ -50,11 +44,10 @@ spec:
     metadata:
       labels:
         name: mysql
-        tier: database
         app: sclr
     spec:
       containers:
-      - image: mysql:5.6
+      - image: mysql:5.7
         name: mysql
         env:
         - name: MYSQL_ROOT_PASSWORD
@@ -64,7 +57,6 @@ spec:
               key: password
         ports:
         - containerPort: 3306
-          name: mysql
         volumeMounts:
         - name: mysql-persistent-storage
           mountPath: /var/lib/mysql

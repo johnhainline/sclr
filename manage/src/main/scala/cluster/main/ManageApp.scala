@@ -19,8 +19,8 @@ object ManageApp {
 //      withFallback(ConfigFactory.parseString(s"akka.remote.netty.tcp.bind-hostname=$internalIp")).
       withFallback(appConfig)
 
-    implicit val system = ActorSystem("sclr", config)
-    implicit val materializer = ActorMaterializer()
+    implicit val system: ActorSystem = ActorSystem("sclr", config)
+    implicit val materializer: ActorMaterializer = ActorMaterializer()
     system.log.info(s"System will start when all roles have been filled by nodes in the cluster.")
 
     Cluster(system) registerOnMemberUp {
