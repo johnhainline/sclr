@@ -27,127 +27,57 @@ The setup for this project was inspired by the following projects:
 * [IBM Akka Cluster on Kubernetes](https://github.com/IBM/Akka-cluster-deploy-kubernetes): IBM's tutorial on deploying an Akka Cluster using Kubernetes.
 
 # Steps
-Deploy to Google Kubernetes Engine or deploy and run locally!
+We can deploy and run on Google Kubernetes Engine (GKE) or locally!
 
-## Deploy to Google Kubernetes Engine
-1. To build our base docker image, run
+Note that I have instructions for this using a Mac.
+1. Clone project somewhere.
+   - `git clone https://github.com/johnhainline/sclr.git`
+   - `cd sclr`
+1. Install the Kubernetes CLI.
+   - Mac: `brew cask install google-cloud-sdk` which installs `gcloud` and other utilities.
+   `gcloud components install kubectl` to get, `kubectl`.
+1. Install docker.
+   - Mac: `brew cask install docker`
+1. Run docker.
+1. Build our base docker image:
    - `docker build -t local/openjdk-jre-8-bash:latest - < src/main/resources/docker/Dockerfile-openjdk-jre-8-bash`
    - This builds the docker image referenced in our build.sbt as `"local/openjdk-jre-8-bash"`.
-2. 
-3. 
+1. Create a secret in `kubectl` for our MySQL password.
+   - `kubectl create secret generic mysql-password --from-literal=password=MYSQL_PASSWORD`
+1. `kubectl` can point to the cloud, or to a local minikube instance.
+   - `kubectl config get-contexts` and `kubectl cluster-info`
 
-## Deploy and Run Locally
+## Build and Run Locally
+1. Install `minikube`, a locally running Kubernetes cluster.
+   - Mac: `brew cask install minikube`
+1. Start `minikube`, enable DNS support, connect to docker, and open the dashboard.
+   - `minikube start`
+   - `minikube addons enable kube-dns`
+   - `eval $(minikube docker-env)`
+   - `minikube dashboard`
+1. Build project and push two docker images to our local docker install.
+   - `sbt manage/docker:publishLocal`
+   - `sbt compute/docker:publishLocal`
+ 
 
-1. [Clone the repo](#1-clone-the-repo)
-2. [Prerequisite](#2-prerequisite)
-3. [Build the Docker base image](#3-build-the-docker-base-image)
-4. [Build the sample app](#4-build-the-sample-app)
-5. [Deploy the cluster on Kubernetes](#5-deploy-the-cluster-on-kubernetes)
-6. [Confirm the sample app is working](#6-confirm-the-sample-app-is-working)
+## Build and Run on Google Kubernetes Engine
+1. See [GKE Quickstart](https://cloud.google.com/kubernetes-engine/docs/quickstart)
+1. Get short-lived access to `us.gcr.io`, the Google Container Registry.
+   - `gcloud docker -a`
+1. Build project and publish it to the Google Container Registry.
+   - `sbt manage/docker:publish`
+   - `sbt compute/docker:publish`
 
-### 1. Clone the repo
-
-Clone the `Akka-cluster-deploy-kubernetes` locally. In a terminal, run:
-
-```
-git clone https://github.com/IBM/Akka-cluster-deploy-kubernetes
-cd Akka-cluster-deploy-kubernetes
-```
-
-### 2. Prerequisite
-
-* Create a Kubernetes cluster with either [Minikube](https://kubernetes.io/docs/getting-started-guides/minikube) for local testing, or with [IBM Bluemix Container Service](https://github.com/IBM/container-journey-template) to deploy in cloud. The code here is regularly tested against [Kubernetes Cluster from Bluemix Container Service](https://console.ng.bluemix.net/docs/containers/cs_ov.html#cs_ov) using Travis.
-* Ensure the Docker environment variable is configured to point to the registry used by the Kubernetes cluster.
-* Have [sbt](https://www.scala-sbt.org/download.html) installed.   
-
-### 3. Build the Docker base image
-
-Build the local Docker base image required by the example app:  
-
-```bash
-cat <<EOF | docker build -t local/openjdk-jre-8-bash:latest -
-FROM openjdk:8-jre-alpine
-RUN apk --no-cache add --update bash coreutils curl
-EOF
-```
-
-We use `openjdk:8-jre-alpine` as the base image, adding `bash`, networking utility (i.e. `ping`, `telnet`), and `curl` to make it easier for debugging purposes.   
-
-
-### 4. Build and upload the sample app
-Ensure you are at the root directory of the example app. It is optional, but you can modify the Docker repo can be specified in the `build.sbt` file by chaning the `dockerRepository` variable . Sbt will build the docker image with the tag `$repo/myapp:latest`.    
-Build the example app by running the following command:
-
-```bash
-  sbt docker:publishLocal
-```
-After the image is built, upload it to docker hub:
-```bash
-  docker push $repo/myapp:latest
-```
-
-### 5. Deploy the cluster on Kubernetes
-Modify the `deploy/kubernetes/resources/myapp/myapp-statefulset.json` file to point to your repo if you did changed the repo in step 4. You can find the spec here:
-```
-"spec": {
-        "containers": [
-          {
-            "name": "myapp",
-            "image": "szihai/myapp:latest",
-```
-
-Deploy the example app by running the following command. This will create 3 head nodes.
-
-```bash
-  kubectl create -f deploy/kubernetes/resources/myapp
-```
-
-### 6. Confirm the sample app is working
-
-After a couple minutes, check the 3 head nodes created by the example app (i.e. `myapp-0`, `myapp-1`,`myapp-2`). And let's add a woker node to join the cluster. 
-
-```bash
-  kubectl scale statefulsets myapp --replicas=4
-```
-
-Once the 4th pod is stood up, we can check the cluster information.
-
-The example app exposes the `/members` endpoint which displays the list of members visible for a particular pod. For example, the following displays the list of members visible from `myapp-0` pod:
-
-```
-  kubectl exec -ti myapp-0 -- curl -v myapp-0:9000/members
-  *   Trying 172.30.207.9...
-  * TCP_NODELAY set
-  * Connected to myapp-0 (172.17.0.5) port 9000 (#0)
-  > GET /members HTTP/1.1
-  > Host: myapp-0:9000
-  > User-Agent: curl/7.55.0
-  > Accept: */*
-  >
-  < HTTP/1.1 200 OK
-  < Server: akka-http/10.0.10
-  < Date: Tue, 12 Dec 2017 04:06:32 GMT
-  < Content-Type: application/json
-  < Content-Length: 147
-  <
-  {
-  "members" : [ {
-    "address" : "akka.tcp://myapp@myapp-0.myapp.default.svc.cluster.local:2551",
-    "status" : "Up",
-    "roles" : [ ]
-  }, {
-    "address" : "akka.tcp://myapp@myapp-1.myapp.default.svc.cluster.local:2551",
-    "status" : "Up",
-    "roles" : [ ]
-  }, {
-    "address" : "akka.tcp://myapp@myapp-2.myapp.default.svc.cluster.local:2551",
-    "status" : "Up",
-    "roles" : [ ]
-  }, {
-    "address" : "akka.tcp://myapp@myapp-3.myapp.default.svc.cluster.local:2551",
-    "status" : "Up",
-    "roles" : [ ]
-  } ]
-
-  * Connection #0 to host myapp-0 left intact
-```
+## Common Deploy/Run commands
+1. Deploy using Kubernetes scripts.
+   - `cd src/main/resources/kubernetes/; kubectl create -f mysql.yaml; kubectl create -f compute-pods.yaml; kubectl create -f manage-pods.yaml; cd ../../../..;`
+1. Check running pods, services, etc.
+   - `kubectl get all -o wide`
+1. Make a connection to the MySQL server.
+   - `kubectl run -it --rm --image=mysql:5.6 --restart=Never mysql-client -- mysql -h mysql-service -pMYSQL_PASSWORD`
+1. Send a single GET request (from the `compute-0` pod) to the `http-service` endpoint. This kicks off the job.
+   - `kubectl exec -ti compute-0 -- curl -v http-service.default.svc.cluster.local:8080/begin`
+1. View results in MySQL under the `sclr` schema in the `results_house` table.
+1. Backup results somewhere as shutdown will delete the MySQL server.
+1. Delete all local Kubernetes pods, including MySQL, etc.
+   - `kubectl delete pvc mysql-pv-claim; kubectl delete all -l app=sclr`
