@@ -1,6 +1,8 @@
 package cluster.sclr.core
 
 import cluster.sclr.Messages.Workload
+import combinations.{CombinationAggregation, CombinationBuilder}
+import weka.classifiers.Evaluation
 import weka.classifiers.functions.LinearRegression
 import weka.core.Instances
 import weka.core.converters.ConverterUtils
@@ -11,7 +13,6 @@ class WorkloadRunner(val workload: Workload) {
 
   val instances: Instances = new ConverterUtils.DataSource(workload.dataset).getDataSet
   instances.setClassIndex(instances.numAttributes - 1)
-  var model: LinearRegression = _
 
   /*
    * perform linear regression using those data & attributes specified in dimensions and rows
@@ -35,7 +36,24 @@ class WorkloadRunner(val workload: Workload) {
     val model = new LinearRegression()
     model.buildClassifier(reducedInst)
     System.out.println(model)
-    Some(Result(dimensions, rows, model.coefficients.toVector, 0.0, "kDNF?"))
+
+    val weights = model.coefficients.toVector
+
+    instances.firstInstance().classValue()
+
+    val evaluation = new Evaluation(instances)
+    evaluation.evaluateModel(model, instances)
+
+    Some(Result(dimensions, rows, weights, 0.0, "kDNF?"))
+  }
+
+  private def combos() = {
+    CombinationBuilder(instances.numAttributes(), 2).all().map { combo =>
+      val a = combo.head + 1
+      val b = combo.last + 1
+      ((a,b), (-a, b), (a, -b), (-a, -b))
+    }//.flatMap { case (a,b) =>
+//    }
   }
 
   private def redBluePartialCoverSet() = {
