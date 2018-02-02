@@ -4,7 +4,7 @@ import akka.actor.{ActorSystem, Props}
 import akka.cluster.Cluster
 import akka.stream.ActorMaterializer
 import cluster.sclr.actors.{FrontendActor, ManageActor}
-import cluster.sclr.doobie.ResultsDao
+import cluster.sclr.core.ResultsDao
 import cluster.sclr.http.InfoService
 import com.typesafe.config.ConfigFactory
 

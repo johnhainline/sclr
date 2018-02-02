@@ -4,7 +4,7 @@ import akka.actor.{Actor, ActorLogging, Cancellable, Props}
 import akka.cluster.pubsub.DistributedPubSubMediator.Publish
 import akka.cluster.pubsub.{DistributedPubSub, DistributedPubSubMediator}
 import cluster.sclr.Messages._
-import cluster.sclr.doobie.ResultsDao
+import cluster.sclr.core.ResultsDao
 import combinations.{CombinationAggregation, CombinationBuilder}
 
 import scala.concurrent.duration._

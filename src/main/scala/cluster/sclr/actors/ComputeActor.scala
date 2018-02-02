@@ -4,8 +4,7 @@ import akka.actor.{Actor, ActorLogging, Props}
 import akka.cluster.pubsub.DistributedPubSubMediator.Publish
 import akka.cluster.pubsub.{DistributedPubSub, DistributedPubSubMediator}
 import cluster.sclr.Messages._
-import cluster.sclr.doobie.ResultsDao
-import weka.{Regression, WorkloadRunner}
+import cluster.sclr.core.{ResultsDao, WorkloadRunner}
 
 import scala.util.{Failure, Try}
 
@@ -30,8 +29,10 @@ class ComputeActor(resultsDao: ResultsDao) extends Actor with ActorLogging {
   def computing: Receive = {
     case (work: Work) =>
       Try {
-        val coefficients = runner.run(work.selectedDimensions, work.selectedRows)
-        resultsDao.insertResult(resultType = runner.workload.name, isGood = true, work.selectedDimensions, work.selectedRows, coefficients)
+        val optionResult = runner.run(work.selectedDimensions, work.selectedRows)
+        optionResult.map { result =>
+          resultsDao.insertResult(resultType = runner.workload.name, result)
+        }
       } match {
         case Failure(e) =>
           e.printStackTrace()

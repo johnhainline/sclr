@@ -1,4 +1,4 @@
-package weka
+package cluster.sclr.core
 
 import cluster.sclr.Messages.Workload
 import weka.classifiers.functions.LinearRegression
@@ -8,6 +8,7 @@ import weka.filters.Filter
 import weka.filters.unsupervised.attribute.Remove
 
 class WorkloadRunner(val workload: Workload) {
+
   val instances: Instances = new ConverterUtils.DataSource(workload.dataset).getDataSet
   instances.setClassIndex(instances.numAttributes - 1)
   var model: LinearRegression = _
@@ -15,7 +16,7 @@ class WorkloadRunner(val workload: Workload) {
   /*
    * perform linear regression using those data & attributes specified in dimensions and rows
    */ @throws[Exception]
-  def run(dimensions: Vector[Int], rows: Vector[Int]): Vector[Double] = {
+  def run(dimensions: Vector[Int], rows: Vector[Int]): Option[Result] = {
     // Add the last dimension (the Y values)
     dimensions :+ instances.numAttributes() - 1
 
@@ -34,7 +35,7 @@ class WorkloadRunner(val workload: Workload) {
     val model = new LinearRegression()
     model.buildClassifier(reducedInst)
     System.out.println(model)
-    model.coefficients.toVector
+    Some(Result(dimensions, rows, model.coefficients.toVector, 0.0, "kDNF?"))
   }
 
   private def redBluePartialCoverSet() = {

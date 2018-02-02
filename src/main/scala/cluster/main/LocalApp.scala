@@ -8,7 +8,7 @@ import akka.http.scaladsl.model.{HttpMethods, HttpRequest, RequestEntity}
 import akka.stream.ActorMaterializer
 import cluster.sclr.Messages.Workload
 import cluster.sclr.actors.{ComputeActor, FrontendActor, ManageActor}
-import cluster.sclr.doobie.ResultsDao
+import cluster.sclr.core.ResultsDao
 import cluster.sclr.http.InfoService
 
 import scala.concurrent.Await

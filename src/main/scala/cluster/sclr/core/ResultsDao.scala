@@ -1,10 +1,10 @@
-package cluster.sclr.doobie
+package cluster.sclr.core
 
 import java.sql.Timestamp
 import java.time.{Instant, ZoneId, ZonedDateTime}
 
 import cats.effect.IO
-import cluster.sclr.doobie.ResultsDao.{Result, coeffNames, dimensionNames, rowNames}
+import cluster.sclr.core.ResultsDao.{coeffNames, dimensionNames, rowNames}
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.LazyLogging
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
@@ -22,24 +22,24 @@ class ResultsDao extends LazyLogging {
     sql"SELECT COUNT(*) FROM results".query[Long].unique.transact(xa).unsafeRunSync()
   }
 
-  def getResults() = {
-    import ResultsDao.ZonedDateTimeMeta
-    sql"SELECT id, data, created_at FROM results".query[Result].list.transact(xa).unsafeRunSync()
-  }
+//  def getResults() = {
+//    import ResultsDao.ZonedDateTimeMeta
+//    sql"SELECT id, data, created_at FROM results".query[Result].list.transact(xa).unsafeRunSync()
+//  }
 
-  def insertResult(resultType: String, isGood: Boolean, selectDimensions: Vector[Int], selectRows: Vector[Int], coefficients: Vector[Double]) = {
-    val insertNames = Vector("is_good",
-      dimensionNames(selectDimensions.length).mkString(","),
-      rowNames(selectRows.length).mkString(","),
-      coeffNames(coefficients.length).mkString(",")
+  def insertResult(resultType: String, result: Result) = {
+    val insertNames = Vector("error",
+      dimensionNames(result.dimensions.length).mkString(","),
+      rowNames(result.rows.length).mkString(","),
+      coeffNames(result.coefficients.length).mkString(",")
     )
 
     val reducer = { (l:Fragment, r:Fragment) => l ++ r}
     val fragmentValues =
-      fr"$isGood" ++
-      selectDimensions.map(d => fr", $d").reduce(reducer) ++
-      selectRows.map(r => fr", $r").reduce(reducer) ++
-      coefficients.map(c => fr", $c").reduce(reducer)
+      fr"0.0" ++
+      result.dimensions.map(d => fr", $d").reduce(reducer) ++
+      result.rows.map(r => fr", $r").reduce(reducer) ++
+      result.coefficients.map(c => fr", $c").reduce(reducer)
 
     val dbUpdate = (fr"INSERT INTO " ++ Fragment.const(tableName(resultType)) ++
       Fragment.const(insertNames.mkString("(", ",", ")")) ++
@@ -71,7 +71,7 @@ class ResultsDao extends LazyLogging {
       val fragment = fr"CREATE TABLE IF NOT EXISTS" ++
         Fragment.const(tableName(resultType)) ++
         Fragment.const((
-          Vector("id BIGINT NOT NULL AUTO_INCREMENT", "is_good BOOLEAN NOT NULL") ++
+          Vector("id BIGINT NOT NULL AUTO_INCREMENT", "error DOUBLE NOT NULL") ++
             tableDims ++ tableRows ++ tableCoeffs ++
             Vector("created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP", "PRIMARY KEY (id)")
           ).mkString("(", ",", ")"))
@@ -85,8 +85,6 @@ class ResultsDao extends LazyLogging {
 }
 
 object ResultsDao {
-
-  case class Result(id: Long, data: String, createdAt: ZonedDateTime)
 
   implicit val ZonedDateTimeMeta: Meta[ZonedDateTime] =
     Meta[Timestamp].xmap(

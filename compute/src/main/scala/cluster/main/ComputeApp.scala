@@ -3,7 +3,7 @@ package cluster.main
 import akka.actor.{ActorSystem, Props}
 import akka.cluster.Cluster
 import cluster.sclr.actors.ComputeActor
-import cluster.sclr.doobie.ResultsDao
+import cluster.sclr.core.ResultsDao
 import com.typesafe.config.ConfigFactory
 
 import scala.concurrent.duration._
