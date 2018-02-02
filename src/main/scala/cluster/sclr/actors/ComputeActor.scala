@@ -5,14 +5,13 @@ import akka.cluster.pubsub.DistributedPubSubMediator.Publish
 import akka.cluster.pubsub.{DistributedPubSub, DistributedPubSubMediator}
 import cluster.sclr.Messages._
 import cluster.sclr.doobie.ResultsDao
-import weka.Regression
+import weka.{Regression, WorkloadRunner}
 
 import scala.util.{Failure, Try}
 
 class ComputeActor(resultsDao: ResultsDao) extends Actor with ActorLogging {
 
-  private var regression: Regression = _
-  private var workload: Workload = _
+  private var runner: WorkloadRunner = _
   private val mediator = DistributedPubSub(context.system).mediator
   mediator ! DistributedPubSubMediator.Subscribe(topicComputer, self)
 
@@ -22,8 +21,7 @@ class ComputeActor(resultsDao: ResultsDao) extends Actor with ActorLogging {
 
   def waiting: Receive = {
     case work:Workload =>
-      workload = work
-      regression = new Regression(workload.dataset)
+      runner = new WorkloadRunner(work)
       log.debug("waiting -> computing")
       context.become(computing)
       askForWork()
@@ -32,8 +30,8 @@ class ComputeActor(resultsDao: ResultsDao) extends Actor with ActorLogging {
   def computing: Receive = {
     case (work: Work) =>
       Try {
-        val coefficients = regression.linearRegressionSubAttributes(work.selectedDimensions, work.selectedRows)
-        resultsDao.insertResult(resultType = workload.name, isGood = true, work.selectedDimensions, work.selectedRows, coefficients)
+        val coefficients = runner.run(work.selectedDimensions, work.selectedRows)
+        resultsDao.insertResult(resultType = runner.workload.name, isGood = true, work.selectedDimensions, work.selectedRows, coefficients)
       } match {
         case Failure(e) =>
           e.printStackTrace()
