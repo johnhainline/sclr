@@ -3,17 +3,21 @@ package cluster.main
 import akka.actor.{ActorSystem, Props}
 import akka.cluster.Cluster
 import akka.http.scaladsl.Http
-import akka.http.scaladsl.model.HttpRequest
+import akka.http.scaladsl.marshalling.Marshal
+import akka.http.scaladsl.model.{HttpMethods, HttpRequest, RequestEntity}
 import akka.stream.ActorMaterializer
+import cluster.sclr.Messages.Workload
 import cluster.sclr.actors.{ComputeActor, FrontendActor, ManageActor}
 import cluster.sclr.doobie.ResultsDao
 import cluster.sclr.http.InfoService
 
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
-
+import scala.concurrent.ExecutionContext.Implicits.global
+import cluster.sclr.http.JsonFormatters._
 
 object LocalApp {
+
 
   def main(args: Array[String]): Unit = {
 
@@ -30,7 +34,12 @@ object LocalApp {
     val infoService = new InfoService(manageActor)
     system.actorOf(FrontendActor.props(infoService), "frontend")
 
-    val responseFuture = Http().singleRequest(HttpRequest(uri = "http://127.0.0.1:8080/begin"))
+    val work = Workload("house-dataset/house.csv", "house", 5, 2, 7, 3)
+    val responseFuture = Marshal(work).to[RequestEntity] flatMap { entity =>
+      println(s"Sending entity: $entity")
+      val request = HttpRequest(method = HttpMethods.POST, uri = "http://127.0.0.1:8080/begin", entity = entity)
+      Http().singleRequest(request)
+    }
 
     Await.result(responseFuture, Duration.Inf)
     Await.result(system.whenTerminated, Duration.Inf)

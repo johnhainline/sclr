@@ -4,7 +4,7 @@ object Messages {
 
   // Send Workload to the ManageActor to start work.
   // ManageActor sends `Workload` to topicComputer (sent every 5 sec, picked up by ComputeActors) and topicStatus.
-  final case class Workload(name: String, totalDimensions: Int, selectDimensions: Int, totalRows: Int, selectRows: Int)
+  final case class Workload(dataset: String, name: String, totalDimensions: Int, selectDimensions: Int, totalRows: Int, selectRows: Int)
   final case object Ack // acknowledgement response
 
   // GetWork is sent by ComputeActor to topicManager (i.e. ManageActor).

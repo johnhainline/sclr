@@ -23,7 +23,7 @@ class ComputeActor(resultsDao: ResultsDao) extends Actor with ActorLogging {
   def waiting: Receive = {
     case work:Workload =>
       workload = work
-      regression = new Regression(s"${workload.name}.csv")
+      regression = new Regression(workload.dataset)
       log.debug("waiting -> computing")
       context.become(computing)
       askForWork()

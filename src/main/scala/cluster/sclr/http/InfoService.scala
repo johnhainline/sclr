@@ -25,14 +25,20 @@ class InfoService(manageActor: ActorRef)(implicit val system: ActorSystem, impli
 
   implicit val executionContext = system.dispatcher
 
+  import cluster.sclr.http.JsonFormatters._
+
   val route =
     path("begin") {
-      get {
-        onSuccess(manageActor ? Workload("house", 5, 2, 7, 3)) {
-          case Ack =>
-            complete(StatusCodes.OK)
-          case _ =>
-            complete(StatusCodes.InternalServerError)
+      post {
+        decodeRequest {
+          entity(as[Workload]) { workload =>
+            onSuccess(manageActor ? workload) {
+              case Ack =>
+                complete(StatusCodes.OK)
+              case _ =>
+                complete(StatusCodes.InternalServerError)
+            }
+          }
         }
       }
     }
@@ -43,6 +49,7 @@ class InfoService(manageActor: ActorRef)(implicit val system: ActorSystem, impli
 }
 
 object JsonFormatters extends DefaultJsonProtocol with SprayJsonSupport {
+  implicit val workloadFormat = jsonFormat6(Workload)
 
   implicit val combinationBuilderFormat = new JsonFormat[CombinationBuilder] {
     def write(x: CombinationBuilder) = JsObject("n" -> JsNumber(x.n), "k" -> JsNumber(x.k))
