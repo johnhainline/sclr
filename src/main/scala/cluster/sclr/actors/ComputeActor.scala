@@ -31,7 +31,7 @@ class ComputeActor(resultsDao: ResultsDao) extends Actor with ActorLogging {
       Try {
         val optionResult = runner.run(work.selectedDimensions, work.selectedRows)
         optionResult.map { result =>
-          resultsDao.insertResult(resultType = runner.workload.name, result)
+          resultsDao.insertResult(schema = runner.workload.name, result)
         }
       } match {
         case Failure(e) =>

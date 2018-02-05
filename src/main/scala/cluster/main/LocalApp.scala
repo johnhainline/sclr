@@ -34,7 +34,7 @@ object LocalApp {
     val infoService = new InfoService(manageActor)
     system.actorOf(FrontendActor.props(infoService), "frontend")
 
-    val work = Workload("example-dataset/yz.csv", "example-dataset/x.csv", "example", 5, 2, 7, 3)
+    val work = Workload("datasets/example/yz.csv", "datasets/example/x.csv", "example", 5, 2, 7, 3)
     val responseFuture = Marshal(work).to[RequestEntity] flatMap { entity =>
       println(s"Sending entity: $entity")
       val request = HttpRequest(method = HttpMethods.POST, uri = "http://127.0.0.1:8080/begin", entity = entity)

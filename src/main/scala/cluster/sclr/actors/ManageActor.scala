@@ -20,8 +20,7 @@ class ManageActor(resultsDao: ResultsDao) extends Actor with ActorLogging {
 
   def waiting: Receive = {
     case work: Workload =>
-      resultsDao.setupDatabase()
-      resultsDao.setupTable(work.name, work.selectDimensions, work.selectRows, work.selectDimensions + 1)
+      resultsDao.setupSchemaAndTable(work.name, work.selectDimensions, work.selectRows, work.selectDimensions + 1)
 
       iterator = CombinationAggregation(Vector(
           CombinationBuilder(work.totalDimensions, work.selectDimensions),

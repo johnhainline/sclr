@@ -38,7 +38,7 @@ class WorkloadRunner(val workload: Workload) {
     model.buildClassifier(reducedInst)
     System.out.println(model)
     val weights = model.coefficients.toVector
-    constructSetsFromLabeledInstances()
+//    constructSetsFromLabeledInstances()
     Some(Result(dimensions, rows, weights, 0.0, "kDNF?"))
   }
 
