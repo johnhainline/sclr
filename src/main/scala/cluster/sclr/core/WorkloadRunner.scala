@@ -1,29 +1,30 @@
 package cluster.sclr.core
 
 import cluster.sclr.Messages.Workload
-import combinations.{CombinationAggregation, CombinationBuilder}
-import weka.classifiers.Evaluation
+import combinations.CombinationBuilder
 import weka.classifiers.functions.LinearRegression
 import weka.core.Instances
 import weka.core.converters.ConverterUtils
 import weka.filters.Filter
 import weka.filters.unsupervised.attribute.Remove
+import weka.filters.unsupervised.instance.SubsetByExpression
 
 class WorkloadRunner(val workload: Workload) {
 
-  val instances: Instances = new ConverterUtils.DataSource(workload.dataset).getDataSet
-  instances.setClassIndex(instances.numAttributes - 1)
+  val x  = new ConverterUtils.DataSource(workload.dataX).getDataSet
+  val yz = new ConverterUtils.DataSource(workload.dataYZ).getDataSet
+  yz.setClassIndex(yz.numAttributes - 1)
 
   /*
    * perform linear regression using those data & attributes specified in dimensions and rows
    */ @throws[Exception]
   def run(dimensions: Vector[Int], rows: Vector[Int]): Option[Result] = {
     // Add the last dimension (the Y values)
-    dimensions :+ instances.numAttributes() - 1
+    dimensions :+ yz.numAttributes() - 1
 
-    var reducedInst = new Instances(instances, 0)
+    var reducedInst = new Instances(yz, 0)
     for (i <- rows.indices) {
-      reducedInst.add(instances.get(rows(i)))
+      reducedInst.add(yz.get(rows(i)))
     }
 
     val attributeFilter = new Remove()
@@ -36,29 +37,29 @@ class WorkloadRunner(val workload: Workload) {
     val model = new LinearRegression()
     model.buildClassifier(reducedInst)
     System.out.println(model)
-
     val weights = model.coefficients.toVector
-
-    instances.firstInstance().classValue()
-
-    val evaluation = new Evaluation(instances)
-    evaluation.evaluateModel(model, instances)
-
+    constructSetsFromLabeledInstances()
     Some(Result(dimensions, rows, weights, 0.0, "kDNF?"))
   }
 
-  private def combos() = {
-    CombinationBuilder(instances.numAttributes(), 2).all().map { combo =>
-      val a = combo.head + 1
-      val b = combo.last + 1
-      ((a,b), (-a, b), (a, -b), (-a, -b))
-    }//.flatMap { case (a,b) =>
-//    }
+  private def constructSetsFromLabeledInstances() = {
+    val indexCombinations = CombinationBuilder(x.numAttributes(), 2).all().flatMap { c =>
+      val a = c.head + 1
+      val b = c.last + 1
+      Vector((a,b), (-a, b), (a, -b), (-a, -b))
+    }
+
+    val sets = indexCombinations.map { case (attr1,attr2) =>
+      val f = new SubsetByExpression()
+      val attr1String = s"x${Math.abs(attr1)}"
+      val attr2String = s"x${Math.abs(attr2)}"
+      val attr1Expr = attr1String.concat(if (attr1 > 0) " > 0" else " <= 0")
+      val attr2Expr = attr2String.concat(if (attr2 > 0) " > 0" else " <= 0")
+      f.setExpression(s"$attr1Expr AND $attr2Expr")
+      f.setInputFormat(x)
+      val set = Filter.useFilter(x, f)
+      set
+    }.toVector
+    sets
   }
-
-  private def redBluePartialCoverSet() = {
-
-  }
-
-
 }
