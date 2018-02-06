@@ -4,12 +4,12 @@ import akka.actor.{Actor, ActorLogging, Cancellable, Props}
 import akka.cluster.pubsub.DistributedPubSubMediator.Publish
 import akka.cluster.pubsub.{DistributedPubSub, DistributedPubSubMediator}
 import cluster.sclr.Messages._
-import cluster.sclr.core.ResultsDao
+import cluster.sclr.core.DatabaseDao
 import combinations.{CombinationAggregation, CombinationBuilder}
 
 import scala.concurrent.duration._
 
-class ManageActor(resultsDao: ResultsDao) extends Actor with ActorLogging {
+class ManageActor(dao: DatabaseDao) extends Actor with ActorLogging {
 
   private var workload: Workload = _
   private var iterator: Iterator[Vector[combinations.Combination]] = _
@@ -20,7 +20,8 @@ class ManageActor(resultsDao: ResultsDao) extends Actor with ActorLogging {
 
   def waiting: Receive = {
     case work: Workload =>
-      resultsDao.setupSchemaAndTable(work.name, work.selectDimensions, work.selectRows, work.selectDimensions + 1)
+      dao.initializeDataset(work.name)
+      dao.setupSchemaAndTable(work.name, work.selectDimensions, work.selectRows, work.selectDimensions + 1)
 
       iterator = CombinationAggregation(Vector(
           CombinationBuilder(work.totalDimensions, work.selectDimensions),
@@ -62,5 +63,5 @@ class ManageActor(resultsDao: ResultsDao) extends Actor with ActorLogging {
 }
 
 object ManageActor {
-  def props(resultsDao: ResultsDao) = Props(new ManageActor(resultsDao))
+  def props(resultsDao: DatabaseDao) = Props(new ManageActor(resultsDao))
 }

@@ -3,7 +3,7 @@ package cluster.main
 import akka.actor.{ActorSystem, Props}
 import akka.cluster.Cluster
 import cluster.sclr.actors.ComputeActor
-import cluster.sclr.core.ResultsDao
+import cluster.sclr.core.DatabaseDao
 import com.typesafe.config.ConfigFactory
 
 import scala.concurrent.duration._
@@ -22,7 +22,7 @@ object ComputeApp {
 
     Cluster(system) registerOnMemberUp {
       system.actorOf(Props(new Terminator()), "terminator")
-      val resultsDao = new ResultsDao()
+      val resultsDao = new DatabaseDao()
       system.actorOf(ComputeActor.props(resultsDao), "compute")
     }
 

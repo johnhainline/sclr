@@ -8,7 +8,7 @@ import akka.http.scaladsl.model.{HttpMethods, HttpRequest, RequestEntity}
 import akka.stream.ActorMaterializer
 import cluster.sclr.Messages.Workload
 import cluster.sclr.actors.{ComputeActor, FrontendActor, ManageActor}
-import cluster.sclr.core.ResultsDao
+import cluster.sclr.core.DatabaseDao
 import cluster.sclr.http.InfoService
 
 import scala.concurrent.Await
@@ -28,13 +28,13 @@ object LocalApp {
     Cluster(system).join(joinAddress)
     system.actorOf(Props(new Terminator()), "terminator")
 
-    val resultsDao = new ResultsDao()
+    val resultsDao = new DatabaseDao()
     val manageActor = system.actorOf(ManageActor.props(resultsDao), "manage")
     (1 to parallel).foreach(_ => system.actorOf(ComputeActor.props(resultsDao)))
     val infoService = new InfoService(manageActor)
     system.actorOf(FrontendActor.props(infoService), "frontend")
 
-    val work = Workload("datasets/example/yz.csv", "datasets/example/x.csv", "example", 5, 2, 7, 3)
+    val work = Workload("example", 5, 2, 7, 3)
     val responseFuture = Marshal(work).to[RequestEntity] flatMap { entity =>
       println(s"Sending entity: $entity")
       val request = HttpRequest(method = HttpMethods.POST, uri = "http://127.0.0.1:8080/begin", entity = entity)

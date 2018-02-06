@@ -1,19 +1,13 @@
 package cluster.sclr.core
 
-import cluster.sclr.Messages.Workload
 import combinations.CombinationBuilder
 import weka.classifiers.functions.LinearRegression
 import weka.core.Instances
-import weka.core.converters.ConverterUtils
 import weka.filters.Filter
 import weka.filters.unsupervised.attribute.Remove
 import weka.filters.unsupervised.instance.SubsetByExpression
 
-class WorkloadRunner(val workload: Workload) {
-
-  val x  = new ConverterUtils.DataSource(workload.dataX).getDataSet
-  val yz = new ConverterUtils.DataSource(workload.dataYZ).getDataSet
-  yz.setClassIndex(yz.numAttributes - 1)
+class WorkloadRunner(x: Instances, yz: Instances) {
 
   /*
    * perform linear regression using those data & attributes specified in dimensions and rows

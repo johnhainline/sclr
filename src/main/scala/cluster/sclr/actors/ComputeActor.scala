@@ -4,13 +4,14 @@ import akka.actor.{Actor, ActorLogging, Props}
 import akka.cluster.pubsub.DistributedPubSubMediator.Publish
 import akka.cluster.pubsub.{DistributedPubSub, DistributedPubSubMediator}
 import cluster.sclr.Messages._
-import cluster.sclr.core.{ResultsDao, WorkloadRunner}
+import cluster.sclr.core.{DatabaseDao, WorkloadRunner}
 
 import scala.util.{Failure, Try}
 
-class ComputeActor(resultsDao: ResultsDao) extends Actor with ActorLogging {
+class ComputeActor(dao: DatabaseDao) extends Actor with ActorLogging {
 
   private var runner: WorkloadRunner = _
+  private var name: String = _
   private val mediator = DistributedPubSub(context.system).mediator
   mediator ! DistributedPubSubMediator.Subscribe(topicComputer, self)
 
@@ -19,8 +20,10 @@ class ComputeActor(resultsDao: ResultsDao) extends Actor with ActorLogging {
   }
 
   def waiting: Receive = {
-    case work:Workload =>
-      runner = new WorkloadRunner(work)
+    case workload:Workload =>
+      name = workload.name
+      val dataset = dao.getDataset(name)
+      runner = new WorkloadRunner(dataset.x, dataset.yz)
       log.debug("waiting -> computing")
       context.become(computing)
       askForWork()
@@ -31,7 +34,7 @@ class ComputeActor(resultsDao: ResultsDao) extends Actor with ActorLogging {
       Try {
         val optionResult = runner.run(work.selectedDimensions, work.selectedRows)
         optionResult.map { result =>
-          resultsDao.insertResult(schema = runner.workload.name, result)
+          dao.insertResult(schema = name, result)
         }
       } match {
         case Failure(e) =>
@@ -52,5 +55,5 @@ class ComputeActor(resultsDao: ResultsDao) extends Actor with ActorLogging {
 }
 
 object ComputeActor {
-  def props(resultsDao: ResultsDao) = Props(new ComputeActor(resultsDao))
+  def props(resultsDao: DatabaseDao) = Props(new ComputeActor(resultsDao))
 }

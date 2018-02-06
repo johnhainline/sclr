@@ -4,7 +4,7 @@ import akka.actor.{ActorSystem, Props}
 import akka.cluster.Cluster
 import akka.stream.ActorMaterializer
 import cluster.sclr.actors.{FrontendActor, ManageActor}
-import cluster.sclr.core.ResultsDao
+import cluster.sclr.core.DatabaseDao
 import cluster.sclr.http.InfoService
 import com.typesafe.config.ConfigFactory
 
@@ -25,7 +25,7 @@ object ManageApp {
 
     Cluster(system) registerOnMemberUp {
       system.actorOf(Props(new Terminator()), "terminator")
-      val resultsDao = new ResultsDao()
+      val resultsDao = new DatabaseDao()
       val manageActor = system.actorOf(ManageActor.props(resultsDao), "manage")
 
       val infoService = new InfoService(manageActor)
