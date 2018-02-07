@@ -1,5 +1,6 @@
 package cluster.sclr.core
 
+import com.typesafe.scalalogging.LazyLogging
 import combinations.CombinationBuilder
 import weka.classifiers.functions.LinearRegression
 import weka.core.Instances
@@ -7,12 +8,13 @@ import weka.filters.Filter
 import weka.filters.unsupervised.attribute.Remove
 import weka.filters.unsupervised.instance.SubsetByExpression
 
-class WorkloadRunner(x: Instances, yz: Instances) {
+class WorkloadRunner(x: Instances, yz: Instances) extends LazyLogging {
 
   /*
    * perform linear regression using those data & attributes specified in dimensions and rows
    */ @throws[Exception]
   def run(dimensions: Vector[Int], rows: Vector[Int]): Option[Result] = {
+//    logger.debug(s"Running for dimensions:$dimensions, rows:$rows")
     // Add the last dimension (the Y values)
     dimensions :+ yz.numAttributes() - 1
 
@@ -27,10 +29,8 @@ class WorkloadRunner(x: Instances, yz: Instances) {
     attributeFilter.setInputFormat(reducedInst)
     reducedInst = Filter.useFilter(reducedInst, attributeFilter)
     reducedInst.setClassIndex(reducedInst.numAttributes() - 1)
-    System.out.println(reducedInst)
     val model = new LinearRegression()
     model.buildClassifier(reducedInst)
-    System.out.println(model)
     val weights = model.coefficients.toVector
 //    constructSetsFromLabeledInstances()
     Some(Result(dimensions, rows, weights, 0.0, "kDNF?"))

@@ -12,7 +12,7 @@ import scala.concurrent.duration._
 class ManageActor(dao: DatabaseDao) extends Actor with ActorLogging {
 
   private var workload: Workload = _
-  private var iterator: Iterator[Vector[combinations.Combination]] = _
+  private var iterator: BufferedIterator[Vector[combinations.Combination]] = _
   private var sendSchedule: Cancellable = _
 
   private val mediator = DistributedPubSub(context.system).mediator
@@ -25,7 +25,7 @@ class ManageActor(dao: DatabaseDao) extends Actor with ActorLogging {
 
       iterator = CombinationAggregation(Vector(
           CombinationBuilder(work.totalDimensions, work.selectDimensions),
-          CombinationBuilder(work.totalRows, work.selectRows))).all()
+          CombinationBuilder(work.totalRows, work.selectRows))).all().buffered
       workload = work
       log.debug("waiting -> sending")
       context.become(sending)
@@ -39,12 +39,12 @@ class ManageActor(dao: DatabaseDao) extends Actor with ActorLogging {
   def sending: Receive = {
     case workload:Workload =>
       mediator ! Publish(topicComputer, workload)
-      log.debug(s"sending $workload")
+//      log.debug(s"sending $workload")
+      log.debug(s"workload: ${workload.name} at ${iterator.headOption}")
     case GetWork =>
       if (iterator.hasNext) {
         val next = iterator.next()
         sender() ! Work(next.head, next.last)
-        log.debug("sending Work")
       } else {
         log.debug("sending -> finished")
         context.become(finished)

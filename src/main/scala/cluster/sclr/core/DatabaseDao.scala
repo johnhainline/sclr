@@ -23,11 +23,11 @@ class DatabaseDao extends LazyLogging {
   def initializeDataset(name: String): Unit = {
     val (driver, url, username, password) = getConfigSettings
     val xa = Transactor.fromDriverManager[IO](driver, url, username, password)
-    xa.connect(xa.kernel).map { connection =>
+    FC.raw { connection =>
       val runner = new ScriptRunner(connection, false, false)
       val file = new BufferedReader(new InputStreamReader(getClass.getClassLoader.getResourceAsStream(s"datasets/$name.sql")))
       runner.runScript(file)
-    }.unsafeRunSync()
+    }.transact(xa).unsafeRunSync()
   }
 
   def getDatasetInfo(name: String): DatasetInfo = {
