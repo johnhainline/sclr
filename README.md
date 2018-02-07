@@ -73,11 +73,13 @@ Note that I have instructions for this using a Mac.
    - `cd src/main/resources/kubernetes/; kubectl create -f mysql.yaml; kubectl create -f compute-pods.yaml; kubectl create -f manage-pods.yaml; cd ../../../..;`
 1. Check running pods, services, etc.
    - `kubectl get all -o wide`
+1. Send a single POST request (from the `compute-0` pod) to the `http-service` endpoint. This kicks off the job.
+   - `kubectl exec -ti compute-0 -- curl -vH "Content-Type: application/json" -X POST -d '{"name":"example","selectDimensions":2,"totalRows":7,"totalDimensions":5,"selectRows":3}' http-service.default.svc.cluster.local:8080/begin`
 1. Make a connection to the MySQL server.
-   - `kubectl run -it --rm --image=mysql:5.6 --restart=Never mysql-client -- mysql -h mysql-service -pMYSQL_PASSWORD`
-1. Send a single GET request (from the `compute-0` pod) to the `http-service` endpoint. This kicks off the job.
-   - `kubectl exec -ti compute-0 -- curl -v http-service.default.svc.cluster.local:8080/begin`
-1. View results in MySQL under the `sclr` schema in the `results_house` table.
+   - `kubectl run -it --rm --image=mysql:5.7 --restart=Never mysql-client -- mysql -h mysql-service -pMYSQL_PASSWORD`
+1. Dump the `example` schema from the MySQL server to our local directory.
+   - `kubectl run -it --rm --image=mysql:5.7 --restart=Never mysql-client -- mysqldump --databases example -h mysql-service -pMYSQL_PASSWORD > backup.sql`
+1. View results in MySQL under the `example` schema in the `results` table.
 1. Backup results somewhere as shutdown will delete the MySQL server.
 1. Delete all local Kubernetes pods, including MySQL, etc.
    - `kubectl delete pvc mysql-pv-claim; kubectl delete all -l app=sclr`

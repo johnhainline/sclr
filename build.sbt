@@ -3,13 +3,13 @@ import sbt.Keys.fork
 
 val akkaVersion = "2.5.8"
 val httpVersion = "10.0.11"
-val doobieVersion = "0.5.0-M13"
+val doobieVersion = "0.5.0-RC2"
 
 scalacOptions += "-Ypartial-unification" // 2.11.9+
 
 organization in ThisBuild := "wustl.engineering"
 scalaVersion in ThisBuild := "2.12.4"
-version in ThisBuild := "0.5.9"
+version in ThisBuild := "0.6.0"
 
 lazy val sclr = project
   .in(file("."))
