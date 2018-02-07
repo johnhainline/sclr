@@ -22,11 +22,13 @@ class ManageActor(dao: DatabaseDao) extends Actor with ActorLogging {
     case work: Workload =>
       dao.initializeDataset(work.name)
       dao.setupSchemaAndTable(work.name, work.selectDimensions, work.selectRows, work.selectDimensions + 1)
+      val datasetInfo = dao.getDatasetInfo(work.name)
 
       iterator = CombinationAggregation(Vector(
-          CombinationBuilder(work.totalDimensions, work.selectDimensions),
-          CombinationBuilder(work.totalRows, work.selectRows))).all().buffered
+          CombinationBuilder(datasetInfo.dimensions, work.selectDimensions),
+          CombinationBuilder(datasetInfo.rows, work.selectRows))).all().buffered
       workload = work
+      log.debug(s"received workload for dataset: ${work.name} with dimensions:${datasetInfo.dimensions} rows:${datasetInfo.rows} selecting dimensions:${work.selectDimensions} rows:${work.selectRows}")
       log.debug("waiting -> sending")
       context.become(sending)
       import scala.concurrent.ExecutionContext.Implicits.global
