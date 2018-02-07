@@ -74,7 +74,7 @@ Note that I have instructions for this using a Mac.
 1. Check running pods, services, etc.
    - `kubectl get all -o wide`
 1. Send a single POST request (from the `compute-0` pod) to the `http-service` endpoint. This kicks off the job.
-   - `kubectl exec -ti compute-0 -- curl -vH "Content-Type: application/json" -X POST -d '{"name":"example","selectDimensions":2,"totalRows":7,"totalDimensions":5,"selectRows":3}' http-service.default.svc.cluster.local:8080/begin`
+   - `kubectl exec -ti compute-0 -- curl -vH "Content-Type: application/json" -X POST -d '{"name":"example","selectDimensions":2,"selectRows":3}' http-service.default.svc.cluster.local:8080/begin`
 1. Make a connection to the MySQL server.
    - `kubectl run -it --rm --image=mysql:5.7 --restart=Never mysql-client -- mysql -h mysql-service -pMYSQL_PASSWORD`
 1. Dump the `example` schema from the MySQL server to our local directory.
