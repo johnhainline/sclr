@@ -5,6 +5,9 @@ import akka.cluster.pubsub.DistributedPubSubMediator.Publish
 import akka.cluster.pubsub.{DistributedPubSub, DistributedPubSubMediator}
 import cluster.sclr.Messages._
 import cluster.sclr.core.{DatabaseDao, WorkloadRunner}
+import weka.core.Instances
+import weka.filters.Filter
+import weka.filters.unsupervised.instance.Resample
 
 import scala.util.{Failure, Try}
 
@@ -20,10 +23,11 @@ class ComputeActor(dao: DatabaseDao) extends Actor with ActorLogging {
   }
 
   def waiting: Receive = {
-    case workload:Workload =>
-      name = workload.name
+    case workConfig:WorkConfig =>
+      name = workConfig.name
       val dataset = dao.getDataset(name)
-      runner = new WorkloadRunner(dataset.x, dataset.yz)
+      val sampleX = sampleInstances(dataset.x, workConfig.sampleSize, workConfig.randomSeed)
+      runner = new WorkloadRunner(sampleX, dataset.yz)
       log.debug("waiting -> computing")
       context.become(computing)
       askForWork()
@@ -52,6 +56,16 @@ class ComputeActor(dao: DatabaseDao) extends Actor with ActorLogging {
   }
 
   def receive: Receive = waiting
+
+  private def sampleInstances(x: Instances, sampleSize: Int, randomSeed: Int): Instances = {
+    val filter = new Resample()
+    val sampleSizePercent = sampleSize.toDouble / x.size().toDouble
+    filter.setInputFormat(x)
+    filter.setSampleSizePercent(sampleSizePercent)
+    filter.setNoReplacement(true)
+    filter.setRandomSeed(randomSeed)
+    Filter.useFilter(x, filter)
+  }
 }
 
 object ComputeActor {

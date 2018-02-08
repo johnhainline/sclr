@@ -16,8 +16,8 @@ object SetCover {
     }
   }
 
-  def degree(r_i: Point, sets: Set[Set[Point]]): Int = {
-    sets.count(_.contains(r_i))
+  def degree(r_i: Point, sets: Set[Set[Point]]): Double = {
+    sets.count(_.contains(r_i)) * r_i.redness
   }
 
   def harmonic(n: Int): Double = {
@@ -97,7 +97,7 @@ object SetCover {
    * Low Deg Partial(X)
    */
   def lowDegPartial(totalPointCount: Int, sets: Set[Set[Point]], mu: Double, rednessThreshold: Double, beta: Int): Set[Set[Point]] = {
-    val survivors = sets.filter(set => addRedness(set) < rednessThreshold)
+    val survivors = sets.filter(set => addRedness(set) <= rednessThreshold)
     if (unionSize(survivors) < mu * totalPointCount) {
       return Set.empty
     }
@@ -118,7 +118,7 @@ object SetCover {
   }
 
   def errorRate(totalPointCount: Int, sets: Set[Set[Point]]): Double = {
-    addRednessCollection(sets) / totalPointCount.toDouble
+    addRednessCollection(sets) / unionSize(sets)
   }
 
   def lowDegPartial2(setOfSets: Set[Set[Point]], mu: Double, beta: Int): Double = {

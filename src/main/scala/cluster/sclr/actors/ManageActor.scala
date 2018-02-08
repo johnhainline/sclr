@@ -26,21 +26,22 @@ class ManageActor(dao: DatabaseDao) extends Actor with ActorLogging {
 
       iterator = CombinationAggregation(Vector(
           CombinationBuilder(datasetInfo.xDimensionCount, work.selectXDimensions),
-          CombinationBuilder(datasetInfo.xRowCount, work.selectXRows))).all().buffered
+          CombinationBuilder(datasetInfo.xRowSubsetCount, work.selectXRows))).all().buffered
       workload = work
       log.debug(s"received workload for dataset: ${work.name} with dimensions:${datasetInfo.xDimensionCount} rows:${datasetInfo.xRowCount} selecting dimensions:${work.selectXDimensions} rows:${work.selectXRows}")
       log.debug("waiting -> sending")
       context.become(sending)
       import scala.concurrent.ExecutionContext.Implicits.global
       import scala.language.postfixOps
-      sendSchedule = context.system.scheduler.schedule(0 seconds, 5 seconds, self, workload)
+      val workConfig = WorkConfig(workload.name, 123, datasetInfo.xRowSubsetCount)
+      sendSchedule = context.system.scheduler.schedule(0 seconds, 5 seconds, self, workConfig)
       mediator ! Publish(topicStatus, workload)
       sender() ! Ack
   }
 
   def sending: Receive = {
-    case workload:Workload =>
-      mediator ! Publish(topicComputer, workload)
+    case workConfig:WorkConfig =>
+      mediator ! Publish(topicComputer, workConfig)
       log.debug(s"workload: ${workload.name} at ${iterator.headOption}")
     case Status =>
       sender() ! StatusResponse(workload, iterator.headOption)
