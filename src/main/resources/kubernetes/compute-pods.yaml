@@ -38,7 +38,7 @@ spec:
       containers:
       - name: compute
         image: us.gcr.io/sclr-akka/compute:latest
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 2551
           name: akka-remote

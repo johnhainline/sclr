@@ -53,7 +53,7 @@ spec:
       containers:
       - name: frontend
         image: us.gcr.io/sclr-akka/frontend:latest
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 2551
           name: akka-remote
