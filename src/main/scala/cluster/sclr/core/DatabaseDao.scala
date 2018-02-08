@@ -31,14 +31,14 @@ class DatabaseDao extends LazyLogging {
   }
 
   def getDatasetInfo(name: String): DatasetInfo = {
-    val dimensionsQuery = (fr"SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema = " ++
-      Fragment.const(s"""\"$name\"""") ++ fr" AND table_name = " ++ Fragment.const(""""yz"""")).query[Int]
+    val xDimensionsQuery = (fr"SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema = " ++
+      Fragment.const(s"""\"$name\"""") ++ fr" AND table_name = " ++ Fragment.const(""""x"""")).query[Int]
     // We take -1 off the dimensions to account for our id primary key column.
-    val dimensions = dimensionsQuery.unique.transact(xa).unsafeRunSync() - 1
+    val xDimensions = xDimensionsQuery.unique.transact(xa).unsafeRunSync() - 1
 
-    val rowsQuery = Fragment.const(s"SELECT COUNT(*) FROM $name.x").query[Int]
-    val rows = rowsQuery.unique.transact(xa).unsafeRunSync()
-    DatasetInfo(dimensions, rows)
+    val xRowsQuery = Fragment.const(s"SELECT COUNT(*) FROM $name.x").query[Int]
+    val xRows = xRowsQuery.unique.transact(xa).unsafeRunSync()
+    DatasetInfo(xDimensions, xRows)
   }
 
   def getDataset(name: String): Dataset = {

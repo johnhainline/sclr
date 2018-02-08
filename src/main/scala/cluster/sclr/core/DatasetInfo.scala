@@ -1,3 +1,3 @@
 package cluster.sclr.core
 
-case class DatasetInfo(dimensions: Int, rows: Int)
+case class DatasetInfo(xDimensionCount: Int, xRowCount: Int)
