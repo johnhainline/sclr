@@ -17,23 +17,6 @@ spec:
     name: manage
 
 ---
-apiVersion: v1
-kind: Service
-metadata:
-  name: http-service
-  labels:
-    name: http-service
-    app: sclr
-spec:
-  ports:
-  - protocol: TCP
-    name: http-service
-    port: 8080
-    targetPort: 8080
-  selector:
-    name: manage
-
----
 apiVersion: apps/v1beta2
 kind: Deployment
 metadata:
@@ -53,12 +36,10 @@ spec:
       containers:
       - name: manage
         image: us.gcr.io/sclr-akka/manage:latest
-        imagePullPolicy: Never
+        imagePullPolicy: Always
         ports:
         - containerPort: 2551
           name: akka-remote
-        - containerPort: 8080
-          name: http-service
         env:
         - name: DATABASE_HOST
           value: mysql-service
@@ -69,10 +50,6 @@ spec:
             secretKeyRef:
               name: mysql-password
               key: password
-        - name: POD_NAME
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.name
         - name: AKKA_REMOTING_BIND_HOST
           value: 'manage-service.default.svc.cluster.local'
         - name: AKKA_REMOTING_BIND_PORT
@@ -85,7 +62,3 @@ spec:
           value: 'true'
         - name: RESOLV_CONF
           value: 'on'
-        - name: HTTP_HOST
-          value: '0.0.0.0'
-        - name: HTTP_PORT
-          value: '8080'

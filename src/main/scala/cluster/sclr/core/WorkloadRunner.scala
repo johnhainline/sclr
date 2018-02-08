@@ -10,9 +10,6 @@ import weka.filters.unsupervised.instance.SubsetByExpression
 
 class WorkloadRunner(x: Instances, yz: Instances) extends LazyLogging {
 
-  /*
-   * perform linear regression using those data & attributes specified in dimensions and rows
-   */ @throws[Exception]
   def run(dimensions: Vector[Int], rows: Vector[Int]): Option[Result] = {
 //    logger.debug(s"Running for dimensions:$dimensions, rows:$rows")
     // Add the last dimension (the Y values)
@@ -32,15 +29,21 @@ class WorkloadRunner(x: Instances, yz: Instances) extends LazyLogging {
     val model = new LinearRegression()
     model.buildClassifier(reducedInst)
     val weights = model.coefficients.toVector
-//    constructSetsFromLabeledInstances()
+
+
+    // find redness of each point based on weights.
+
+//    val sets = constructSetsFromLabeledInstances(points with redness List[Point])
+
     Some(Result(dimensions, rows, weights, 0.0, "kDNF?"))
   }
 
-  private def constructSetsFromLabeledInstances() = {
+  private def constructSetsFromLabeledInstances(): Set[Set[Point]] = {
+
     val indexCombinations = CombinationBuilder(x.numAttributes(), 2).all().flatMap { c =>
       val a = c.head + 1
       val b = c.last + 1
-      Vector((a,b), (-a, b), (a, -b), (-a, -b))
+      Set((a,b), (-a, b), (a, -b), (-a, -b))
     }
 
     val sets = indexCombinations.map { case (attr1,attr2) =>
@@ -52,8 +55,10 @@ class WorkloadRunner(x: Instances, yz: Instances) extends LazyLogging {
       f.setExpression(s"$attr1Expr AND $attr2Expr")
       f.setInputFormat(x)
       val set = Filter.useFilter(x, f)
-      set
-    }.toVector
+      import collection.JavaConverters._
+      val points = set.enumerateInstances().asScala.map { Point(_, 1.0) }
+      points.toSet
+    }.toSet
     sets
   }
 }

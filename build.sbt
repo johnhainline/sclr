@@ -9,7 +9,7 @@ scalacOptions += "-Ypartial-unification" // 2.11.9+
 
 organization in ThisBuild := "wustl.engineering"
 scalaVersion in ThisBuild := "2.12.4"
-version in ThisBuild := "0.6.0"
+version in ThisBuild := "0.6.1"
 
 lazy val sclr = project
   .in(file("."))
@@ -38,9 +38,6 @@ lazy val sclr = project
 
     // Weka, a Machine Learning library.
     "nz.ac.waikato.cms.weka" % "weka-stable" % "3.8.2",
-
-    "com.lightbend.akka.management" %% "akka-management" % "0.9.0",
-    "com.lightbend.akka.management" %% "akka-management-cluster-http" % "0.9.0",
 
     "com.typesafe.akka" %% "akka-http"             % httpVersion,
     "com.typesafe.akka" %% "akka-http-spray-json"  % httpVersion,
@@ -79,6 +76,17 @@ val dockerSettings = Seq(
   packageSummary := "SCLR Server",
   packageDescription := "Sparse Conditional Linear Regression"
 )
+
+lazy val frontend = project
+  .in(file("frontend"))
+  .settings(dockerSettings: _*)
+  .settings(
+    name := "sclr-frontend",
+    mainClass := Some("cluster.main.FrontendApp"),
+    packageName in Docker := "sclr-akka/frontend"
+  )
+  .dependsOn(sclr)
+  .enablePlugins(JavaServerAppPackaging, DockerPlugin)
 
 lazy val manage = project
   .in(file("manage"))

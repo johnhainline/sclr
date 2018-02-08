@@ -3,9 +3,8 @@ package cluster.main
 import akka.actor.{ActorSystem, Props}
 import akka.cluster.Cluster
 import akka.stream.ActorMaterializer
-import cluster.sclr.actors.{FrontendActor, ManageActor}
+import cluster.sclr.actors.ManageActor
 import cluster.sclr.core.DatabaseDao
-import cluster.sclr.http.InfoService
 import com.typesafe.config.ConfigFactory
 
 import scala.concurrent.duration._
@@ -13,10 +12,8 @@ import scala.language.postfixOps
 
 object ManageApp {
   def main(args: Array[String]): Unit = {
-//    val internalIp = NetworkConfig.hostLocalAddress
     val appConfig = ConfigFactory.load()
-    val config = ConfigFactory.parseString("akka.cluster.roles = [frontend,manage]").
-//      withFallback(ConfigFactory.parseString(s"akka.remote.netty.tcp.bind-hostname=$internalIp")).
+    val config = ConfigFactory.parseString("akka.cluster.roles = [manage]").
       withFallback(appConfig)
 
     implicit val system: ActorSystem = ActorSystem("sclr", config)
@@ -26,10 +23,7 @@ object ManageApp {
     Cluster(system) registerOnMemberUp {
       system.actorOf(Props(new Terminator()), "terminator")
       val resultsDao = new DatabaseDao()
-      val manageActor = system.actorOf(ManageActor.props(resultsDao), "manage")
-
-      val infoService = new InfoService(manageActor)
-      system.actorOf(FrontendActor.props(infoService), "frontend")
+      system.actorOf(ManageActor.props(resultsDao), "manage")
     }
 
     Cluster(system).registerOnMemberRemoved {

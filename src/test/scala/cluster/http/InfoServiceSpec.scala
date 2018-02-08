@@ -12,7 +12,8 @@ import org.scalatest.{Matchers, WordSpec}
 class InfoServiceSpec extends WordSpec with ScalatestRouteTest with Matchers {
 
   val probe = TestProbe()
-  val infoService = new InfoService(probe.ref)(system, ActorMaterializer())
+  val infoService = new InfoService()(system, ActorMaterializer())
+  infoService.setManageActor(probe.ref)
 
   "The service" should {
 

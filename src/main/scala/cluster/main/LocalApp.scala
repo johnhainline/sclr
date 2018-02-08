@@ -29,10 +29,9 @@ object LocalApp {
     system.actorOf(Props(new Terminator()), "terminator")
 
     val resultsDao = new DatabaseDao()
-    val manageActor = system.actorOf(ManageActor.props(resultsDao), "manage")
+    system.actorOf(ManageActor.props(resultsDao), "manage")
     (1 to parallel).foreach(_ => system.actorOf(ComputeActor.props(resultsDao)))
-    val infoService = new InfoService(manageActor)
-    system.actorOf(FrontendActor.props(infoService), "frontend")
+    system.actorOf(FrontendActor.props(new InfoService()), "frontend")
 
     val work = Workload("example", 2, 3)
     val responseFuture = Marshal(work).to[RequestEntity] flatMap { entity =>

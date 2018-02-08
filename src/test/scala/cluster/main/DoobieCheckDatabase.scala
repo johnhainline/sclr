@@ -13,7 +13,7 @@ object DoobieCheckDatabase {
 
     sql"SHOW DATABASES"
       .query[String]        // Query0[String]
-      .list                 // ConnectionIO[List[String]]
+      .to[List]             // ConnectionIO[List[String]]
       .transact(transactor) // IO[List[String]]
       .unsafeRunSync        // List[String]
       .foreach(println)

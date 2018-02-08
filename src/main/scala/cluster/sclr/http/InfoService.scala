@@ -3,7 +3,7 @@ package cluster.sclr.http
 import akka.actor.{ActorRef, ActorSystem}
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
-import akka.http.scaladsl.model.StatusCodes
+import akka.http.scaladsl.model._
 import akka.http.scaladsl.server.Directives
 import akka.pattern.ask
 import akka.stream.ActorMaterializer
@@ -17,8 +17,10 @@ import spray.json.{DefaultJsonProtocol, JsArray, JsNumber, JsObject, JsValue, Js
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
-class InfoService(manageActor: ActorRef)(implicit val system: ActorSystem, implicit val materializer: ActorMaterializer)
+class InfoService(implicit val system: ActorSystem, implicit val materializer: ActorMaterializer)
   extends Directives with LazyLogging {
+
+  var manageActorOption: Option[ActorRef] = None
 
   implicit val printer = PrettyPrinter
   implicit val timeout = Timeout(30 seconds)
@@ -32,11 +34,23 @@ class InfoService(manageActor: ActorRef)(implicit val system: ActorSystem, impli
       post {
         decodeRequest {
           entity(as[Workload]) { workload =>
-            onSuccess(manageActor ? workload) {
-              case Ack =>
-                complete(StatusCodes.OK)
-              case _ =>
-                complete(StatusCodes.InternalServerError)
+            manageActorOption match {
+              case Some(manageActor) =>
+                onSuccess(manageActor ? workload) {
+                  case Ack =>
+                    complete(StatusCodes.OK)
+                  case _ =>
+                    complete(StatusCodes.InternalServerError)
+                }
+              case None =>
+                complete {
+                  HttpResponse(StatusCodes.FailedDependency,
+                    entity = HttpEntity(
+                      ContentType(MediaTypes.`application/json`),
+                      """{"msg":"ManagerActor reference has not yet been acquired."}"""
+                    )
+                  )
+                }
             }
           }
         }
@@ -46,6 +60,10 @@ class InfoService(manageActor: ActorRef)(implicit val system: ActorSystem, impli
   val host = ConfigFactory.load().getString("akka.http.server.default-http-host")
   logger.debug(s"Binding to host: $host")
   Http().bindAndHandle(route, host)
+
+  def setManageActor(manageActor:ActorRef) = {
+    manageActorOption = Some(manageActor)
+  }
 }
 
 object JsonFormatters extends DefaultJsonProtocol with SprayJsonSupport {

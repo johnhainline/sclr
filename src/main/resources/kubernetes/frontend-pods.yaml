@@ -2,9 +2,9 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: compute-service
+  name: frontend-service
   labels:
-    name: compute-service
+    name: frontend-service
     app: sclr
 spec:
   clusterIP: None
@@ -14,50 +14,54 @@ spec:
     port: 2551
     targetPort: 2551
   selector:
-    name: compute
+    name: frontend
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: http-service
+  labels:
+    name: http-service
+    app: sclr
+spec:
+  ports:
+  - protocol: TCP
+    name: http-service
+    port: 8080
+    targetPort: 8080
+  selector:
+    name: frontend
 
 ---
 apiVersion: apps/v1beta2
-kind: StatefulSet
+kind: Deployment
 metadata:
-  name: compute
+  name: frontend
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
-      name: compute
+      name: frontend
       app: sclr
-  serviceName: compute-service
-  podManagementPolicy: Parallel
   template:
     metadata:
       labels:
-        name: compute
+        name: frontend
         app: sclr
     spec:
       containers:
-      - name: compute
-        image: us.gcr.io/sclr-akka/compute:latest
+      - name: frontend
+        image: us.gcr.io/sclr-akka/frontend:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 2551
           name: akka-remote
+        - containerPort: 8080
+          name: http-service
         env:
-        - name: DATABASE_HOST
-          value: mysql-service
-        - name: DATABASE_USERNAME
-          value: 'root'
-        - name: DATABASE_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: mysql-password
-              key: password
-        - name: POD_NAME
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.name
         - name: AKKA_REMOTING_BIND_HOST
-          value: '$(POD_NAME).compute-service.default.svc.cluster.local'
+          value: 'frontend-service.default.svc.cluster.local'
         - name: AKKA_REMOTING_BIND_PORT
           value: '2551'
         - name: AKKA_SEED_NODE
@@ -68,3 +72,7 @@ spec:
           value: 'true'
         - name: RESOLV_CONF
           value: 'on'
+        - name: HTTP_HOST
+          value: '0.0.0.0'
+        - name: HTTP_PORT
+          value: '8080'
