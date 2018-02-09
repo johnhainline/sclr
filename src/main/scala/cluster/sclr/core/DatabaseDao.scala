@@ -72,36 +72,38 @@ class DatabaseDao extends LazyLogging {
     val insertNames = Vector("error",
       dimensionNames(result.dimensions.length).mkString(","),
       rowNames(result.rows.length).mkString(","),
-      coeffNames(result.coefficients.length).mkString(",")
+      coeffNames(result.coefficients.length).mkString(","),
+      "kdnf"
     )
 
     val reducer = { (l:Fragment, r:Fragment) => l ++ r}
     val fragmentValues =
-      fr"0.0" ++
+      Fragment.const(result.error.toString) ++
       result.dimensions.map(d => fr", $d").reduce(reducer) ++
       result.rows.map(r => fr", $r").reduce(reducer) ++
       result.coefficients.map(c => fr", $c").reduce(reducer)
+//      ++ Fragment.const("\"".concat(result.kDNF).concat("\""))
 
     val dbUpdate = (fr"INSERT INTO " ++ Fragment.const(s"$schema.results") ++
       Fragment.const(insertNames.mkString("(", ",", ")")) ++
       fr"VALUES" ++
-      Fragment.const("(") ++ fragmentValues ++ Fragment.const(")"))
+      Fragment.const("(") ++ fragmentValues ++ sql", ${result.kDNF}" ++ Fragment.const(")"))
       .update
     dbUpdate.run.transact(xa).unsafeRunSync()
   }
 
-  def setupSchemaAndTable(schema: String, dimensions: Int, rows: Int, coefficients: Int): Int = {
+  def setupSchemaAndTable(schema: String, dimensions: Int, rows: Int): Int = {
     setupSchema(schema)
     try {
       val tableDims = dimensionNames(dimensions).map(name => s"$name INT NOT NULL")
       val tableRows = rowNames(rows).map(name => s"$name INT NOT NULL")
-      val tableCoeffs = coeffNames(coefficients).map(name => s"$name DOUBLE NOT NULL")
+      val tableCoeffs = coeffNames(dimensions).map(name => s"$name DOUBLE NOT NULL")
       val fragment = fr"CREATE TABLE IF NOT EXISTS" ++
         Fragment.const(s"$schema.results") ++
         Fragment.const((
           Vector("id BIGINT NOT NULL AUTO_INCREMENT", "error DOUBLE NOT NULL") ++
             tableDims ++ tableRows ++ tableCoeffs ++
-            Vector("created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP", "PRIMARY KEY (id)")
+            Vector("kdnf TEXT NOT NULL", "created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP", "PRIMARY KEY (id)")
           ).mkString("(", ",", ")"))
       fragment.update.run.transact(xa).unsafeRunSync()
     } catch {

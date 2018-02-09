@@ -1,14 +1,23 @@
 package cluster.sclr.core
 
+import weka.core.Instance
+
 import scala.collection.mutable
 
 
+case class SetCoverResult(kDNF: Set[Set[Instance]], rednessThreshold: Double, error: Double)
+
 object SetCover {
-  def union(sets: Set[Set[Point]]): Set[Point] = {
+
+  def redness(instance: Instance): Double = {
+    instance.value(instance.numAttributes()-1)
+  }
+
+  def union(sets: Set[Set[Instance]]): Set[Instance] = {
     sets.reduceLeft((a, b) => a.union(b))
   }
 
-  def unionSize(sets: Set[Set[Point]]): Int = {
+  def unionSize(sets: Set[Set[Instance]]): Int = {
     if (sets.isEmpty) {
       0
     } else {
@@ -16,38 +25,38 @@ object SetCover {
     }
   }
 
-  def degree(r_i: Point, sets: Set[Set[Point]]): Double = {
-    sets.count(_.contains(r_i)) * r_i.redness
+  def degree(r_i: Instance, sets: Set[Set[Instance]]): Double = {
+    sets.count(_.contains(r_i)) * redness(r_i)
   }
 
   def harmonic(n: Int): Double = {
     (1 to n).foldLeft(0.0)((a,b) => a + 1.0 / b)
   }
 
-  def phi(set: Set[Point], r: Set[Point]): Set[Point] = {
+  def phi(set: Set[Instance], r: Set[Instance]): Set[Instance] = {
     set -- r
   }
 
-  def phi2(sets: Set[Set[Point]], r: Set[Point]): Map[Set[Point], Set[Point]] = {
+  def phi2(sets: Set[Set[Instance]], r: Set[Instance]): Map[Set[Instance], Set[Instance]] = {
     sets.map { s => phi(s, r) -> s}.toMap
   }
 
-  def phi2(sets: Set[Set[Point]]): Map[Set[Point], Set[Point]] = {
+  def phi2(sets: Set[Set[Instance]]): Map[Set[Instance], Set[Instance]] = {
     sets.map {s => s -> s}.toMap
   }
 
-  def addRednessCollection(sets: Set[Set[Point]]): Double = {
+  def addRednessCollection(sets: Set[Set[Instance]]): Double = {
     var total = 0.0
     for (point <- union(sets)) {
-      total += point.redness
+      total += redness(point)
     }
     total
   }
 
-  def addRedness(set: Set[Point]): Double = {
+  def addRedness(set: Set[Instance]): Double = {
     var total = 0.0
     for (point <- set) {
-      total += point.redness
+      total += redness(point)
     }
     total
   }
@@ -55,13 +64,13 @@ object SetCover {
   /*
    * Algorithm 1
    */
-  def partialGreedy(list: Set[Set[Point]], costs: Map[Set[Point], Double], mu: Double, totalPointCount: Int): Set[Set[Point]] = {
-    val original = new mutable.HashSet[Set[Point]]
+  def partialGreedy(list: Set[Set[Instance]], costs: Map[Set[Instance], Double], mu: Double, totalInstanceCount: Int): Set[Set[Instance]] = {
+    val original = new mutable.HashSet[Set[Instance]]
     for (t <- list) {
       original.add(t)
     }
-    val sol = new mutable.HashSet[Set[Point]]
-    while (mu * totalPointCount - unionSize(sol.toSet) > 0 && original.nonEmpty) {
+    val sol = new mutable.HashSet[Set[Instance]]
+    while (mu * totalInstanceCount - unionSize(sol.toSet) > 0 && original.nonEmpty) {
       var tMin = original.head
       for (t <- original) {
         if (costs(t) / t.size < costs(tMin) / tMin.size) {
@@ -77,16 +86,16 @@ object SetCover {
   /*
    * Algorithm 2
    */
-  def greedyPartialRB(totalPointCount: Int, list: Set[Set[Point]], mu: Double): Set[Set[Point]] = {
+  def greedyPartialRB(totalInstanceCount: Int, list: Set[Set[Instance]], mu: Double): Set[Set[Instance]] = {
     val transform = phi2(list)
-    val costs = new mutable.HashMap[Set[Point], Double]()
-    val convert = new mutable.HashSet[Set[Point]]()
+    val costs = new mutable.HashMap[Set[Instance], Double]()
+    val convert = new mutable.HashSet[Set[Instance]]()
     for (set <- transform.keySet) {
       convert.add(set)
       costs.put(set, addRedness(transform(set)))
     }
-    val resultFromPG = partialGreedy(convert.toSet, costs.toMap, mu, totalPointCount)
-    val result = new mutable.HashSet[Set[Point]]
+    val resultFromPG = partialGreedy(convert.toSet, costs.toMap, mu, totalInstanceCount)
+    val result = new mutable.HashSet[Set[Instance]]
     for (t <- resultFromPG) {
       result.add(transform(t))
     }
@@ -96,46 +105,49 @@ object SetCover {
   /*
    * Low Deg Partial(X)
    */
-  def lowDegPartial(totalPointCount: Int, sets: Set[Set[Point]], mu: Double, rednessThreshold: Double, beta: Int): Set[Set[Point]] = {
+  def lowDegPartial(totalInstanceCount: Int, sets: Set[Set[Instance]], mu: Double, rednessThreshold: Double, beta: Int): Set[Set[Instance]] = {
     val survivors = sets.filter(set => addRedness(set) <= rednessThreshold)
-    if (unionSize(survivors) < mu * totalPointCount) {
+    if (unionSize(survivors) < mu * totalInstanceCount) {
       return Set.empty
     }
 
     val Y = Math.sqrt(sets.size / harmonic(Math.floor(mu * beta).toInt))
-    val highDegreePoints = union(survivors).filter(point => degree(point, survivors) > Y)
-    val lowDegreePoints = phi2(survivors, highDegreePoints)
-    val SXY = new mutable.HashSet[Set[Point]]
-    for (s <- lowDegreePoints.keySet) {
+    val highDegreeInstances = union(survivors).filter(Instance => degree(Instance, survivors) > Y)
+    val lowDegreeInstances = phi2(survivors, highDegreeInstances)
+    val SXY = new mutable.HashSet[Set[Instance]]
+    for (s <- lowDegreeInstances.keySet) {
       SXY.add(s)
     }
-    val resultFromAlgo2 = greedyPartialRB(totalPointCount, SXY.toSet, mu)
-    val finalResult = new mutable.HashSet[Set[Point]]
+    val resultFromAlgo2 = greedyPartialRB(totalInstanceCount, SXY.toSet, mu)
+    val finalResult = new mutable.HashSet[Set[Instance]]
     for (s <- resultFromAlgo2) {
-      finalResult.add(lowDegreePoints(s))
+      finalResult.add(lowDegreeInstances(s))
     }
     finalResult.toSet
   }
 
-  def errorRate(totalPointCount: Int, sets: Set[Set[Point]]): Double = {
-    addRednessCollection(sets) / unionSize(sets)
+  def errorRate(totalInstanceCount: Int, sets: Set[Set[Instance]]): Double = {
+    val error = addRednessCollection(sets) / unionSize(sets)
+    if (error.isNaN) 1.0 else error
   }
 
-  def lowDegPartial2(setOfSets: Set[Set[Point]], mu: Double, beta: Int): Double = {
-    val allPoints = union(setOfSets)
-    val totalPointCount = allPoints.size
-    val totalRedness = addRedness(allPoints)
-    var ans = allPoints.minBy(_.redness).redness
-    var minError = errorRate(totalPointCount, lowDegPartial(totalPointCount, setOfSets, mu, ans, beta))
-    var i = ans
+  def lowDegPartial2(setOfSets: Set[Set[Instance]], mu: Double, beta: Int): SetCoverResult = {
+    val allInstances = union(setOfSets)
+    val totalInstanceCount = allInstances.size
+    val totalRedness = addRedness(allInstances)
+    var rednessThreshold = redness(allInstances.minBy(redness))
+    var kDNF = lowDegPartial(totalInstanceCount, setOfSets, mu, rednessThreshold, beta)
+    var minError = errorRate(totalInstanceCount, setOfSets)
+    var i = rednessThreshold
     while (i < totalRedness) {
-      val ithError = errorRate(totalPointCount, lowDegPartial(totalPointCount, setOfSets, mu, i, beta))
+      kDNF = lowDegPartial(totalInstanceCount, setOfSets, mu, i, beta)
+      val ithError = errorRate(totalInstanceCount, setOfSets)
       if (minError > ithError) {
-        ans = i
+        rednessThreshold = i
         minError = ithError
       }
       i = i * 1.1
     }
-    ans
+    SetCoverResult(kDNF, rednessThreshold, minError)
   }
 }

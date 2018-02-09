@@ -12,7 +12,7 @@ object Messages {
   final case object GetWork
 
   // ManageActor sends WorkConfig to topicComputer (sent every 5 sec, picked up by ComputeActors).
-  final case class WorkConfig(name: String, randomSeed: Int, sampleSize: Int)
+  final case class WorkConfig(name: String, selectXDimensions: Int, selectXRows: Int, randomSeed: Int, sampleSize: Int)
   // ManageActor sends `Work` or `Finished` as a response to actors who send it the GetWork message.
   final case class Work(selectedDimensions: Vector[Int], selectedRows: Vector[Int])
   final case object Finished

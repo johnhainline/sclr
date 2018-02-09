@@ -23,11 +23,10 @@ class ComputeActor(dao: DatabaseDao) extends Actor with ActorLogging {
   }
 
   def waiting: Receive = {
-    case workConfig:WorkConfig =>
+    case workConfig: WorkConfig =>
       name = workConfig.name
       val dataset = dao.getDataset(name)
-      val sampleX = sampleInstances(dataset.x, workConfig.sampleSize, workConfig.randomSeed)
-      runner = new WorkloadRunner(sampleX, dataset.yz)
+      runner = new WorkloadRunner(dataset.x, dataset.yz, workConfig.selectXDimensions, workConfig.sampleSize)
       log.debug("waiting -> computing")
       context.become(computing)
       askForWork()
@@ -57,15 +56,6 @@ class ComputeActor(dao: DatabaseDao) extends Actor with ActorLogging {
 
   def receive: Receive = waiting
 
-  private def sampleInstances(x: Instances, sampleSize: Int, randomSeed: Int): Instances = {
-    val filter = new Resample()
-    val sampleSizePercent = sampleSize.toDouble / x.size().toDouble
-    filter.setInputFormat(x)
-    filter.setSampleSizePercent(sampleSizePercent)
-    filter.setNoReplacement(true)
-    filter.setRandomSeed(randomSeed)
-    Filter.useFilter(x, filter)
-  }
 }
 
 object ComputeActor {
