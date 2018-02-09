@@ -5,9 +5,6 @@ import akka.cluster.pubsub.DistributedPubSubMediator.Publish
 import akka.cluster.pubsub.{DistributedPubSub, DistributedPubSubMediator}
 import cluster.sclr.Messages._
 import cluster.sclr.core.{DatabaseDao, WorkloadRunner}
-import weka.core.Instances
-import weka.filters.Filter
-import weka.filters.unsupervised.instance.Resample
 
 import scala.util.{Failure, Try}
 
@@ -25,8 +22,7 @@ class ComputeActor(dao: DatabaseDao) extends Actor with ActorLogging {
   def waiting: Receive = {
     case workConfig: WorkConfig =>
       name = workConfig.name
-      val dataset = dao.getDataset(name)
-      runner = new WorkloadRunner(dataset.x, dataset.yz, workConfig.selectXDimensions, workConfig.sampleSize)
+      runner = new WorkloadRunner(dao.getDataset(name), workConfig.selectXDimensions, workConfig.sampleSize)
       log.debug("waiting -> computing")
       context.become(computing)
       askForWork()

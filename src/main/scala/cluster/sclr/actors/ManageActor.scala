@@ -24,16 +24,17 @@ class ManageActor(dao: DatabaseDao) extends Actor with ActorLogging {
       dao.setupSchemaAndTable(work.name, work.selectXDimensions, work.selectXRows)
       val datasetInfo = dao.getDatasetInfo(work.name)
 
-      iterator = CombinationAggregation(Vector(
-          CombinationBuilder(datasetInfo.xDimensionCount, work.selectXDimensions),
-          CombinationBuilder(datasetInfo.xRowSubsetCount, work.selectXRows))).all().buffered
+      val subsetCount = 50
+      val selectXDimensions = CombinationBuilder(datasetInfo.xLength, work.selectXDimensions)
+      val selectXRows = CombinationBuilder(subsetCount, work.selectXRows)
+      iterator = CombinationAggregation(Vector(selectXDimensions,selectXRows)).all().buffered
       workload = work
-      log.debug(s"received workload for dataset: ${work.name} with dimensions:${datasetInfo.xDimensionCount} rows:${datasetInfo.xRowCount} selecting dimensions:${work.selectXDimensions} rows:${work.selectXRows}")
+      log.debug(s"received workload for dataset: ${work.name} with dimensions:${datasetInfo.xLength} rows:${datasetInfo.rowCount} selecting dimensions:${work.selectXDimensions} rows:${work.selectXRows}")
       log.debug("waiting -> sending")
       context.become(sending)
       import scala.concurrent.ExecutionContext.Implicits.global
       import scala.language.postfixOps
-      val workConfig = WorkConfig(workload.name, workload.selectXDimensions, workload.selectXRows, 123, datasetInfo.xRowSubsetCount)
+      val workConfig = WorkConfig(workload.name, workload.selectXDimensions, workload.selectXRows, 123, subsetCount)
       sendSchedule = context.system.scheduler.schedule(0 seconds, 5 seconds, self, workConfig)
       mediator ! Publish(topicStatus, workload)
       sender() ! Ack

@@ -14,7 +14,11 @@ import doobie.hikari.HikariTransactor
 import doobie.implicits._
 import doobie.util.transactor.Transactor
 import doobie.{Fragment, _}
-import weka.experiment.InstanceQuery
+
+
+case class XYZ(id: Long, x: Array[Boolean], y: Array[Double], z: Double)
+case class Dataset(data: Array[XYZ], xLength: Int, yLength: Int)
+case class DatasetInfo(xLength: Int, yLength: Int, rowCount: Long)
 
 class DatabaseDao extends LazyLogging {
 
@@ -39,34 +43,23 @@ class DatabaseDao extends LazyLogging {
     val xRowsQuery = Fragment.const(s"SELECT COUNT(*) FROM $name.x").query[Int]
     val xRowCount = xRowsQuery.unique.transact(xa).unsafeRunSync()
 
-    val xRowSubsetCount = 50 // TODO actually calculate this somehow.
-    DatasetInfo(xDimensionCount, xRowCount, xRowSubsetCount)
+    DatasetInfo(xDimensionCount, xRowCount, xRowCount)
   }
+
 
   def getDataset(name: String): Dataset = {
-    val query = wekaQuery()
-    val x = query.retrieveInstances(s"SELECT * FROM $name.x")
-    val yz = query.retrieveInstances(s"SELECT * FROM $name.yz")
-    Dataset(x,yz)
-  }
-
-  private def wekaQuery() = {
-    val (_, url, username, password) = getConfigSettings
-    val query = new InstanceQuery()
-    query.setDatabaseURL(url)
-    query.setUsername(username)
-    query.setPassword(password)
-    query
+    val info = getDatasetInfo(name)
+    val data = sql"SELECT * FROM $name.x, $name.yz WHERE $name.x.id = $name.yz.id".query[XYZ].to[Array].transact(xa).unsafeRunSync()
+    Dataset(data, data.head.x.length, data.head.y.length)
   }
 
 //  def getResults() = {
 //    import DatabaseDao.ZonedDateTimeMeta
 //    sql"SELECT id, data, created_at FROM results".query[Result].list.transact(xa).unsafeRunSync()
 //  }
-
-  def getResultCount() = {
-    sql"SELECT COUNT(*) FROM results".query[Long].unique.transact(xa).unsafeRunSync()
-  }
+//  def getResultCount() = {
+//    sql"SELECT COUNT(*) FROM results".query[Long].unique.transact(xa).unsafeRunSync()
+//  }
 
   def insertResult(schema: String, result: Result) = {
     val insertNames = Vector("error",

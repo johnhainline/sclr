@@ -3,7 +3,7 @@ import sbt.Keys.fork
 
 val akkaVersion = "2.5.8"
 val httpVersion = "10.0.11"
-val doobieVersion = "0.5.0-RC2"
+val doobieVersion = "0.5.0"
 
 scalacOptions += "-Ypartial-unification" // 2.11.9+
 
@@ -35,9 +35,6 @@ lazy val sclr = project
     "org.tpolecat" %% "doobie-scalatest" % doobieVersion % Test,
     // mysql connection driver
     "mysql" % "mysql-connector-java" % "5.1.45",
-
-    // Weka, a Machine Learning library.
-    "nz.ac.waikato.cms.weka" % "weka-stable" % "3.8.2",
 
     "com.typesafe.akka" %% "akka-http"             % httpVersion,
     "com.typesafe.akka" %% "akka-http-spray-json"  % httpVersion,
