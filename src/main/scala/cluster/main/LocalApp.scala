@@ -21,7 +21,7 @@ object LocalApp {
 
   def main(args: Array[String]): Unit = {
 
-    val parallel = 3
+    val parallel = 1
     implicit val system: ActorSystem = ActorSystem("sclr")
     implicit val materializer: ActorMaterializer = ActorMaterializer()
     val joinAddress = Cluster(system).selfAddress
@@ -33,7 +33,7 @@ object LocalApp {
     (1 to parallel).foreach(_ => system.actorOf(ComputeActor.props(resultsDao)))
     system.actorOf(FrontendActor.props(new InfoService()), "frontend")
 
-    val work = Workload("small", 2, 2)
+    val work = Workload("tiny", 2, 2)
     val responseFuture = Marshal(work).to[RequestEntity] flatMap { entity =>
       println(s"Sending entity: $entity")
       val request = HttpRequest(method = HttpMethods.POST, uri = "http://127.0.0.1:8080/begin", entity = entity)

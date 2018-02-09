@@ -35,14 +35,13 @@ class ComputeActor(dao: DatabaseDao) extends Actor with ActorLogging {
   def computing: Receive = {
     case (work: Work) =>
       Try {
-        val optionResult = runner.run(work.selectedDimensions, work.selectedRows)
-        optionResult.map { result =>
+        runner.run(work.selectedDimensions, work.selectedRows).map { result =>
           dao.insertResult(schema = name, result)
         }
       } match {
         case Failure(e) =>
           e.printStackTrace()
-        case _ =>
+          throw e
       }
       askForWork()
     case Finished =>

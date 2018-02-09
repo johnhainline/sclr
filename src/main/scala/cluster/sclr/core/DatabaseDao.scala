@@ -39,7 +39,7 @@ class DatabaseDao extends LazyLogging {
     val xRowsQuery = Fragment.const(s"SELECT COUNT(*) FROM $name.x").query[Int]
     val xRowCount = xRowsQuery.unique.transact(xa).unsafeRunSync()
 
-    val xRowSubsetCount = 200 // TODO actually calculate this somehow.
+    val xRowSubsetCount = 50 // TODO actually calculate this somehow.
     DatasetInfo(xDimensionCount, xRowCount, xRowSubsetCount)
   }
 

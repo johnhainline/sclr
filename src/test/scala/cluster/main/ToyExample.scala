@@ -39,7 +39,10 @@ object ToyExample {
     val notInside = Set(p1, p2, p3, p6, p2red)
     val list = Set(raining, notRaining, sleepwell, notSleepwell, inside, notInside)
 
-    val lowdeg = SetCover.lowDegPartial(11, list, 6.0 / 11, 2.0, 7)
-    System.out.println("error rate " + SetCover.errorRate(11, lowdeg))
+    val setCover = new SetCover(list, 6.0 / 11, 7)
+    val lowdegSimple = setCover.simpleGreedy(2.0)
+    System.out.println("error rate " + setCover.errorRate(lowdegSimple))
+    val lowdegComplex = setCover.complexGreedy(2.0)
+    System.out.println("error rate " + setCover.errorRate(lowdegComplex))
   }
 }

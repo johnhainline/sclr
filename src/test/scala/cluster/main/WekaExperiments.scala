@@ -33,6 +33,7 @@ object WekaExperiments {
   private def multiFilter(filters: Vector[Filter]) = {
     val f = new MultiFilter()
     f.setFilters(filters.toArray)
+    f.setInputFormat(filters.head.getCopyOfInputFormat)
     f
   }
 

@@ -1,11 +1,12 @@
 package cluster.sclr.core
 
+import cluster.sclr.core.WorkloadRunner.selectBooleanValuesAtIndices
 import com.typesafe.scalalogging.LazyLogging
 import combinations.CombinationBuilder
 import weka.core.{Attribute, DenseInstance, Instance, Instances, SelectedTag}
-import weka.filters.Filter
+import weka.filters.{Filter, MultiFilter}
 import weka.filters.unsupervised.attribute.{Add, Remove}
-import weka.filters.unsupervised.instance.{RemoveWithValues, Resample, SubsetByExpression}
+import weka.filters.unsupervised.instance.{RemoveWithValues, Resample}
 
 import scala.collection.mutable.ListBuffer
 
@@ -44,12 +45,24 @@ class WorkloadRunner(x: Instances, yz: Instances, xDimensionSelected: Int, yzSam
     for (i <- redness.indices) {
       xWithRedness.instance(i).setValue(xWithRedness.numAttributes()-1, redness(i))
     }
-    val setMap = WorkloadRunner.constructSetsFromLabeledInstances(x.numAttributes() - 1, xDimensionSelected, xWithRedness)
-    val setCoverResult = SetCover.lowDegPartial2(setMap.keySet, 0.2, x.size())
-    val kDNF = setCoverResult.kDNF.map(setMap).toString
+
+    val dnfToIndices = CombinationBuilder(x.numAttributes() - 1, xDimensionSelected).all().flatMap { indices =>
+      val (a,b) = (indices(0)+2,indices(1)+2)
+      val combinations = Vector((a, b), (-a, b), (a, -b), (-a, -b))
+      val result = combinations.map { case (i1,i2) =>
+        // Search x for the set of Instances that fits this particular index pair
+        import collection.JavaConverters._
+        val xFilteredDnf = selectBooleanValuesAtIndices(xWithRedness,
+          Vector((Math.abs(i1), i1 > 0), (Math.abs(i2), i2 > 0))).asScala.toSet
+        (xFilteredDnf, (i1,i2))
+      }
+      result
+    }.toMap
+    val (kDNF, error) = new SetCover(dnfToIndices.keySet, 0.2, x.size()).lowDegPartial2(true)
+    val kDNFString = kDNF.map(dnfToIndices).toString
 
 //    if (setCoverResult.error < 0.4) {
-      Some(Result(dimensions, rows, Vector(coeff1, coeff2), setCoverResult.error, kDNF))
+      Some(Result(dimensions, rows, Vector(coeff1, coeff2), error, kDNFString))
 //    } else {
 //      None
 //    }
@@ -100,28 +113,17 @@ object WorkloadRunner {
     (redness.toVector, a1, a2)
   }
 
-  private def constructSetsFromLabeledInstances(xDimensionCount: Int, xDimensionSelected: Int, x: Instances): Map[Set[Instance], (Int, Int)] = {
-
-    val indexCombinations = CombinationBuilder(xDimensionCount, xDimensionSelected).all().flatMap { c =>
-        val (a,b) = (c(0)+2,c(1)+2)
-        Vector(Vector(a, b), Vector(-a, b), Vector(a, -b), Vector(-a, -b))
+  private def selectBooleanValuesAtIndices(instances: Instances, selections: Vector[(Int, Boolean)]) = {
+    val filters = for (selection <- selections) yield {
+      val f = new RemoveWithValues()
+      f.setSplitPoint(0.5)
+      f.setInvertSelection(!selection._2)
+      f.setAttributeIndex(selection._1.toString)
+      f.setInputFormat(instances)
+      f
     }
-
-    val allSets = indexCombinations.map { indices =>
-      val (a,b) = (indices(0), indices(1))
-      // Search x for the set of Instances that fits this particular index pair
-      val xFiltered = selectBooleanValuesAtIndex(selectBooleanValuesAtIndex(x, Math.abs(a), a > 0), Math.abs(b), b > 0)
-      import collection.JavaConverters._
-      (xFiltered.asScala.toSet, (a,b))
-    }.toMap
-    allSets
-  }
-
-  private def selectBooleanValuesAtIndex(instances: Instances, index: Int, isTrue: Boolean) = {
-    val f = new RemoveWithValues()
-    f.setSplitPoint(0.5)
-    f.setInvertSelection(!isTrue)
-    f.setAttributeIndex(index.toString)
+    val f = new MultiFilter()
+    f.setFilters(filters.toArray)
     f.setInputFormat(instances)
     Filter.useFilter(instances, f)
   }
