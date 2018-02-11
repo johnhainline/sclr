@@ -17,7 +17,7 @@ class WorkloadRunner(dataset: Dataset, selectedXDimensions: Int, sampleSize: Int
     val xyzReduced = new Array[XYZ](rows.length)
     for (row <- rows.indices) {
       val oldRow = dataset.data(rows(row))
-      val newRow = XYZ(oldRow.id, oldRow.x, subsample(oldRow.y, dimensions), oldRow.z)
+      val newRow = XYZ(oldRow.id, subsample(oldRow.x, dimensions), oldRow.y, oldRow.z)
       xyzReduced(row) = newRow
     }
 
@@ -51,8 +51,8 @@ object WorkloadRunner {
     r.shuffle(data.toList).take(sampleSize).toArray
   }
 
-  private def subsample(arr: Array[Double], indices: Vector[Int]): Array[Double] = {
-    val result = new Array[Double](indices.length)
+  private def subsample[T](arr: Array[T], indices: Vector[Int]): Array[T] = {
+    val result = new Array[T](indices.length)
     for (i <- indices.indices) {
       result(i) = arr(indices(i))
     }

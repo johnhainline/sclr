@@ -15,7 +15,7 @@ class SetCover(allDnfs: Set[Set[Point]], mu: Double, beta: Int) {
   def lowDegPartial2(simpleAlgorithm: Boolean): (Set[Set[Point]], Double) = {
     var minError = Double.MaxValue
     var bestKDNF = Set.empty[Set[Point]]
-    var rednessThreshold = lowestRedness
+    var rednessThreshold = Math.max(0.01, lowestRedness)
 
     val alg: (Double) => Set[Set[Point]] = if (simpleAlgorithm) simpleGreedy else complexGreedy
     while (rednessThreshold < totalRedness) {
