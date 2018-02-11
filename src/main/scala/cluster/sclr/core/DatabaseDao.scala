@@ -1,7 +1,7 @@
 package cluster.sclr.core
 
 import java.io.{BufferedReader, InputStreamReader}
-import java.sql.Timestamp
+import java.sql.{SQLException, Statement, Timestamp}
 import java.time.{Instant, ZoneId, ZonedDateTime}
 
 import cats.effect.IO
@@ -18,7 +18,7 @@ import doobie.{Fragment, _}
 
 case class XYZ(id: Long, x: Array[Boolean], y: Array[Double], z: Double)
 case class Dataset(data: Array[XYZ], xLength: Int, yLength: Int)
-case class DatasetInfo(xLength: Int, yLength: Int, rowCount: Long)
+case class DatasetInfo(xLength: Int, yLength: Int, rowCount: Int)
 
 class DatabaseDao extends LazyLogging {
 
@@ -40,17 +40,56 @@ class DatabaseDao extends LazyLogging {
     // We take -1 off the dimensions to account for our id primary key column.
     val xDimensionCount = xDimensionsQuery.unique.transact(xa).unsafeRunSync() - 1
 
+    val yDimensionsQuery = (fr"SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema = " ++
+      Fragment.const(s"""\"$name\"""") ++ fr" AND table_name = " ++ Fragment.const(""""yz"""")).query[Int]
+    // We take -2 off the dimensions to account for our id primary key and z columns.
+    val yDimensionCount = yDimensionsQuery.unique.transact(xa).unsafeRunSync() - 2
+
     val xRowsQuery = Fragment.const(s"SELECT COUNT(*) FROM $name.x").query[Int]
     val xRowCount = xRowsQuery.unique.transact(xa).unsafeRunSync()
 
-    DatasetInfo(xDimensionCount, xRowCount, xRowCount)
+    DatasetInfo(xDimensionCount, yDimensionCount, xRowCount)
   }
 
-
   def getDataset(name: String): Dataset = {
+//    val data = sql"SELECT * FROM $name.x, $name.yz WHERE $name.x.id = $name.yz.id".query[XYZ].to[Array].transact(xa).unsafeRunSync()
+//    Dataset(data, data.head.x.length, data.head.y.length)
+
     val info = getDatasetInfo(name)
-    val data = sql"SELECT * FROM $name.x, $name.yz WHERE $name.x.id = $name.yz.id".query[XYZ].to[Array].transact(xa).unsafeRunSync()
-    Dataset(data, data.head.x.length, data.head.y.length)
+    var statement: Statement = null
+    FC.raw { connection =>
+      try {
+        statement = connection.createStatement(java.sql.ResultSet.TYPE_FORWARD_ONLY, java.sql.ResultSet.CONCUR_READ_ONLY)
+        statement.setFetchSize(500)
+        val data = new Array[XYZ](info.rowCount)
+        var dataIndex = 0
+        // Ex: (id, x1, x2, x3, id, y1, y2, z)
+        val results = statement.executeQuery(s"SELECT * FROM $name.x, $name.yz WHERE $name.x.id = $name.yz.id")
+        while (results.next()) {
+          val id = results.getLong(1)
+          val xOffset = 2
+          val x = new Array[Boolean](info.xLength)
+          for (i <- x.indices) {
+            x(i) = results.getBoolean(xOffset + i)
+          }
+          val yOffset = xOffset + info.xLength
+          val y = new Array[Double](info.yLength)
+          for (i <- y.indices) {
+            y(i) = results.getDouble(yOffset + i)
+          }
+          val z = results.getDouble(yOffset + 1)
+          data(dataIndex) = XYZ(id, x, y, z)
+          dataIndex += 1
+        }
+        Dataset(data, info.xLength, info.yLength)
+      } catch {
+        case e: SQLException =>
+          logger.error("Could not get dataset from DB.", e)
+          throw e
+      } finally {
+        if (statement != null) statement.close()
+      }
+    }.transact(xa).unsafeRunSync()
   }
 
 //  def getResults() = {

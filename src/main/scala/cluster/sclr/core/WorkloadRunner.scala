@@ -24,11 +24,11 @@ class WorkloadRunner(dataset: Dataset, selectedXDimensions: Int, sampleSize: Int
     val (points, coeff1, coeff2) = WorkloadRunner.constructRednessScores(xyzReduced, dataset.data, dimensions)
 
     val dnfToIndices = CombinationBuilder(dataset.xLength, selectedXDimensions).all().flatMap { indices =>
-      val (a,b) = (indices(0)+2,indices(1)+2)
+      val (a,b) = (indices(0)+1,indices(1)+1)
       val combinations = Vector((a, b), (-a, b), (a, -b), (-a, -b))
       val result = combinations.map { case (i1,i2) =>
         // Search for the set of Points that fits this particular index pair
-        val filteredPoints = selectBooleanValuesAtIndices(points, Vector((Math.abs(i1), i1 > 0), (Math.abs(i2), i2 > 0)))
+        val filteredPoints = selectBooleanValuesAtIndices(points, Vector((Math.abs(i1)-1, i1 > 0), (Math.abs(i2)-1, i2 > 0)))
         (filteredPoints, (i1,i2))
       }
       result
@@ -48,7 +48,7 @@ object WorkloadRunner {
 
   private def takeSample(data: Array[XYZ], sampleSize: Int, seed: Int): Array[XYZ] = {
     val r = new Random(seed)
-    r.shuffle(data).take(sampleSize)
+    r.shuffle(data.toList).take(sampleSize).toArray
   }
 
   private def subsample(arr: Array[Double], indices: Vector[Int]): Array[Double] = {
@@ -63,11 +63,11 @@ object WorkloadRunner {
     val xyz1 = xyzReduced(0)
     val xyz2 = xyzReduced(1)
     val x1 = xyz1.y(0)
-    val y1 = xyz1.y(2)
+    val y1 = xyz1.y(1)
     val z1 = xyz1.z
 
     val x2 = xyz2.y(0)
-    val y2 = xyz2.y(2)
+    val y2 = xyz2.y(1)
     val z2 = xyz2.z
 
     val a1 = (z1*y2- z2*y1) / (x1*y2-x2*y1)

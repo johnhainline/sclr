@@ -36,8 +36,8 @@ class ComputeActor(dao: DatabaseDao) extends Actor with ActorLogging {
         }
       } match {
         case Failure(e) =>
-          e.printStackTrace()
-          throw e
+          log.error(s"Failed to compute work:$work", e)
+        case _ =>
       }
       askForWork()
     case Finished =>
