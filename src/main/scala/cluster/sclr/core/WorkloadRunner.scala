@@ -4,26 +4,14 @@ import cluster.sclr.core.WorkloadRunner._
 import com.typesafe.scalalogging.LazyLogging
 import combinations.CombinationBuilder
 
-import scala.util.Random
+class WorkloadRunner(dataset: Dataset) extends LazyLogging {
 
-class WorkloadRunner(dataset: Dataset, selectedXDimensions: Int, sampleSize: Int) extends LazyLogging {
+  //  0 |    4 |   19 |   30
+  def run(dnfSize: Int, yDimensions: Vector[Int], rows: Vector[Int]): Option[Result] = {
 
-  val randomSeed = 123
-  val yzSample = WorkloadRunner.takeSample(dataset.data, sampleSize, randomSeed)
+    val (points, coeff1, coeff2) = WorkloadRunner.constructRednessScores(dataset.data, yDimensions, rows)
 
-  def run(dimensions: Vector[Int], rows: Vector[Int]): Option[Result] = {
-
-    // pull rows and reduce dimensions
-    val xyzReduced = new Array[XYZ](rows.length)
-    for (row <- rows.indices) {
-      val oldRow = dataset.data(rows(row))
-      val newRow = XYZ(oldRow.id, subsample(oldRow.x, dimensions), oldRow.y, oldRow.z)
-      xyzReduced(row) = newRow
-    }
-
-    val (points, coeff1, coeff2) = WorkloadRunner.constructRednessScores(xyzReduced, dataset.data, dimensions)
-
-    val dnfToIndices = CombinationBuilder(dataset.xLength, selectedXDimensions).all().flatMap { indices =>
+    val dnfToIndices = CombinationBuilder(dataset.xLength, dnfSize).all().flatMap { indices =>
       val (a,b) = (indices(0)+1,indices(1)+1)
       val combinations = Vector((a, b), (-a, b), (a, -b), (-a, -b))
       val result = combinations.map { case (i1,i2) =>
@@ -33,11 +21,11 @@ class WorkloadRunner(dataset: Dataset, selectedXDimensions: Int, sampleSize: Int
       }
       result
     }.toMap
-    val (kDNF, error) = new SetCover(dnfToIndices.keySet, 0.2, dataset.data.length).lowDegPartial2(true)
+    val (kDNF, error) = new SetCover(dnfToIndices.keySet, 0.2, dataset.data.length).lowDegPartial2(simpleAlgorithm = true)
     val kDNFString = kDNF.map(dnfToIndices).toString
 
 //    if (setCoverResult.error < 0.4) {
-      Some(Result(dimensions, rows, Vector(coeff1, coeff2), error, kDNFString))
+      Some(Result(yDimensions, rows, Vector(coeff1, coeff2), error, kDNFString))
 //    } else {
 //      None
 //    }
@@ -46,35 +34,23 @@ class WorkloadRunner(dataset: Dataset, selectedXDimensions: Int, sampleSize: Int
 
 object WorkloadRunner {
 
-  private def takeSample(data: Array[XYZ], sampleSize: Int, seed: Int): Array[XYZ] = {
-    val r = new Random(seed)
-    r.shuffle(data.toList).take(sampleSize).toArray
-  }
+  private def constructRednessScores(data: Array[XYZ], yDimensions: Vector[Int], rows: Vector[Int]) = {
+    val xyz1 = data(rows(0))
+    val xyz2 = data(rows(1))
 
-  private def subsample[T](arr: Array[T], indices: Vector[Int]): Array[T] = {
-    val result = new Array[T](indices.length)
-    for (i <- indices.indices) {
-      result(i) = arr(indices(i))
-    }
-    result
-  }
-
-  private def constructRednessScores(xyzReduced: Array[XYZ], xyzOriginal: Array[XYZ], dimensions: Vector[Int]) = {
-    val xyz1 = xyzReduced(0)
-    val xyz2 = xyzReduced(1)
-    val x1 = xyz1.y(0)
-    val y1 = xyz1.y(1)
+    val x1 = xyz1.y(yDimensions(0))
+    val y1 = xyz1.y(yDimensions(1))
     val z1 = xyz1.z
 
-    val x2 = xyz2.y(0)
-    val y2 = xyz2.y(1)
+    val x2 = xyz2.y(yDimensions(0))
+    val y2 = xyz2.y(yDimensions(1))
     val z2 = xyz2.z
 
     val a1 = (z1*y2- z2*y1) / (x1*y2-x2*y1)
     val a2 = (x1*z2- x2*z1) / (x1*y2-x2*y1)
 
-    val points = xyzOriginal.map { xyz =>
-      val redness = Math.abs(xyz.z - a1*xyz.y(dimensions(0)) - a2*xyz.y(dimensions(1)))
+    val points = data.map { xyz =>
+      val redness = Math.abs(xyz.z - a1*xyz.y(yDimensions(0)) - a2*xyz.y(yDimensions(1)))
       Point(xyz, redness)
     }
     (points, a1, a2)

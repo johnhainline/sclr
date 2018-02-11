@@ -100,7 +100,7 @@ class DatabaseDao extends LazyLogging {
 //    sql"SELECT COUNT(*) FROM results".query[Long].unique.transact(xa).unsafeRunSync()
 //  }
 
-  def insertResult(schema: String, result: Result) = {
+  def insertResult(schema: String, result: Result): Int = {
     val insertNames = Vector("error",
       dimensionNames(result.dimensions.length).mkString(","),
       rowNames(result.rows.length).mkString(","),
@@ -114,7 +114,6 @@ class DatabaseDao extends LazyLogging {
       result.dimensions.map(d => fr", $d").reduce(reducer) ++
       result.rows.map(r => fr", $r").reduce(reducer) ++
       result.coefficients.map(c => fr", $c").reduce(reducer)
-//      ++ Fragment.const("\"".concat(result.kDNF).concat("\""))
 
     val dbUpdate = (fr"INSERT INTO " ++ Fragment.const(s"$schema.results") ++
       Fragment.const(insertNames.mkString("(", ",", ")")) ++
@@ -124,12 +123,12 @@ class DatabaseDao extends LazyLogging {
     dbUpdate.run.transact(xa).unsafeRunSync()
   }
 
-  def setupSchemaAndTable(schema: String, dimensions: Int, rows: Int): Int = {
+  def setupSchemaAndTable(schema: String, yDimensions: Int, rows: Int): Int = {
     setupSchema(schema)
     try {
-      val tableDims = dimensionNames(dimensions).map(name => s"$name INT NOT NULL")
+      val tableDims = dimensionNames(yDimensions).map(name => s"$name INT NOT NULL")
       val tableRows = rowNames(rows).map(name => s"$name INT NOT NULL")
-      val tableCoeffs = coeffNames(dimensions).map(name => s"$name DOUBLE NOT NULL")
+      val tableCoeffs = coeffNames(yDimensions).map(name => s"$name DOUBLE NOT NULL")
       val fragment = fr"CREATE TABLE IF NOT EXISTS" ++
         Fragment.const(s"$schema.results") ++
         Fragment.const((

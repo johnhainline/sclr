@@ -21,28 +21,25 @@ class ManageActor(dao: DatabaseDao) extends Actor with ActorLogging {
   def waiting: Receive = {
     case work: Workload =>
       dao.initializeDataset(work.name)
-      dao.setupSchemaAndTable(work.name, work.selectXDimensions, work.selectXRows)
+      dao.setupSchemaAndTable(work.name, Y_DIMENSIONS, ROWS)
       val datasetInfo = dao.getDatasetInfo(work.name)
-
-      val subsetCount = 50
-      val selectXDimensions = CombinationBuilder(datasetInfo.xLength, work.selectXDimensions)
-      val selectXRows = CombinationBuilder(subsetCount, work.selectXRows)
-      iterator = CombinationAggregation(Vector(selectXDimensions,selectXRows)).all().buffered
+      val selectYDimensions = CombinationBuilder(datasetInfo.yLength, Y_DIMENSIONS)
+      val selectRows = CombinationBuilder(datasetInfo.rowCount, ROWS)
+      iterator = CombinationAggregation(Vector(selectYDimensions,selectRows)).all().buffered
       workload = work
-      log.debug(s"received workload for dataset: ${work.name} with dimensions:${datasetInfo.xLength} rows:${datasetInfo.rowCount} selecting dimensions:${work.selectXDimensions} rows:${work.selectXRows}")
+      log.debug(s"received workload for dataset: ${work.name} with dimensions:${datasetInfo.xLength} rows:${datasetInfo.rowCount} selecting dimensions:$Y_DIMENSIONS rows:$ROWS")
       log.debug("waiting -> sending")
       context.become(sending)
       import scala.concurrent.ExecutionContext.Implicits.global
       import scala.language.postfixOps
-      val workConfig = WorkConfig(workload.name, workload.selectXDimensions, workload.selectXRows, 123, subsetCount)
-      sendSchedule = context.system.scheduler.schedule(0 seconds, 5 seconds, self, workConfig)
+      sendSchedule = context.system.scheduler.schedule(0 seconds, 5 seconds, self, workload)
       mediator ! Publish(topicStatus, workload)
       sender() ! Ack
   }
 
   def sending: Receive = {
-    case workConfig:WorkConfig =>
-      mediator ! Publish(topicComputer, workConfig)
+    case workload:Workload =>
+      mediator ! Publish(topicComputer, workload)
       log.debug(s"workload: ${workload.name} at ${iterator.headOption}")
     case Status =>
       sender() ! StatusResponse(workload, iterator.headOption)

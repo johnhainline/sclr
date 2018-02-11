@@ -4,15 +4,17 @@ import combinations.Combination
 
 object Messages {
 
+  val Y_DIMENSIONS = 2
+  val ROWS = 2
+
   // Send Workload to the ManageActor to start work. ManageActor sends `Workload` to topicStatus.
-  final case class Workload(name: String, selectXDimensions: Int, selectXRows: Int)
+  // ManageActor sends WorkConfig to topicComputer (sent every 5 sec, picked up by ComputeActors).
+  final case class Workload(name: String, dnfSize: Int)
   final case object Ack // acknowledgement response
 
   // GetWork is sent by ComputeActor to topicManager (i.e. ManageActor).
   final case object GetWork
 
-  // ManageActor sends WorkConfig to topicComputer (sent every 5 sec, picked up by ComputeActors).
-  final case class WorkConfig(name: String, selectXDimensions: Int, selectXRows: Int, randomSeed: Int, sampleSize: Int)
   // ManageActor sends `Work` or `Finished` as a response to actors who send it the GetWork message.
   final case class Work(selectedDimensions: Vector[Int], selectedRows: Vector[Int])
   final case object Finished

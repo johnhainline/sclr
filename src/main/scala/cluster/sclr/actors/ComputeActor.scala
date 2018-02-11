@@ -11,7 +11,7 @@ import scala.util.{Failure, Try}
 class ComputeActor(dao: DatabaseDao) extends Actor with ActorLogging {
 
   private var runner: WorkloadRunner = _
-  private var name: String = _
+  private var workload: Workload = _
   private val mediator = DistributedPubSub(context.system).mediator
   mediator ! DistributedPubSubMediator.Subscribe(topicComputer, self)
 
@@ -20,9 +20,9 @@ class ComputeActor(dao: DatabaseDao) extends Actor with ActorLogging {
   }
 
   def waiting: Receive = {
-    case workConfig: WorkConfig =>
-      name = workConfig.name
-      runner = new WorkloadRunner(dao.getDataset(name), workConfig.selectXDimensions, workConfig.sampleSize)
+    case config: Workload =>
+      workload = config
+      runner = new WorkloadRunner(dao.getDataset(workload.name))
       log.debug("waiting -> computing")
       context.become(computing)
       askForWork()
@@ -31,8 +31,8 @@ class ComputeActor(dao: DatabaseDao) extends Actor with ActorLogging {
   def computing: Receive = {
     case (work: Work) =>
       Try {
-        runner.run(work.selectedDimensions, work.selectedRows).map { result =>
-          dao.insertResult(schema = name, result)
+        runner.run(workload.dnfSize, work.selectedDimensions, work.selectedRows).map { result =>
+          dao.insertResult(schema = workload.name, result)
         }
       } match {
         case Failure(e) =>
@@ -55,4 +55,9 @@ class ComputeActor(dao: DatabaseDao) extends Actor with ActorLogging {
 
 object ComputeActor {
   def props(resultsDao: DatabaseDao) = Props(new ComputeActor(resultsDao))
+
+//  private def takeSample(data: Array[XYZ], sampleSize: Int, seed: Int): Array[XYZ] = {
+//    val r = new Random(seed)
+//    r.shuffle(data.toList).take(sampleSize).toArray
+//  }
 }
