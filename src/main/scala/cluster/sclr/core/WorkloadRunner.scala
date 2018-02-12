@@ -24,11 +24,11 @@ class WorkloadRunner(dataset: Dataset) extends LazyLogging {
     val (kDNF, error) = new SetCover(dnfToIndices.keySet, 0.2, dataset.data.length).lowDegPartial2(simpleAlgorithm = true)
     val kDNFString = kDNF.map(dnfToIndices).toString
 
-//    if (setCoverResult.error < 0.4) {
+    if (kDNF.nonEmpty) {
       Some(Result(yDimensions, rows, Vector(coeff1, coeff2), error, kDNFString))
-//    } else {
-//      None
-//    }
+    } else {
+      None
+    }
   }
 }
 

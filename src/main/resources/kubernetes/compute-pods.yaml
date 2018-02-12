@@ -22,7 +22,7 @@ kind: StatefulSet
 metadata:
   name: compute
 spec:
-  replicas: 2
+  replicas: 5
   selector:
     matchLabels:
       name: compute
