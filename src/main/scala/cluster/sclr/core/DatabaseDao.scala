@@ -24,6 +24,10 @@ class DatabaseDao extends LazyLogging {
 
   private lazy val xa: Transactor[IO] = DatabaseDao.makeHikariTransactor()
 
+  def clearDataset(name: String): Long = {
+    (sql"DROP SCHEMA IF EXISTS " ++ Fragment.const(name)).update.run.transact(xa).unsafeRunSync()
+  }
+
   def initializeDataset(name: String): Unit = {
     val (driver, url, username, password) = getConfigSettings
     val xa = Transactor.fromDriverManager[IO](driver, url, username, password)

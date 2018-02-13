@@ -20,6 +20,7 @@ class ManageActor(dao: DatabaseDao) extends Actor with ActorLogging {
 
   def waiting: Receive = {
     case work: Workload =>
+      dao.clearDataset(work.name)
       dao.initializeDataset(work.name)
       dao.setupSchemaAndTable(work.name, Y_DIMENSIONS, ROWS)
       val datasetInfo = dao.getDatasetInfo(work.name)
