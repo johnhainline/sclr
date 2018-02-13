@@ -72,12 +72,12 @@ class DatabaseDao extends LazyLogging {
           for (i <- x.indices) {
             x(i) = results.getBoolean(xOffset + i)
           }
-          val yOffset = xOffset + info.xLength
+          val yOffset = xOffset + info.xLength + 1 // +1 skips the extra "id" column
           val y = new Array[Double](info.yLength)
           for (i <- y.indices) {
             y(i) = results.getDouble(yOffset + i)
           }
-          val z = results.getDouble(yOffset + 1)
+          val z = results.getDouble(yOffset + info.yLength)
           data(dataIndex) = XYZ(id, x, y, z)
           dataIndex += 1
         }

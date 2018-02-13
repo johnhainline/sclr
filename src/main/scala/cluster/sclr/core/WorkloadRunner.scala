@@ -6,13 +6,14 @@ import combinations.CombinationBuilder
 
 class WorkloadRunner(dataset: Dataset) extends LazyLogging {
 
-  //  0 |    4 |   19 |   30
   def run(dnfSize: Int, yDimensions: Vector[Int], rows: Vector[Int]): Option[Result] = {
 
     val (points, coeff1, coeff2) = WorkloadRunner.constructRednessScores(dataset.data, yDimensions, rows)
 
-    val dnfToIndices = CombinationBuilder(dataset.xLength, dnfSize).all().flatMap { indices =>
-      val (a,b) = (indices(0)+1,indices(1)+1)
+    val dnfToIndices = CombinationBuilder(dataset.xLength, dnfSize).all().flatMap { zeroIndexedIndices =>
+      // Our indices are 0-indexed, so increase that to 1-indexed to allow negative indices.
+//      val oneIndexedIndices = zeroIndexedIndices.map(_+1)
+      val (a,b) = (zeroIndexedIndices(0)+1,zeroIndexedIndices(1)+1)
       val combinations = Vector((a, b), (-a, b), (a, -b), (-a, -b))
       val result = combinations.map { case (i1,i2) =>
         // Search for the set of Points that fits this particular index pair
