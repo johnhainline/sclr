@@ -22,8 +22,7 @@ object ManageApp {
 
     Cluster(system) registerOnMemberUp {
       system.actorOf(Props(new Terminator()), "terminator")
-      val resultsDao = new DatabaseDao()
-      system.actorOf(ManageActor.props(resultsDao), "manage")
+      system.actorOf(ManageActor.props(new DatabaseDao()), "manage")
     }
 
     Cluster(system).registerOnMemberRemoved {

@@ -74,13 +74,15 @@ val dockerSettings = Seq(
   packageDescription := "Sparse Conditional Linear Regression"
 )
 
+val clusterName = "sclr-akka"
+
 lazy val frontend = project
   .in(file("frontend"))
   .settings(dockerSettings: _*)
   .settings(
     name := "sclr-frontend",
     mainClass := Some("cluster.main.FrontendApp"),
-    packageName in Docker := "sclr-akka/frontend"
+    packageName in Docker := s"$clusterName/frontend"
   )
   .dependsOn(sclr)
   .enablePlugins(JavaServerAppPackaging, DockerPlugin)
@@ -91,7 +93,7 @@ lazy val manage = project
   .settings(
     name := "sclr-manage",
     mainClass := Some("cluster.main.ManageApp"),
-    packageName in Docker := "sclr-akka/manage"
+    packageName in Docker := s"$clusterName/manage"
   )
   .dependsOn(sclr)
   .enablePlugins(JavaServerAppPackaging, DockerPlugin)
@@ -102,7 +104,7 @@ lazy val compute = project
   .settings(
     name := "sclr-compute",
     mainClass := Some("cluster.main.ComputeApp"),
-    packageName in Docker := "sclr-akka/compute"
+    packageName in Docker := s"$clusterName/compute"
   )
   .dependsOn(sclr)
   .enablePlugins(JavaServerAppPackaging, DockerPlugin)

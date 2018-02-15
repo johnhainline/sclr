@@ -4,6 +4,10 @@ import scala.collection.mutable
 
 case class Point(xyz: XYZ, redness: Double)
 
+
+/**
+  * Consider only building the kDNF representation and comparing it to the data directly to get set size.
+  */
 class SetCover(allDnfs: Set[Set[Point]], mu: Double, beta: Int) {
 
   lazy val allPoints = union(allDnfs)
