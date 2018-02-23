@@ -21,7 +21,7 @@ object LocalApp {
 
   def main(args: Array[String]): Unit = {
 
-    val parallel = 2
+    val parallel = 1
     implicit val system: ActorSystem = ActorSystem("sclr")
     implicit val materializer: ActorMaterializer = ActorMaterializer()
     val joinAddress = Cluster(system).selfAddress

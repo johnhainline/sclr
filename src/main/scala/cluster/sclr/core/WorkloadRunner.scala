@@ -51,7 +51,7 @@ object WorkloadRunner {
     val a2 = (x1*z2- x2*z1) / (x1*y2-x2*y1)
 
     val points = data.map { xyz =>
-      val redness = Math.abs(xyz.z - a1*xyz.y(yDimensions(0)) - a2*xyz.y(yDimensions(1)))
+      val redness = Math.pow(xyz.z - a1*xyz.y(yDimensions(0)) - a2*xyz.y(yDimensions(1)), 2)
       Point(xyz, redness)
     }
     (points, a1, a2)
