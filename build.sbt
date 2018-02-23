@@ -47,26 +47,17 @@ lazy val sclr = project
     "com.typesafe.akka" %% "akka-cluster-metrics"  % akkaVersion,
     "com.typesafe.akka" %% "akka-cluster-tools"    % akkaVersion,
     "com.typesafe.akka" %% "akka-cluster-sharding" % akkaVersion,
-    "com.typesafe.akka" %% "akka-distributed-data" % akkaVersion,
     "com.typesafe.akka" %% "akka-remote"           % akkaVersion,
     "com.typesafe.akka" %% "akka-distributed-data" % akkaVersion
   ),
 
-//  scalacOptions in Compile ++= Seq("-deprecation", "-feature", "-unchecked", "-Xlog-reflective-calls", "-Xlint"),
-//  javacOptions in Compile ++= Seq("-Xlint:unchecked", "-Xlint:deprecation"),
   javaOptions in run ++= Seq("-Djava.library.path=./target/native"),
-//    javaOptions in run ++= Seq("-Xms128m", "-Xmx1024m", "-Djava.library.path=./target/native"),
 
   fork in run := true,
   parallelExecution in Test := false
 )
 
 val dockerSettings = Seq(
-//  dockerCommands := dockerCommands.value.flatMap {
-//    case ExecCmd("ENTRYPOINT", args@_*) => Seq(Cmd("ENTRYPOINT", args.mkString(" ")))
-//    case v => Seq(v)
-//  },
-//
   dockerRepository := Some("us.gcr.io"),
   dockerUpdateLatest := true,
   dockerBaseImage := "local/openjdk-custom",
