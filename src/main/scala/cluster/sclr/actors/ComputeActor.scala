@@ -23,7 +23,7 @@ class ComputeActor(dao: DatabaseDao) extends Actor with ActorLogging {
     case config: Workload =>
       workload = config
       runner = new WorkloadRunner(dao.getDataset(workload.name))
-      log.debug("waiting -> computing")
+      log.debug(s"received workload: $config")
       context.become(computing)
       askForWork()
   }
@@ -32,16 +32,18 @@ class ComputeActor(dao: DatabaseDao) extends Actor with ActorLogging {
     case (work: Work) =>
       Try {
         runner.run(workload.dnfSize, work.selectedDimensions, work.selectedRows).map { result =>
-          dao.insertResult(schema = workload.name, result)
+          val rows = dao.insertResult(schema = workload.name, result)
+          log.info(s"workload: ${workload.name} saved: $result")
+          rows
         }
       } match {
         case Failure(e) =>
-          log.error(s"Failed to compute work:$work", e)
+          log.error(s"failed to compute work:$work", e)
         case _ =>
       }
       askForWork()
     case Finished =>
-      log.debug("computing -> finished")
+      log.debug("received finished")
       context.become(finished)
   }
 
@@ -55,9 +57,4 @@ class ComputeActor(dao: DatabaseDao) extends Actor with ActorLogging {
 
 object ComputeActor {
   def props(resultsDao: DatabaseDao) = Props(new ComputeActor(resultsDao))
-
-//  private def takeSample(data: Array[XYZ], sampleSize: Int, seed: Int): Array[XYZ] = {
-//    val r = new Random(seed)
-//    r.shuffle(data.toList).take(sampleSize).toArray
-//  }
 }

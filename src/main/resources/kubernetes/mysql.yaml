@@ -24,7 +24,7 @@ spec:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 10Gi
+      storage: 20Gi
 ---
 apiVersion: apps/v1beta2
 kind: Deployment
@@ -57,6 +57,13 @@ spec:
             secretKeyRef:
               name: mysql-password
               key: password
+        resources:
+          requests:
+            memory: "1G"
+            cpu: "500m"
+          limits:
+            memory: "4G"
+            cpu: "1000m"
         ports:
         - containerPort: 3306
         volumeMounts:

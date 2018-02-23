@@ -40,6 +40,13 @@ spec:
         ports:
         - containerPort: 2551
           name: akka-remote
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "250m"
+          limits:
+            memory: "256Mi"
+            cpu: "500m"
         env:
         - name: DATABASE_HOST
           value: mysql-service

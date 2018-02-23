@@ -22,7 +22,7 @@ kind: StatefulSet
 metadata:
   name: compute
 spec:
-  replicas: 20
+  replicas: 1
   selector:
     matchLabels:
       name: compute
@@ -42,6 +42,13 @@ spec:
         ports:
         - containerPort: 2551
           name: akka-remote
+        resources:
+          requests:
+            memory: "1G"
+            cpu: "500m"
+          limits:
+            memory: "2G"
+            cpu: "1000m"
         env:
         - name: DATABASE_HOST
           value: mysql-service

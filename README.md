@@ -40,8 +40,8 @@ Note that I have instructions for this using a Mac.
    - Mac: `brew cask install docker`
 1. Run docker.
 1. Build our base docker image:
-   - `docker build -t local/openjdk-jre-8-bash:latest - < src/main/resources/docker/Dockerfile-openjdk-jre-8-bash`
-   - This builds the docker image referenced in our build.sbt as `"local/openjdk-jre-8-bash"`.
+   - `cd src/main/resources/docker/; docker build -t local/openjdk-custom:latest .; cd ../../../../;`
+   - This builds the docker image referenced in our build.sbt as `"local/openjdk-custom"`.
 1. Create a secret in `kubectl` for our MySQL password.
    - `kubectl create secret generic mysql-password --from-literal=password=MYSQL_PASSWORD`
 1. `kubectl` can point to the cloud, or to a local minikube instance.
@@ -80,11 +80,12 @@ Note that I have instructions for this using a Mac.
    - `kubectl get all -o wide`
 1. Send a single POST request (from the `compute-0` pod) to the `http-service` endpoint. This kicks off the job.
    - `kubectl exec -ti compute-0 -- curl -vH "Content-Type: application/json" -X POST -d '{"name":"medium","dnfSize":2}' http-service.default.svc.cluster.local:8080/begin`
+1. Scale the `compute` nodes to 50
+   - `kubectl scale statefulsets compute --replicas=50`
 1. Make a connection to the MySQL server.
    - `kubectl run -it --rm --image=mysql:5.7 --restart=Never mysql-client -- mysql -h mysql-service -pMYSQL_PASSWORD`
-1. Dump the `example` schema from the MySQL server to our local directory.
-   - `kubectl run -it --rm --image=mysql:5.7 --restart=Never mysql-client -- mysqldump --databases example -h mysql-service -pMYSQL_PASSWORD > backup.sql`
-1. View results in MySQL under the `example` schema in the `results` table.
-1. Backup results somewhere as shutdown will delete the MySQL server.
+1. Dump an entire schema from the MySQL server to our local directory.
+   - `kubectl exec -ti MYSQL_POD_NAME -- mysqldump --add-drop-database --databases medium -pMYSQL_PASSWORD > backup.sql`
 1. Delete all local Kubernetes pods, including MySQL, etc.
    - `kubectl delete pvc mysql-pv-claim; kubectl delete all -l app=sclr`
+   - Note DOUBLE CHECK EVERYTHING IS DOWN. On error things may keep running, costing money.

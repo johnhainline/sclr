@@ -29,7 +29,6 @@ class ManageActor(dao: DatabaseDao) extends Actor with ActorLogging {
       iterator = CombinationAggregation(Vector(selectYDimensions,selectRows)).all().buffered
       workload = work
       log.debug(s"received workload for dataset: ${work.name} with dimensions:${datasetInfo.xLength} rows:${datasetInfo.rowCount} selecting dimensions:$Y_DIMENSIONS rows:$ROWS")
-      log.debug("waiting -> sending")
       context.become(sending)
       import scala.concurrent.ExecutionContext.Implicits.global
       import scala.language.postfixOps
@@ -49,7 +48,7 @@ class ManageActor(dao: DatabaseDao) extends Actor with ActorLogging {
         val next = iterator.next()
         sender() ! Work(next.head, next.last)
       } else {
-        log.debug("sending -> finished")
+        log.debug("Iterator empty, could not GetWork.")
         context.become(finished)
         sendSchedule.cancel()
         sender() ! Finished

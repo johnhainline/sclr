@@ -9,7 +9,7 @@ scalacOptions += "-Ypartial-unification" // 2.11.9+
 
 organization in ThisBuild := "wustl.engineering"
 scalaVersion in ThisBuild := "2.12.4"
-version in ThisBuild := "0.7.0"
+version in ThisBuild := "0.8.0"
 
 lazy val sclr = project
   .in(file("."))
@@ -52,23 +52,24 @@ lazy val sclr = project
     "com.typesafe.akka" %% "akka-distributed-data" % akkaVersion
   ),
 
-  scalacOptions in Compile ++= Seq("-deprecation", "-feature", "-unchecked", "-Xlog-reflective-calls", "-Xlint"),
-  javacOptions in Compile ++= Seq("-Xlint:unchecked", "-Xlint:deprecation"),
-  javaOptions in run ++= Seq("-Xms128m", "-Xmx1024m", "-Djava.library.path=./target/native"),
+//  scalacOptions in Compile ++= Seq("-deprecation", "-feature", "-unchecked", "-Xlog-reflective-calls", "-Xlint"),
+//  javacOptions in Compile ++= Seq("-Xlint:unchecked", "-Xlint:deprecation"),
+  javaOptions in run ++= Seq("-Djava.library.path=./target/native"),
+//    javaOptions in run ++= Seq("-Xms128m", "-Xmx1024m", "-Djava.library.path=./target/native"),
 
   fork in run := true,
   parallelExecution in Test := false
 )
 
 val dockerSettings = Seq(
-  dockerCommands := dockerCommands.value.flatMap {
-    case ExecCmd("ENTRYPOINT", args@_*) => Seq(Cmd("ENTRYPOINT", args.mkString(" ")))
-    case v => Seq(v)
-  },
-
+//  dockerCommands := dockerCommands.value.flatMap {
+//    case ExecCmd("ENTRYPOINT", args@_*) => Seq(Cmd("ENTRYPOINT", args.mkString(" ")))
+//    case v => Seq(v)
+//  },
+//
   dockerRepository := Some("us.gcr.io"),
   dockerUpdateLatest := true,
-  dockerBaseImage := "local/openjdk-jre-8-bash",
+  dockerBaseImage := "local/openjdk-custom",
   maintainer := "John Hainline (john.hainline@wustl.edu)",
   packageSummary := "SCLR Server",
   packageDescription := "Sparse Conditional Linear Regression"

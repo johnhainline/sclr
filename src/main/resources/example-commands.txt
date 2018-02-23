@@ -1,0 +1,68 @@
+minikube start --cpus 4 --memory 4096
+minikube addons enable kube-dns
+minikube addons list
+minikube dashboard
+eval $(minikube docker-env) // make minikube use the correct local repo
+kubectl create secret generic mysql-password --from-literal=password=KO4eD0BrP2PC19jO
+
+docker images -a |  grep "<none>\|us.gcr"
+docker images -a | grep "<none>\|us.gcr" | awk '{print $3}' | xargs docker rmi
+
+
+cd src/main/resources/docker/; docker build -t local/openjdk-custom:latest .; cd ../../../../;
+sbt manage/docker:publishLocal compute/docker:publishLocal frontend/docker:publishLocal
+
+kubectl get all -o wide
+kubectl logs -v=5 compute-0
+
+kubectl config get-contexts
+kubectl config use-context minikube
+kubectl config use-context gke_sclr-akka_us-central1-a_sclr
+
+**** MYSQL ****
+
+kubectl exec -it compute-0 -- /bin/bash
+kubectl run -it --rm --image=mysql:5.7 --restart=Never mysql-client -- mysql -h mysql-service -pKO4eD0BrP2PC19jO
+kubectl exec -it mysql-client -- mysql -h mysql-service -pKO4eD0BrP2PC19jO
+
+kubectl delete pvc mysql-pv-claim; kubectl delete all -l name=mysql; kubectl delete service mysql-service
+
+cd src/main/resources/kubernetes/; kubectl create -f mysql.yaml; kubectl create -f manage-pods.yaml; kubectl create -f compute-pods.yaml; kubectl create -f frontend-pods.yaml; cd ../../../..;
+cd src/main/resources/kubernetes/; kubectl create -f manage-pods.yaml; kubectl create -f compute-pods.yaml; kubectl create -f frontend-pods.yaml; cd ../../../..;
+kubectl delete pvc mysql-pv-claim && kubectl delete all -l app=sclr
+
+gcloud docker -a // short lived access to us.gcr.io
+sbt manage/docker:publish compute/docker:publish frontend/docker:publish
+sbt manage/docker:publishLocal compute/docker:publishLocal frontend/docker:publishLocal
+
+kubectl exec -ti compute-0 -- curl -vH "Content-Type: application/json" -X POST -d '{"name":"small","dnfSize":2}' http-service.default.svc.cluster.local:8080/begin
+kubectl exec -ti mysql-85d59757b6-z8zfb -- mysqldump --add-drop-database --databases small -pKO4eD0BrP2PC19jO > backup.sql
+mysqldump --databases small -h mysql-service.default.svc.cluster.local -pKO4eD0BrP2PC19jO > backup.sql 
+
+/usr/local/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/
+sudo ln -s /usr/local/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/bin/kubectl /usr/local/bin/kubectl
+sudo ln -s /usr/local/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/bin/docker-credential-gcr /usr/local/bin/docker-credential-gcr
+sudo ln -s /usr/local/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/bin/container-builder-local /usr/local/bin/container-builder-local
+
+
+SELECT * FROM tiny.results ORDER BY error LIMIT 10;
+
+
+docker pull us.gcr.io/sclr-akka/frontend:0.8.0
+docker pull us.gcr.io/sclr-akka/manage:0.8.0
+docker pull us.gcr.io/sclr-akka/compute:0.8.0
+docker pull us.gcr.io/sclr-akka/frontend:latest
+docker pull us.gcr.io/sclr-akka/manage:latest
+docker pull us.gcr.io/sclr-akka/compute:latest
+
+gcloud container clusters list
+gcloud container clusters create sclr  --zone us-central1-a --num-nodes 1 --cluster-version=1.9.2-gke.1
+gcloud container clusters get-credentials sclr
+gcloud container clusters describe sclr
+kubectl create -f manage-pods.yaml
+
+kubectl scale statefulsets compute --replicas=5
+select * from medium.results order by created_at limit 1;
+select * from medium.results order by created_at desc limit 1;
+
+
