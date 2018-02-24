@@ -52,7 +52,7 @@ spec:
     spec:
       containers:
       - name: frontend
-        image: us.gcr.io/sclr-akka/frontend:latest
+        image: us.gcr.io/sclr-01/frontend:latest
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 2551
@@ -60,12 +60,12 @@ spec:
         - containerPort: 8080
           name: http-service
         resources:
-          requests:
-            memory: "64Mi"
-            cpu: "100m"
           limits:
-            memory: "128Mi"
-            cpu: "250m"
+            cpu: 500m
+            memory: 750M
+          requests:
+            cpu: 500m
+            memory: 750M
         env:
         - name: AKKA_REMOTING_BIND_HOST
           value: 'frontend-service.default.svc.cluster.local'

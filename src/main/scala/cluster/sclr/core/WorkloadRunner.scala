@@ -6,7 +6,7 @@ import combinations.CombinationBuilder
 
 class WorkloadRunner(dataset: Dataset) extends LazyLogging {
 
-  def run(dnfSize: Int, yDimensions: Vector[Int], rows: Vector[Int]): Option[Result] = {
+  def run(dnfSize: Int, mu: Double, yDimensions: Vector[Int], rows: Vector[Int]): Option[Result] = {
 
     val (points, coeff1, coeff2) = WorkloadRunner.constructRednessScores(dataset.data, yDimensions, rows)
 
@@ -22,7 +22,7 @@ class WorkloadRunner(dataset: Dataset) extends LazyLogging {
       }
       result
     }.toMap
-    val (kDNF, error) = new SetCover(dnfToIndices.keySet, 0.2, dataset.data.length).lowDegPartial2(simpleAlgorithm = true)
+    val (kDNF, error) = new SetCover(dnfToIndices.keySet, mu, dataset.data.length).lowDegPartial2(simpleAlgorithm = true)
     val kDNFString = kDNF.map(dnfToIndices).toString
 
     if (kDNF.nonEmpty) {

@@ -9,7 +9,7 @@ scalacOptions += "-Ypartial-unification" // 2.11.9+
 
 organization in ThisBuild := "wustl.engineering"
 scalaVersion in ThisBuild := "2.12.4"
-version in ThisBuild := "0.8.1"
+version in ThisBuild := "0.8.2"
 
 lazy val sclr = project
   .in(file("."))
@@ -66,7 +66,7 @@ val dockerSettings = Seq(
   packageDescription := "Sparse Conditional Linear Regression"
 )
 
-val clusterName = "sclr-akka"
+val clusterName = "sclr-01"
 
 lazy val frontend = project
   .in(file("frontend"))

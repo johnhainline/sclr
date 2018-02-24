@@ -67,7 +67,7 @@ class InfoService(implicit val system: ActorSystem, implicit val materializer: A
 }
 
 object JsonFormatters extends DefaultJsonProtocol with SprayJsonSupport {
-  implicit val workloadFormat = jsonFormat2(Workload)
+  implicit val workloadFormat = jsonFormat3(Workload)
 
   implicit val combinationBuilderFormat = new JsonFormat[CombinationBuilder] {
     def write(x: CombinationBuilder) = JsObject("n" -> JsNumber(x.n), "k" -> JsNumber(x.k))

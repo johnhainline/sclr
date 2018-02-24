@@ -37,18 +37,18 @@ spec:
     spec:
       containers:
       - name: compute
-        image: us.gcr.io/sclr-akka/compute:latest
+        image: us.gcr.io/sclr-01/compute:latest
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 2551
           name: akka-remote
         resources:
-          requests:
-            memory: "1G"
-            cpu: "500m"
           limits:
-            memory: "2G"
-            cpu: "1000m"
+            cpu: 900m
+            memory: 2G
+          requests:
+            cpu: 900m
+            memory: 2G
         env:
         - name: DATABASE_HOST
           value: mysql-service

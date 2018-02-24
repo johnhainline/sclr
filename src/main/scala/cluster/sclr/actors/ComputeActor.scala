@@ -31,7 +31,7 @@ class ComputeActor(dao: DatabaseDao) extends Actor with ActorLogging {
   def computing: Receive = {
     case (work: Work) =>
       Try {
-        runner.run(workload.dnfSize, work.selectedDimensions, work.selectedRows).map { result =>
+        runner.run(workload.dnfSize, workload.mu, work.selectedDimensions, work.selectedRows).map { result =>
           val rows = dao.insertResult(schema = workload.name, result)
           log.info(s"workload: ${workload.name} saved: $result")
           rows
