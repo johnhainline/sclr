@@ -57,6 +57,28 @@ object WorkloadRunner {
     (points, a1, a2)
   }
 
+  private def find2DNFsByRemovingMatches(points: Array[Point], terms: Vector[((Int, Boolean), (Int, Boolean))]) = {
+    // Problem! This iterates over the same points over and over for each term! Inefficient.
+    terms.filter { term =>
+      points.exists { point =>
+        point.xyz.x(term._1._1) == term._1._2 &&
+          point.xyz.x(term._2._1) == term._2._2
+      }
+    }
+  }
+
+  private def removeMatchesForPoints(points: Array[Point], terms: Vector[((Int, Boolean), (Int, Boolean))]) = {
+    var remainingTerms = terms
+    val pointIterator = points.iterator
+    while (remainingTerms.nonEmpty && pointIterator.hasNext) {
+      val point = pointIterator.next()
+      remainingTerms = removeMatchesForPoint(point, remainingTerms)
+    }
+  }
+  private def removeMatchesForPoint(point: Point, terms: Vector[((Int, Boolean), (Int, Boolean))]): Vector[((Int, Boolean), (Int, Boolean))] = {
+    ???
+  }
+
   private def selectBooleanValuesAtIndices(points: Array[Point], selections: Vector[(Int, Boolean)]) = {
     points.filter { point =>
       selections.map(selection => point.xyz.x(selection._1) == selection._2).forall(identity)
