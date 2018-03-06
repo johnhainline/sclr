@@ -1,4 +1,3 @@
-import com.typesafe.sbt.packager.docker._
 import sbt.Keys.fork
 
 val akkaVersion = "2.5.8"
@@ -22,7 +21,7 @@ lazy val sclr = project
   libraryDependencies ++= Seq(
     // sigar is a os dependent toolset to make akka-cluster-metrics give more details
     "io.kamon" % "sigar-loader" % "1.6.6-rev002",
-    "de.mukis" % "jama" % "2.0.0-SNAPSHOT",
+//    "de.mukis" % "jama" % "2.0.0-SNAPSHOT",
 
     "org.scalatest" %% "scalatest" % "3.0.4" % Test,
     "org.scalamock" %% "scalamock" % "4.0.0" % Test,
