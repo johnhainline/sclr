@@ -23,7 +23,7 @@ object LocalApp {
 
     val parallel = 4
     implicit val system: ActorSystem = ActorSystem("sclr")
-    implicit val materializer: ActorMaterializer = ActorMgaterializer()
+    implicit val materializer: ActorMaterializer = ActorMaterializer()
     val joinAddress = Cluster(system).selfAddress
     Cluster(system).join(joinAddress)
     system.actorOf(Props(new Terminator()), "terminator")
