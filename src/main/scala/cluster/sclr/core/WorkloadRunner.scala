@@ -11,7 +11,7 @@ class WorkloadRunner(dataset: Dataset) extends LazyLogging {
         var error = 0.0
         var coeff = Vector(0.0)
         val M = dataset.data.length
-        val epsilon = 0.2
+        val epsilon = 0.3
         val ro = List(-1,1)
         for (r1 <- ro){
           for (r2 <- ro){
