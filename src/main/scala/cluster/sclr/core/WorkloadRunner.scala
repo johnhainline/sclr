@@ -4,7 +4,7 @@ import cluster.sclr.core.WorkloadRunner._
 import com.typesafe.scalalogging.LazyLogging
 import combinations.CombinationBuilder
 import scala.util.control.Breaks._
-class WorkloadRunner(dataset: Dataset) extends LazyLogging {
+class WorkloadRunner(dataset: Dataset, useLPNorm: Boolean) extends LazyLogging {
 
   def runSupNorm(dnfSize: Int, mu: Double, yDimensions: Vector[Int], rows: Vector[Int]): Option[Result] = {
         var kdnf = ""
@@ -88,9 +88,7 @@ class WorkloadRunner(dataset: Dataset) extends LazyLogging {
     }
   }
 
-  def run(dnfSize: Int, mu: Double, yDimensions: Vector[Int], rows: Vector[Int]): Option[Result] = {
-    runSupNorm(dnfSize, mu, yDimensions, rows)
-  }
+  val run: (Int, Double, Vector[Int], Vector[Int]) => Option[Result] = if (useLPNorm) runL2Norm else runSupNorm
 }
 
 object WorkloadRunner {

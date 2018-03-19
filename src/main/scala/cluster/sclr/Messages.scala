@@ -5,11 +5,14 @@ import combinations.Combination
 object Messages {
 
   val Y_DIMENSIONS = 2
-  val ROWS = 3
 
   // Send Workload to the ManageActor to start work. ManageActor sends `Workload` to topicStatus.
   // ManageActor sends WorkConfig to topicComputer (sent every 5 sec, picked up by ComputeActors).
-  final case class Workload(name: String, dnfSize: Int, mu: Double)
+  final case class Workload(name: String, dnfSize: Int, mu: Double, useLPNorm: Boolean) {
+    def getRowsConstant() = {
+      if (useLPNorm) 2 else 3
+    }
+  }
   final case object Ack // acknowledgement response
 
   // GetWork is sent by ComputeActor to topicManager (i.e. ManageActor).

@@ -22,7 +22,7 @@ class ComputeActor(dao: DatabaseDao) extends Actor with ActorLogging {
   def waiting: Receive = {
     case config: Workload =>
       workload = config
-      runner = new WorkloadRunner(dao.getDataset(workload.name))
+      runner = new WorkloadRunner(dao.getDataset(workload.name), config.useLPNorm)
       log.debug(s"received workload: $config")
       context.become(computing)
       askForWork()
