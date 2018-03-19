@@ -28,6 +28,7 @@ sbt manage/docker:publishLocal compute/docker:publishLocal frontend/docker:publi
 
 kubectl get all -o wide
 kubectl logs -v=5 compute-0
+kubectl describe pods compute-0
 
 kubectl config get-contexts
 kubectl config use-context minikube
@@ -44,7 +45,7 @@ kubectl delete pvc mysql-pv-claim; kubectl delete all -l app=sclr
 
 kubectl delete statefulsets compute --grace-period=0 --force
 
-kubectl exec -ti compute-0 -- curl -vH "Content-Type: application/json" -X POST -d '{"name":"m1000","dnfSize":2, "mu":0.4}' http-service.default.svc.cluster.local:8080/begin
+kubectl exec -ti compute-0 -- curl -vH "Content-Type: application/json" -X POST -d '{"name":"m1000","dnfSize":2, "mu":0.24}' http-service.default.svc.cluster.local:8080/begin
 kubectl exec -ti mysql-85d59757b6-z8zfb -- mysqldump --add-drop-database --databases small -pKO4eD0BrP2PC19jO > backup.sql
 mysqldump --databases small -h mysql-service.default.svc.cluster.local -pKO4eD0BrP2PC19jO > backup.sql 
 
