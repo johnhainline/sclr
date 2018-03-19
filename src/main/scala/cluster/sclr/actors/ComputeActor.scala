@@ -4,13 +4,15 @@ import akka.actor.{Actor, ActorLogging, Props}
 import akka.cluster.pubsub.DistributedPubSubMediator.Publish
 import akka.cluster.pubsub.{DistributedPubSub, DistributedPubSubMediator}
 import cluster.sclr.Messages._
-import cluster.sclr.core.{DatabaseDao, WorkloadRunner}
+import cluster.sclr.core.kdnf.{KdnfStrategy, L2Norm, SupNorm}
+import cluster.sclr.core.{DatabaseDao, Dataset}
 
 import scala.util.{Failure, Try}
 
 class ComputeActor(dao: DatabaseDao) extends Actor with ActorLogging {
 
-  private var runner: WorkloadRunner = _
+  private var strategy: KdnfStrategy = _
+  private var dataset: Dataset = _
   private var workload: Workload = _
   private val mediator = DistributedPubSub(context.system).mediator
   mediator ! DistributedPubSubMediator.Subscribe(topicComputer, self)
@@ -22,7 +24,8 @@ class ComputeActor(dao: DatabaseDao) extends Actor with ActorLogging {
   def waiting: Receive = {
     case config: Workload =>
       workload = config
-      runner = new WorkloadRunner(dao.getDataset(workload.name), config.useLPNorm)
+      dataset = dao.getDataset(config.name)
+      strategy = if (config.useLPNorm) new L2Norm(config) else new SupNorm(config)
       log.debug(s"received workload: $config")
       context.become(computing)
       askForWork()
@@ -32,7 +35,7 @@ class ComputeActor(dao: DatabaseDao) extends Actor with ActorLogging {
     case (work: Work) =>
       log.info(s"workload: ${workload.name} received work: $work")
       Try {
-        runner.run(workload.dnfSize, workload.mu, work.selectedDimensions, work.selectedRows).map { result =>
+        strategy.run(dataset, work.selectedDimensions, work.selectedRows).map { result =>
           val rows = dao.insertResult(schema = workload.name, result)
           log.info(s"workload: ${workload.name} saved: $result")
           rows
