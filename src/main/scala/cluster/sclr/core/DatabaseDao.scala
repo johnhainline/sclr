@@ -16,7 +16,7 @@ import doobie.util.transactor.Transactor
 import doobie.{Fragment, _}
 
 
-case class XYZ(id: Long, x: Array[Boolean], y: Array[Double], z: Double)
+case class XYZ(id: Int, x: Array[Boolean], y: Array[Double], z: Double)
 case class Dataset(data: Array[XYZ], xLength: Int, yLength: Int)
 case class DatasetInfo(xLength: Int, yLength: Int, rowCount: Int)
 
@@ -70,7 +70,7 @@ class DatabaseDao extends LazyLogging {
         // Ex: (id, x1, x2, x3, id, y1, y2, z)
         val results = statement.executeQuery(s"SELECT * FROM $name.x, $name.yz WHERE $name.x.id = $name.yz.id")
         while (results.next()) {
-          val id = results.getLong(1)
+          val id = results.getInt(1)
           val xOffset = 2
           val x = new Array[Boolean](info.xLength)
           for (i <- x.indices) {
