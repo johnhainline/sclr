@@ -1,38 +1,51 @@
 package cluster.main
 
-import cluster.sclr.core.{Point, SetCover, XYZ}
+import cluster.sclr.core.{SetCover, XYZ}
+
+import scala.collection.immutable.BitSet
 
 object ToyExample {
 
   def main(args: Array[String]): Unit = {
-    val p1 = Point(XYZ(1, Array.empty, Array.empty, 0.0), 0.0)
-    val p2 = Point(XYZ(2, Array.empty, Array.empty, 0.0), 0.0)
-    val p3 = Point(XYZ(3, Array.empty, Array.empty, 0.0), 0.0)
-    val p4 = Point(XYZ(4, Array.empty, Array.empty, 0.0), 0.0)
-    val p5 = Point(XYZ(5, Array.empty, Array.empty, 0.0), 0.0)
-    val p6 = Point(XYZ(6, Array.empty, Array.empty, 0.0), 0.0)
-    val p7 = Point(XYZ(7, Array.empty, Array.empty, 0.0), 0.0)
-    val p2red = Point(XYZ(8, Array.empty, Array.empty, 0.0), 1.0)
-    val p4red = Point(XYZ(9, Array.empty, Array.empty, 0.0), 1.0)
-    val p5red = Point(XYZ(10, Array.empty, Array.empty, 0.0), 1.0)
-    val p7red = Point(XYZ(11, Array.empty, Array.empty, 0.0), 1.0)
+    val idToRedness = Map(
+      1 -> 0.0,
+      2 -> 0.0,
+      3 -> 0.0,
+      4 -> 0.0,
+      5 -> 0.0,
+      6 -> 0.0,
+      7 -> 0.0,
+      8 -> 1.0,
+      9 -> 1.0,
+      10 -> 1.0,
+      11 -> 1.0
+    )
+    val p1 = XYZ(1, Array.empty, Array.empty, 0.0)
+    val p2 = XYZ(2, Array.empty, Array.empty, 0.0)
+    val p3 = XYZ(3, Array.empty, Array.empty, 0.0)
+    val p4 = XYZ(4, Array.empty, Array.empty, 0.0)
+    val p5 = XYZ(5, Array.empty, Array.empty, 0.0)
+    val p6 = XYZ(6, Array.empty, Array.empty, 0.0)
+    val p7 = XYZ(7, Array.empty, Array.empty, 0.0)
+    val p2red = XYZ(8, Array.empty, Array.empty, 0.0)
+    val p4red = XYZ(9, Array.empty, Array.empty, 0.0)
+    val p5red = XYZ(10, Array.empty, Array.empty, 0.0)
+    val p7red = XYZ(11, Array.empty, Array.empty, 0.0)
 
-    val red = Set(p2red, p4red, p5red, p7red)
+    val raining = BitSet(p1.id, p3.id, p4.id, p5.id, p6.id, p4red.id, p5red.id)
 
-    val raining = Set(p1, p3, p4, p5, p6, p4red, p5red)
+    val notRaining = BitSet(p2.id, p7.id, p2red.id, p7red.id)
 
-    val notRaining = Set(p2, p7, p2red, p7red)
+    val sleepwell = BitSet(p2.id, p3.id, p4.id, p5.id, p7.id, p2red.id, p4red.id, p5red.id, p7red.id)
 
-    val sleepwell = Set(p2, p3, p4, p5, p7, p2red, p4red, p5red, p7red)
+    val notSleepwell = BitSet(p1.id, p6.id)
 
-    val notSleepwell = Set(p1, p6)
+    val inside = BitSet(p4.id, p5.id, p7.id, p4red.id, p5red.id, p7red.id)
 
-    val inside = Set(p4, p5, p7, p4red, p5red, p7red)
+    val notInside = BitSet(p1.id, p2.id, p3.id, p6.id, p2red.id)
+    val allDnfs = Vector(raining, notRaining, sleepwell, notSleepwell, inside, notInside)
 
-    val notInside = Set(p1, p2, p3, p6, p2red)
-    val allDnfs = Set(raining, notRaining, sleepwell, notSleepwell, inside, notInside)
-
-    val setCover = new SetCover(allDnfs, 6.0 / 11, 7)
+    val setCover = new SetCover(allDnfs, idToRedness, 6.0 / 11, 7)
     val lowdegSimple = setCover.simpleGreedy(2.0)
     System.out.println("error rate " + setCover.errorRate(lowdegSimple))
     val lowdegComplex = setCover.complexGreedy(2.0)

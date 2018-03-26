@@ -1,4 +1,4 @@
-package cluster.sclr.core.kdnf
+package cluster.sclr.core.strategy
 
 import Jama.Matrix
 import cluster.sclr.Messages.Workload

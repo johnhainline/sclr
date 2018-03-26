@@ -89,3 +89,7 @@ Note that I have instructions for this using a Mac.
 1. Delete all local Kubernetes pods, including MySQL, etc.
    - `kubectl delete pvc mysql-pv-claim; kubectl delete all -l app=sclr`
    - Note DOUBLE CHECK EVERYTHING IS DOWN. On error things may keep running, costing money.
+
+
+## Benchmarks
+We are using the ScalaMeter benchmarking framework. See [ScalaMeter](http://scalameter.github.io/)

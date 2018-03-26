@@ -1,4 +1,4 @@
-package cluster.sclr.core.kdnf
+package cluster.sclr.core.strategy
 
 import cluster.sclr.Messages.Workload
 import cluster.sclr.core._

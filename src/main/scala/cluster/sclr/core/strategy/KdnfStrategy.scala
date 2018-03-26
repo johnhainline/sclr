@@ -1,4 +1,4 @@
-package cluster.sclr.core.kdnf
+package cluster.sclr.core.strategy
 
 import cluster.sclr.core.{Dataset, Result}
 

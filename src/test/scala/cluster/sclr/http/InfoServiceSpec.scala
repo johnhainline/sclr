@@ -1,4 +1,4 @@
-package cluster.http
+package cluster.sclr.http
 
 import akka.actor.ActorRef
 import akka.http.scaladsl.model.StatusCodes

@@ -4,7 +4,7 @@ import akka.actor.{Actor, ActorLogging, Props}
 import akka.cluster.pubsub.DistributedPubSubMediator.Publish
 import akka.cluster.pubsub.{DistributedPubSub, DistributedPubSubMediator}
 import cluster.sclr.Messages._
-import cluster.sclr.core.kdnf.{KdnfStrategy, L2Norm, SupNorm}
+import cluster.sclr.core.strategy.{KdnfStrategy, L2Norm, SupNorm}
 import cluster.sclr.core.{DatabaseDao, Dataset}
 
 import scala.util.{Failure, Try}

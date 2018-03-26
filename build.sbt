@@ -15,9 +15,10 @@ lazy val sclr = project
   .settings(
   name := "sclr",
   description := "sparse-conditional-linear-regression",
-  resolvers +=
+  resolvers ++= Seq(
     "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
-
+    "Sonatype OSS Releases" at "https://oss.sonatype.org/content/repositories/releases"
+  ),
   libraryDependencies ++= Seq(
     // sigar is a os dependent toolset to make akka-cluster-metrics give more details
     "io.kamon" % "sigar-loader" % "1.6.6-rev002",
@@ -55,8 +56,7 @@ lazy val sclr = project
 
   javaOptions in run ++= Seq("-Djava.library.path=./target/native"),
 
-  fork in run := true,
-  parallelExecution in Test := false
+  fork in run := true
 )
 
 val dockerSettings = Seq(
@@ -102,3 +102,17 @@ lazy val compute = project
   )
   .dependsOn(sclr)
   .enablePlugins(JavaServerAppPackaging, DockerPlugin)
+
+// Benchmarks
+lazy val bench = project
+  .in(file("bench"))
+  .settings(
+    name := "bench",
+    testFrameworks += new TestFramework("org.scalameter.ScalaMeterFramework"),
+    logBuffered := false,
+    libraryDependencies ++= Seq(
+      "com.storm-enroute" %% "scalameter" % "0.9" % Test
+    ),
+    parallelExecution in Test := false
+  )
+  .dependsOn(sclr)
