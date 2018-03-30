@@ -11,9 +11,9 @@ import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.LazyLogging
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
 import doobie.hikari.HikariTransactor
-import doobie.implicits._
 import doobie.util.transactor.Transactor
-import doobie.{Fragment, _}
+import doobie.implicits._
+import doobie._
 
 
 case class XYZ(id: Int, x: Array[Boolean], y: Array[Double], z: Double)

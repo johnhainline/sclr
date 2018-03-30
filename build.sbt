@@ -4,11 +4,11 @@ val akkaVersion = "2.5.8"
 val httpVersion = "10.0.11"
 val doobieVersion = "0.5.0"
 
-scalacOptions += "-Ypartial-unification" // 2.11.9+
-
 organization in ThisBuild := "wustl.engineering"
-scalaVersion in ThisBuild := "2.12.4"
+scalaVersion in ThisBuild := "2.12.5"
 version in ThisBuild := "0.9.1"
+
+scalacOptions in ThisBuild += "-Ypartial-unification" // 2.11.9+
 
 lazy val sclr = project
   .in(file("."))
