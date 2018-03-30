@@ -1,12 +1,12 @@
 package cluster.sclr.http
 
 import akka.actor.ActorRef
-import akka.http.scaladsl.model.StatusCodes
+import akka.http.scaladsl.model._
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import akka.stream.ActorMaterializer
 import akka.testkit.{TestActor, TestProbe}
-import cluster.sclr.Messages.{Workload, Ack}
-import cluster.sclr.http.InfoService
+import akka.util.ByteString
+import cluster.sclr.Messages.{Ack, Workload}
 import org.scalatest.{Matchers, WordSpec}
 
 class InfoServiceSpec extends WordSpec with ScalatestRouteTest with Matchers {
@@ -25,13 +25,15 @@ class InfoServiceSpec extends WordSpec with ScalatestRouteTest with Matchers {
         }
         TestActor.KeepRunning
       })
-      Get("/begin") ~> infoService.route ~> check {
+      val jsonRequest = ByteString(s"""{"name":"example","dnfSize":2, "mu":0.24, "useLPNorm":true}""".stripMargin)
+      val postRequest = HttpRequest(HttpMethods.POST,uri = "/begin",entity = HttpEntity(MediaTypes.`application/json`, jsonRequest))
+      postRequest ~> infoService.route ~> check {
         response.status shouldEqual StatusCodes.OK
       }
     }
 
     "leave GET requests to other paths unhandled" in {
-      Get("/kermit") ~> infoService.route ~> check {
+      Post("/kermit") ~> infoService.route ~> check {
         handled shouldBe false
       }
     }

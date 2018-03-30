@@ -1,6 +1,11 @@
 
 # Sparse Conditional Linear Regression
-This project runs a system of linear regression problems on a dataset. The goal is...
+This project runs a system of linear regression problems on a dataset in order to find hidden patterns in a subset of the data.
+
+## Status
+
+[![Build Status](https://travis-ci.org/johnhainline/sclr.png?branch=master)](https://travis-ci.org/johnhainline/sclr)
+
 
 ## Deployment
 
@@ -79,7 +84,7 @@ Note that I have instructions for this using a Mac.
 1. Check running pods, services, etc.
    - `kubectl get all -o wide`
 1. Send a single POST request (from the `compute-0` pod) to the `http-service` endpoint. This kicks off the job.
-   - `kubectl exec -ti compute-0 -- curl -vH "Content-Type: application/json" -X POST -d '{"name":"m1000","dnfSize":2, "mu":0.4}' http-service.default.svc.cluster.local:8080/begin`
+   - `kubectl exec -ti compute-0 -- curl -vH "Content-Type: application/json" -X POST -d '{"name":"m1000","dnfSize":2, "mu":0.24}' http-service.default.svc.cluster.local:8080/begin`
 1. Scale the `compute` nodes to 50
    - `kubectl scale statefulsets compute --replicas=50`
 1. Make a connection to the MySQL server.
