@@ -13,26 +13,21 @@ object L2NormBench extends Bench.OfflineReport {
   val random = new Random(1234)
   val database = new DatabaseDaoHelper(random)
 
-//  val start = Math.pow(2,12).toInt
-//  val end = Math.pow(2,15).toInt
-//  val dataLengthRange = Gen.exponential("dataLength")(start, end, 2)
-//val dataLengthRange = Gen.single("dataLength")(10000)
-  val dataLengthRange = Gen.range("dataLength")(5000,20000,5000)
-//  val xLengthRange = Gen.range("xLength")(4, 20, 4)
+  val start = Math.pow(2,14).toInt
+  val end = Math.pow(2,18).toInt
+  val dataLengthGen = Gen.exponential("dataLength")(start, end, 2)
   val xLength = 10
-//  val selectionRange = Gen.range("selection")(0, 10, 1)
 
-  val datasets = for(dataLength <- dataLengthRange) yield {
-    database.fakeDataset(dataLength, xLength, 6)
+  val selections = for(dataLength <- dataLengthGen) yield {
+    (database.fakeDataset(dataLength, xLength, 6), randomSelections(xLength, 3))
   }
 
-  val selections = for (dataset <- datasets) yield {
-    (dataset, randomSelections(xLength))
+  private def randomSelections(xLength: Int, selectionCount: Int) = {
+    val range = (0 until xLength).toList
+    val selections = random.shuffle(range).take(selectionCount)
+    selections.map((_, random.nextBoolean())).toVector
   }
 
-  private def randomSelections(xLength: Int) = {
-    Vector((random.nextInt(xLength), random.nextBoolean()), (random.nextInt(xLength), random.nextBoolean()))
-  }
 
   private def standardFilter(data: Array[XYZ], selections: Vector[(Int, Boolean)]) = {
     val ids = data.filter { xyz =>
@@ -51,8 +46,17 @@ object L2NormBench extends Bench.OfflineReport {
     BitSet(ids:_*)
   }
 
+  private def collectFilter(data: Array[XYZ], selections: Vector[(Int, Boolean)]) = {
+    val mapFilter = new PartialFunction[XYZ, Int] {
+      def apply(xyz: XYZ) = xyz.id
+      def isDefinedAt(xyz: XYZ) = selections.map(selection => xyz.x(selection._1) == selection._2).forall(identity)
+    }
+    val ids = data.collect(mapFilter)
+    BitSet(ids:_*)
+  }
+
   performance of "L2Norm" config (
-    exec.benchRuns -> 15
+    exec.benchRuns -> 100
     ) in {
     measure method "standardFilter" in {
       using (selections) in { case (dataset, selection) =>
@@ -62,6 +66,11 @@ object L2NormBench extends Bench.OfflineReport {
     measure method "foldFilter" in {
       using (selections) in { case (dataset, selection) =>
         foldFilter(dataset.data, selection)
+      }
+    }
+    measure method "collectFilter" in {
+      using (selections) in { case (dataset, selection) =>
+        collectFilter(dataset.data, selection)
       }
     }
   }

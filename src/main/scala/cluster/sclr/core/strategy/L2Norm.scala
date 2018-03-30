@@ -18,7 +18,7 @@ class L2Norm(workload: Workload) extends KdnfStrategy {
       val combinations = Vector((a, b), (-a, b), (a, -b), (-a, -b))
       val result = combinations.map { case (i1, i2) =>
         // Search for the set of Points that fits this particular index pair
-        val filteredPoints = selectBooleanValuesAtIndices(dataset.data, Vector((Math.abs(i1) - 1, i1 > 0), (Math.abs(i2) - 1, i2 > 0)))
+        val filteredPoints = collectFilter(dataset.data, Vector((Math.abs(i1) - 1, i1 > 0), (Math.abs(i2) - 1, i2 > 0)))
         (filteredPoints, (i1, i2))
       }
       result
@@ -57,10 +57,12 @@ class L2Norm(workload: Workload) extends KdnfStrategy {
     (idToRedness, a1, a2)
   }
 
-  private def selectBooleanValuesAtIndices(data: Array[XYZ], selections: Vector[(Int, Boolean)]) = {
-    val ids = data.filter { xyz =>
-      selections.map(selection => xyz.x(selection._1) == selection._2).forall(identity)
-    }.map(_.id)
+  private def collectFilter(data: Array[XYZ], selections: Vector[(Int, Boolean)]) = {
+    val mapFilter = new PartialFunction[XYZ, Int] {
+      def apply(xyz: XYZ) = xyz.id
+      def isDefinedAt(xyz: XYZ) = selections.map(selection => xyz.x(selection._1) == selection._2).forall(identity)
+    }
+    val ids = data.collect(mapFilter)
     BitSet(ids:_*)
   }
 }

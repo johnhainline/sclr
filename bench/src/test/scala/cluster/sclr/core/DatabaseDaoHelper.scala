@@ -4,11 +4,11 @@ import scala.util.Random
 
 class DatabaseDaoHelper(random: Random) {
 
-  def fakeDataset(size: Int, xLength: Int, yLength: Int) = {
+  def fakeDataset(size: Int, xLength: Int, yLength: Int): Dataset = {
     Dataset(fakeData(size, xLength, yLength), xLength, yLength)
   }
 
-  def fakeData(size: Int, xLength: Int, yLength: Int) = {
+  def fakeData(size: Int, xLength: Int, yLength: Int): Array[XYZ] = {
     val data = new Array[XYZ](size)
     for (i <- 0 until size) {
       val x = new Array[Boolean](xLength)
