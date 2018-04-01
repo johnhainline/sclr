@@ -9,6 +9,7 @@ scalaVersion in ThisBuild := "2.12.5"
 version in ThisBuild := "0.9.1"
 
 scalacOptions in ThisBuild += "-Ypartial-unification" // 2.11.9+
+scalacOptions in ThisBuild += "-Xlint" // Get more warnings
 
 lazy val sclr = project
   .in(file("."))
