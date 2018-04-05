@@ -56,7 +56,7 @@ object L2NormFilterBench extends Bench.OfflineReport {
   }
 
   performance of "L2Norm" config (
-    exec.benchRuns -> 100
+    exec.benchRuns -> 10
     ) in {
     measure method "standardFilter" in {
       using (selections) in { case (dataset, selection) =>

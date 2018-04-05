@@ -5,12 +5,10 @@ import cluster.sclr.Messages.Workload
 import cluster.sclr.core.{Dataset, Result, XYZ}
 import combinations.CombinationBuilder
 
-class SupNorm(workload: Workload) extends KdnfStrategy {
-  val dnfSize = workload.dnfSize
-  val mu = workload.mu
-  val epsilon = workload.optionalEpsilon.get
+class SupNorm(val dataset: Dataset, val workload: Workload) extends KDNFStrategy(dataset) {
+  def epsilon: Double = workload.optionalEpsilon.get
 
-  def run(dataset: Dataset, yDimensions: Vector[Int], rows: Vector[Int]): Option[Result] = {
+  def run(yDimensions: Vector[Int], rows: Vector[Int]): Option[Result] = {
     var kdnf = ""
     var error = 0.0
     var coeff = Vector(0.0)
@@ -20,7 +18,7 @@ class SupNorm(workload: Workload) extends KdnfStrategy {
       val (coeff1, coeff2, epsilon2) = solveLinearSystem(dataset.data, yDimensions, rows, r1, r2, r3)
 
       if (epsilon2 <= epsilon && epsilon2 > 0) {
-        var allDNFTerms = CombinationBuilder(dataset.xLength, dnfSize).all().flatMap { zeroIndexedIndices =>
+        var allDNFTerms = CombinationBuilder(dataset.xLength, workload.dnfSize).all().flatMap { zeroIndexedIndices =>
           val (a, b) = (zeroIndexedIndices(0) + 1, zeroIndexedIndices(1) + 1)
           val combinations = Vector((a, b), (-a, b), (a, -b), (-a, -b))
           combinations
@@ -48,7 +46,7 @@ class SupNorm(workload: Workload) extends KdnfStrategy {
             )
           )
 
-          if (points.length > mu * M) {
+          if (points.length > workload.mu * M) {
             kdnf = allDNFTerms.toString()
             error = epsilon2
             coeff = Vector(coeff1, points.length)

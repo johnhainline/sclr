@@ -1,14 +1,14 @@
-package cluster.sclr.core.strategy
+package cluster.sclr.core
 
 import cluster.sclr.Messages.Workload
-import cluster.sclr.core.DatabaseDaoHelper
+import cluster.sclr.core.strategy.L2Norm
 import combinations.{CombinationAggregation, CombinationBuilder}
-import org.scalameter.api._
+import org.scalameter.api.{Bench, Gen}
 import org.scalameter.picklers.Implicits._
 
 import scala.util.Random
 
-object L2NormBench extends Bench.OfflineReport {
+object SetCoverBench  extends Bench.OfflineReport {
 
   val random = new Random(1234)
   val database = new DatabaseDaoHelper(random)
@@ -25,25 +25,25 @@ object L2NormBench extends Bench.OfflineReport {
     (dataset, iterator)
   }
 
-//  performance of "L2Norm" config (
-//    exec.benchRuns -> 10,
-//    exec.minWarmupRuns -> 1,
-//    exec.maxWarmupRuns -> 1
-//    ) in {
-//    measure method "simpleAlgorithm" in {
-//      using (generator) in { case (dataset, iterator) =>
-//        for (combo <- iterator) {
-//          l2NormSimple.run(dataset, combo.head, combo.last)
-//        }
-//      }
-//    }
-//    measure method "complexAlgorithm" in {
-//      using (generator) in { case (dataset, iterator) =>
-//        for (combo <- iterator) {
-//          l2NormComplex.run(dataset, combo.head, combo.last)
-//        }
-//      }
-//    }
-//  }
+  //  performance of "L2Norm" config (
+  //    exec.benchRuns -> 10,
+  //    exec.minWarmupRuns -> 1,
+  //    exec.maxWarmupRuns -> 1
+  //    ) in {
+  //    measure method "simpleAlgorithm" in {
+  //      using (generator) in { case (dataset, iterator) =>
+  //        for (combo <- iterator) {
+  //          l2NormSimple.run(dataset, combo.head, combo.last)
+  //        }
+  //      }
+  //    }
+  //    measure method "complexAlgorithm" in {
+  //      using (generator) in { case (dataset, iterator) =>
+  //        for (combo <- iterator) {
+  //          l2NormComplex.run(dataset, combo.head, combo.last)
+  //        }
+  //      }
+  //    }
+  //  }
 }
 
