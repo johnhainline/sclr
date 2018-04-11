@@ -2,6 +2,8 @@ package combinations
 
 import org.scalatest._
 
+import scala.util.Random
+
 class CombinationAggregationSpec extends FlatSpec with Matchers {
 
   "CombinationsAggregation" should "hold the total count of combos" in {

@@ -163,4 +163,27 @@ class CombinationBuilderSpec extends FlatSpec with Matchers {
       Vector(0,2)
     )
   }
+
+  it should "provide a random iterator that hits every combination" in {
+    val p = 0.4
+    val result1 = GapSamplingIterator(CombinationBuilder(6,3).rangeUntil(10, 45), p).toVector
+    val all = Vector(
+      Vector(0,1,5), Vector(0,2,5), Vector(1,2,5), Vector(0,3,5), Vector(1,3,5),
+      Vector(2,3,5), Vector(0,4,5), Vector(1,4,5), Vector(2,4,5), Vector(3,4,5),
+
+      Vector(0,1,2), Vector(0,1,3), Vector(0,2,3), Vector(1,2,3), Vector(0,1,4),
+      Vector(0,2,4), Vector(1,2,4), Vector(0,3,4), Vector(1,3,4), Vector(2,3,4),
+      Vector(0,1,5), Vector(0,2,5), Vector(1,2,5), Vector(0,3,5), Vector(1,3,5),
+      Vector(2,3,5), Vector(0,4,5), Vector(1,4,5), Vector(2,4,5), Vector(3,4,5),
+
+      Vector(0,1,2), Vector(0,1,3), Vector(0,2,3), Vector(1,2,3), Vector(0,1,4)
+    )
+
+    result1 should not equal all
+
+    val sampleSize = all.map { v =>
+      if (result1.contains(v)) 1 else 0
+    }.sum
+    sampleSize shouldBe Math.round(all.size * p).toInt
+  }
 }

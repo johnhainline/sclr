@@ -5,11 +5,12 @@ import akka.cluster.pubsub.DistributedPubSubMediator.Publish
 import akka.cluster.pubsub.{DistributedPubSub, DistributedPubSubMediator}
 import cluster.sclr.Messages._
 import cluster.sclr.core.DatabaseDao
-import combinations.{CombinationAggregation, CombinationBuilder}
+import combinations.{CombinationAggregation, CombinationBuilder, GapSamplingIterator}
 
 import scala.concurrent.duration._
+import scala.util.Random
 
-class ManageActor(dao: DatabaseDao) extends Actor with ActorLogging {
+class ManageActor(dao: DatabaseDao, r: Random = new Random()) extends Actor with ActorLogging {
 
   private var workload: Workload = _
   private var iterator: BufferedIterator[Vector[combinations.Combination]] = _
@@ -24,9 +25,7 @@ class ManageActor(dao: DatabaseDao) extends Actor with ActorLogging {
       dao.initializeDataset(work.name)
       dao.setupSchemaAndTable(work.name, Y_DIMENSIONS, work.getRowsConstant())
       val datasetInfo = dao.getDatasetInfo(work.name)
-      val selectYDimensions = CombinationBuilder(datasetInfo.yLength, Y_DIMENSIONS)
-      val selectRows = CombinationBuilder(datasetInfo.rowCount, work.getRowsConstant())
-      iterator = CombinationAggregation(Vector(selectYDimensions,selectRows)).all().buffered
+      iterator = createIterator(datasetInfo.rowCount, datasetInfo.yLength, work.getRowsConstant(), work.optionalSample, r)
       workload = work
       log.debug(s"received workload for dataset: ${work.name} with dimensions:${datasetInfo.xLength} rows:${datasetInfo.rowCount} selecting dimensions:$Y_DIMENSIONS rows:${work.getRowsConstant()}")
       context.become(sending)
@@ -62,6 +61,16 @@ class ManageActor(dao: DatabaseDao) extends Actor with ActorLogging {
   }
 
   def receive: Receive = waiting
+
+  def createIterator(rowCount: Int, yLength: Int, rowsConstant: Int, optionalSample: Option[Int], r: Random):BufferedIterator[Vector[combinations.Combination]] = {
+    val selectYDimensions = CombinationBuilder(yLength, Y_DIMENSIONS)
+    val selectRows = CombinationBuilder(rowCount, rowsConstant)
+    if (optionalSample.nonEmpty) {
+      GapSamplingIterator(CombinationAggregation(Vector(selectYDimensions,selectRows)).all(), rowCount, optionalSample.get, r).buffered
+    } else {
+      CombinationAggregation(Vector(selectYDimensions,selectRows)).all().buffered
+    }
+  }
 }
 
 object ManageActor {

@@ -1,7 +1,6 @@
 package combinations
 
 import scala.collection.mutable
-import scala.util.Random
 
 /**
   * Notes: All combinations return values that are zero indexed. So the first combination of 5 choose 2 is List(0,1).
@@ -36,15 +35,8 @@ case class CombinationBuilder(n: Int, k: Int) {
     combination == last
   }
 
-  /**
-    * Generates a random Combination from the n choose k distribution.
-    */
-  def random(random: Random = new Random(1)): Combination = {
-    ???
-  }
-
   private class CombinationsIterator(n: Int, k: Int, i: BigInt = 0, j: BigInt = count) extends Iterator[Combination] {
-    var currentIndex: BigInt = i
+    private var currentIndex: BigInt = i
     private var current: Combination = if (i == 0) first else CombinationBuilder.unrank(k, i % combinationCount)
 
     override def hasNext: Boolean = currentIndex < j
