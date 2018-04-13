@@ -5,7 +5,7 @@ import akka.cluster.pubsub.DistributedPubSubMediator.Publish
 import akka.cluster.pubsub.{DistributedPubSub, DistributedPubSubMediator}
 import cluster.sclr.Messages._
 import cluster.sclr.core.DatabaseDao
-import combinations.{CombinationAggregation, CombinationBuilder, GapSamplingIterator}
+import combinations.{MultipliedIterator, Combinations, GapSamplingIterator}
 
 import scala.concurrent.duration._
 import scala.util.Random
@@ -63,13 +63,13 @@ class ManageActor(dao: DatabaseDao, r: Random = new Random()) extends Actor with
   def receive: Receive = waiting
 
   def createIterator(rowCount: Int, yLength: Int, rowsConstant: Int, optionalSample: Option[Int], r: Random):BufferedIterator[Vector[combinations.Combination]] = {
-    val selectYDimensions = CombinationBuilder(yLength, Y_DIMENSIONS)
-    val selectRows = CombinationBuilder(rowCount, rowsConstant)
-    if (optionalSample.nonEmpty) {
-      GapSamplingIterator(CombinationAggregation(Vector(selectYDimensions,selectRows)).all(), rowCount, optionalSample.get, r).buffered
+    val selectYDimensions = () => Combinations(yLength, Y_DIMENSIONS).iterator()
+    val selectRows = if (optionalSample.nonEmpty) {
+      () => Combinations(rowCount, rowsConstant).iterator()
     } else {
-      CombinationAggregation(Vector(selectYDimensions,selectRows)).all().buffered
+      () => GapSamplingIterator(Combinations(rowCount, rowsConstant).iterator(), rowCount, optionalSample.get, r)
     }
+    MultipliedIterator(Vector(selectYDimensions,selectRows)).buffered
   }
 }
 

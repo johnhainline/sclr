@@ -2,7 +2,7 @@ package cluster.sclr.core.strategy
 
 import cluster.sclr.Messages.Workload
 import cluster.sclr.core.DatabaseDaoHelper
-import combinations.{CombinationAggregation, CombinationBuilder}
+import combinations.{MultipliedIterator, Combinations}
 import org.scalameter.api._
 import org.scalameter.picklers.Implicits._
 
@@ -19,9 +19,9 @@ object L2NormBench extends Bench.OfflineReport {
   val dataLengthGen = Gen.single("dataLength")(200)
   val generator = for(dataLength <- dataLengthGen) yield {
     val dataset = database.fakeDataset(dataLength, 10, 6)
-    val selectYDimensions = CombinationBuilder(dataset.yLength, 2)
-    val selectRows = CombinationBuilder(dataset.data.length, workload.getRowsConstant())
-    val iterator = CombinationAggregation(Vector(selectYDimensions,selectRows)).all()
+    val selectYDimensions = Combinations(dataset.yLength, 2)
+    val selectRows = Combinations(dataset.data.length, workload.getRowsConstant())
+    val iterator = MultipliedIterator(Vector(selectYDimensions,selectRows)).all()
     (dataset, iterator)
   }
 

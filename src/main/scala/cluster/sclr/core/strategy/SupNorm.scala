@@ -3,7 +3,7 @@ package cluster.sclr.core.strategy
 import Jama.Matrix
 import cluster.sclr.Messages.Workload
 import cluster.sclr.core.{Dataset, Result, XYZ}
-import combinations.CombinationBuilder
+import combinations.Combinations
 
 class SupNorm(val dataset: Dataset, val workload: Workload) extends KDNFStrategy(dataset) {
   def epsilon: Double = workload.optionalEpsilon.get
@@ -18,7 +18,7 @@ class SupNorm(val dataset: Dataset, val workload: Workload) extends KDNFStrategy
       val (coeff1, coeff2, epsilon2) = solveLinearSystem(dataset.data, yDimensions, rows, r1, r2, r3)
 
       if (epsilon2 <= epsilon && epsilon2 > 0) {
-        var allDNFTerms = CombinationBuilder(dataset.xLength, workload.dnfSize).all().flatMap { zeroIndexedIndices =>
+        var allDNFTerms = Combinations(dataset.xLength, workload.dnfSize).iterator().flatMap { zeroIndexedIndices =>
           val (a, b) = (zeroIndexedIndices(0) + 1, zeroIndexedIndices(1) + 1)
           val combinations = Vector((a, b), (-a, b), (a, -b), (-a, -b))
           combinations

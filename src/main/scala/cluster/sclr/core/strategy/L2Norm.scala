@@ -2,14 +2,14 @@ package cluster.sclr.core.strategy
 
 import cluster.sclr.Messages.Workload
 import cluster.sclr.core._
-import combinations.CombinationBuilder
+import combinations.Combinations
 
 import scala.collection.immutable.BitSet
 
 class L2Norm(val dataset: Dataset, val workload: Workload, simpleAlgorithm: Boolean = true) extends KDNFStrategy(dataset) {
 
   // Construct all possible dnf set memberships.
-  lazy val termToIndices = CombinationBuilder(dataset.xLength, workload.dnfSize).all().flatMap { zeroIndexedIndices =>
+  lazy val termToIndices = Combinations(dataset.xLength, workload.dnfSize).iterator().flatMap { zeroIndexedIndices =>
     // Our indices are 0-indexed, so increase that to 1-indexed to allow negative indices.
     //      val oneIndexedIndices = zeroIndexedIndices.map(_+1)
     val (a, b) = (zeroIndexedIndices(0) + 1, zeroIndexedIndices(1) + 1)

@@ -8,54 +8,23 @@ import scala.collection.mutable
   * @param n the total number of choices
   * @param k how many of our choices to take
   */
-case class CombinationBuilder(n: Int, k: Int) {
-  val count = CombinationBuilder.choose(n, k)
-  private def combinationCount = count
-
-  lazy val first = CombinationBuilder.first(n,k)
-  lazy val last = CombinationBuilder.last(n,k)
+case class Combinations(val n: Int, val k: Int) {
+  val size: BigInt = Combinations.choose(n, k)
 
   // Returns an iterator for the complete set of n choose k combinations.
-  def all(): Iterator[Combination] = {
-    new CombinationsIterator(n, k)
+  def iterator(): Iterator[Combination] = {
+    new CombinationsIterator(n, k, 0, size, size)
   }
 
   /**
     * The range is zero-indexed and includes Combinations at index i until j.
     */
-  def rangeUntil(i: BigInt, j: BigInt): Iterator[Combination] = {
-    new CombinationsIterator(n, k, i, j)
-  }
-
-  def isFirst(combination: Combination) = {
-    combination == first
-  }
-
-  def isLast(combination: Combination) = {
-    combination == last
-  }
-
-  private class CombinationsIterator(n: Int, k: Int, i: BigInt = 0, j: BigInt = count) extends Iterator[Combination] {
-    private var currentIndex: BigInt = i
-    private var current: Combination = if (i == 0) first else CombinationBuilder.unrank(k, i % combinationCount)
-
-    override def hasNext: Boolean = currentIndex < j
-
-    override def next(): Combination = {
-      val previous = current
-      currentIndex += 1
-      if (currentIndex % combinationCount == 0) {
-        current = first
-      } else {
-        current = CombinationBuilder.next(current)
-      }
-      previous
-    }
+  def range(i: BigInt, j: BigInt): Iterator[Combination] = {
+    new CombinationsIterator(n, k, i, j, size)
   }
 }
 
-object CombinationBuilder {
-
+object Combinations {
   def first(n: Int, k: Int): Combination = {
     val first = for (i <- 0 until k) yield i
     first.toVector
@@ -78,7 +47,7 @@ object CombinationBuilder {
   def rank(combination: Combination): BigInt = {
     combination.zipWithIndex.foldLeft(BigInt(0)) {
       case (result, (bit, index)) =>
-        result + CombinationBuilder.choose(bit, index + 1)
+        result + Combinations.choose(bit, index + 1)
     }
   }
 
@@ -87,13 +56,21 @@ object CombinationBuilder {
     val result = new mutable.ListBuffer[Int]()
     for (i <- k to 1 by -1) {
       var l = i-1
-      while (CombinationBuilder.choose(l, i) <= m) {
+      while (Combinations.choose(l, i) <= m) {
         l += 1
       }
       result.prepend(l-1)
-      m -= CombinationBuilder.choose(l-1, i)
+      m -= Combinations.choose(l-1, i)
     }
     result.toVector
+  }
+
+  def rank(combinations: Vector[Combination]): Vector[(Int, BigInt)] = {
+    combinations.map(combo => (combo.length, Combinations.rank(combo)))
+  }
+
+  def unrank(kIndex: Vector[(Int, BigInt)]): Vector[Combination] = {
+    kIndex.map(kIndex => Combinations.unrank(kIndex._1, kIndex._2))
   }
 
   def next(combination: Combination): Combination = {
