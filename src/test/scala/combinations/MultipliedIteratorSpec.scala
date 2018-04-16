@@ -2,6 +2,8 @@ package combinations
 
 import org.scalatest._
 
+import scala.util.Random
+
 class MultipliedIteratorSpec extends FlatSpec with Matchers {
 
   "CombinationsAggregation" should "hold the total count of combos" in {
@@ -34,6 +36,20 @@ class MultipliedIteratorSpec extends FlatSpec with Matchers {
     val expected = for (a <- combo1; b <- combo2; c <- combo3) yield {
       Vector(a,b,c)
     }
+    result shouldEqual expected
+  }
+
+  it should "provide an iterator for sampled combinations" in {
+    val seed = 1234
+    val combo1 = () => Combinations(4,3).iterator()
+    val combo2 = () => Combinations(5,2).samplingIterator(5, new Random(seed))
+
+    val result = MultipliedIterator(Vector(combo1, combo2)).toVector
+
+    val expected = (for (a <- combo1(); b <- combo2()) yield {
+      Vector(a,b)
+    }).toVector
+
     result shouldEqual expected
   }
 

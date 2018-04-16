@@ -16,10 +16,20 @@ class SamplingCombinationsIteratorSpec extends FlatSpec with Matchers {
   }
 
   it should "handle sampling from a massive iterator" in {
-    val sample = 1000
+    val sampleSize = 1000
+    val (n, k) = (1000000, 20)
+    val c = Combinations(n, k)
 
-    val result = Combinations(1000000, 20).samplingIterator(sample, r).toVector
+    val result = c.samplingIterator(sampleSize, r).toVector
+    val max = c.size
 
-    result.size should (be > 999 and be < 1001)
+    result.size shouldBe 1000
+    result.distinct.size shouldBe 1000
+    for (sample <- result) {
+      for (s <- sample) {
+        s >= 0   shouldBe true
+        s <= max shouldBe true
+      }
+    }
   }
 }
