@@ -5,7 +5,7 @@ import akka.cluster.pubsub.DistributedPubSubMediator.Publish
 import akka.cluster.pubsub.{DistributedPubSub, DistributedPubSubMediator}
 import cluster.sclr.Messages._
 import cluster.sclr.core.DatabaseDao
-import combinations.{MultipliedIterator, Combinations, GapSamplingIterator}
+import combinations.{MultipliedIterator, Combinations}
 
 import scala.concurrent.duration._
 import scala.util.Random
@@ -67,7 +67,7 @@ class ManageActor(dao: DatabaseDao, r: Random = new Random()) extends Actor with
     val selectRows = if (optionalSample.nonEmpty) {
       () => Combinations(rowCount, rowsConstant).iterator()
     } else {
-      () => GapSamplingIterator(Combinations(rowCount, rowsConstant).iterator(), rowCount, optionalSample.get, r)
+      () => Combinations(rowCount, rowsConstant).samplingIterator(optionalSample.get, r)
     }
     MultipliedIterator(Vector(selectYDimensions,selectRows)).buffered
   }

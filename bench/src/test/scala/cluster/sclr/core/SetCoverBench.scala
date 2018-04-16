@@ -8,7 +8,7 @@ import org.scalameter.picklers.Implicits._
 
 import scala.util.Random
 
-object SetCoverBench  extends Bench.OfflineReport {
+object SetCoverBench extends Bench.OfflineReport {
 
   val random = new Random(1234)
   val database = new DatabaseDaoHelper(random)

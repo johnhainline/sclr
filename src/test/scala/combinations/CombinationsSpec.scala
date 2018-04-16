@@ -2,8 +2,6 @@ package combinations
 
 import org.scalatest._
 
-import scala.util.Random
-
 class CombinationsSpec extends FlatSpec with Matchers {
   "Combinations" should "hold the total count of combos" in {
     Combinations.choose(10, 2) shouldEqual 45L
@@ -33,11 +31,30 @@ class CombinationsSpec extends FlatSpec with Matchers {
 
   }
 
+  it should "give correct min/max bounds for a combination" in {
+    def checkBounds(actual: Int, k: Int, index: BigInt): Boolean = {
+      val (low, high) = Combinations.boundsOfNGivenIndex(k, index)
+      low <= actual && actual <= high
+    }
+    checkBounds(0,  1, index=1)    shouldBe true
+    checkBounds(1,  1, index=2)    shouldBe true
+    checkBounds(2,  1, index=3)    shouldBe true
+    checkBounds(3,  1, index=4)    shouldBe true
+    checkBounds(54, 1, index=55)   shouldBe true
+    checkBounds(89, 2, index=4000) shouldBe true
+    checkBounds(952327, 2,      index=BigInt(453463147950L)) shouldBe true
+    checkBounds(711988, 2,      index=BigInt(253463147950L)) shouldBe true
+    checkBounds(800001, 400000, index=BigInt(4000000))       shouldBe true
+  }
+
   // For 6 choose 3 -> {0,1,3,3,4,5}
   // 013 < 013 < 033 < 133 < 014 < 034 < 134 < 034 < 134 < 334 < 015 < 035 < 135 < 035 < 135 < 335 < 045 < 145 < 345 < 345
   it should "use correct rank" in {
     Combinations.rank(Vector(0)) shouldEqual 0
     Combinations.rank(Vector(1)) shouldEqual 1
+    Combinations.rank(Vector(2)) shouldEqual 2
+    Combinations.rank(Vector(3)) shouldEqual 3
+    Combinations.rank(Vector(4)) shouldEqual 4
 
     Combinations.rank(Vector(0,1,2)) shouldEqual 0  // 012
     Combinations.rank(Vector(0,1,3)) shouldEqual 1  // 013
@@ -62,29 +79,32 @@ class CombinationsSpec extends FlatSpec with Matchers {
   }
 
   it should "use correct unrank" in {
-    Combinations.unrank(1, 0) shouldEqual Vector(0)
-    Combinations.unrank(1, 1) shouldEqual Vector(1)
+    Combinations.unrank(1, index=0) shouldEqual Vector(0)
+    Combinations.unrank(1, index=1) shouldEqual Vector(1)
+    Combinations.unrank(1, index=2) shouldEqual Vector(2)
+    Combinations.unrank(1, index=3) shouldEqual Vector(3)
+    Combinations.unrank(1, index=4) shouldEqual Vector(4)
 
-    Combinations.unrank(3, 0)  shouldEqual Vector(0,1,2) // 012
-    Combinations.unrank(3, 1)  shouldEqual Vector(0,1,3) // 013
-    Combinations.unrank(3, 2)  shouldEqual Vector(0,2,3) // 023
-    Combinations.unrank(3, 3)  shouldEqual Vector(1,2,3) // 123
-    Combinations.unrank(3, 4)  shouldEqual Vector(0,1,4) // 014
-    Combinations.unrank(3, 5)  shouldEqual Vector(0,2,4) // 024
-    Combinations.unrank(3, 6)  shouldEqual Vector(1,2,4) // 124
-    Combinations.unrank(3, 7)  shouldEqual Vector(0,3,4) // 034
-    Combinations.unrank(3, 8)  shouldEqual Vector(1,3,4) // 134
-    Combinations.unrank(3, 9)  shouldEqual Vector(2,3,4) // 234
-    Combinations.unrank(3, 10) shouldEqual Vector(0,1,5) // 015
-    Combinations.unrank(3, 11) shouldEqual Vector(0,2,5) // 025
-    Combinations.unrank(3, 12) shouldEqual Vector(1,2,5) // 125
-    Combinations.unrank(3, 13) shouldEqual Vector(0,3,5) // 035
-    Combinations.unrank(3, 14) shouldEqual Vector(1,3,5) // 135
-    Combinations.unrank(3, 15) shouldEqual Vector(2,3,5) // 235
-    Combinations.unrank(3, 16) shouldEqual Vector(0,4,5) // 045
-    Combinations.unrank(3, 17) shouldEqual Vector(1,4,5) // 145
-    Combinations.unrank(3, 18) shouldEqual Vector(2,4,5) // 245
-    Combinations.unrank(3, 19) shouldEqual Vector(3,4,5) // 345
+    Combinations.unrank(3, index=0)  shouldEqual Vector(0,1,2) // 012
+    Combinations.unrank(3, index=1)  shouldEqual Vector(0,1,3) // 013
+    Combinations.unrank(3, index=2)  shouldEqual Vector(0,2,3) // 023
+    Combinations.unrank(3, index=3)  shouldEqual Vector(1,2,3) // 123
+    Combinations.unrank(3, index=4)  shouldEqual Vector(0,1,4) // 014
+    Combinations.unrank(3, index=5)  shouldEqual Vector(0,2,4) // 024
+    Combinations.unrank(3, index=6)  shouldEqual Vector(1,2,4) // 124
+    Combinations.unrank(3, index=7)  shouldEqual Vector(0,3,4) // 034
+    Combinations.unrank(3, index=8)  shouldEqual Vector(1,3,4) // 134
+    Combinations.unrank(3, index=9)  shouldEqual Vector(2,3,4) // 234
+    Combinations.unrank(3, index=10) shouldEqual Vector(0,1,5) // 015
+    Combinations.unrank(3, index=11) shouldEqual Vector(0,2,5) // 025
+    Combinations.unrank(3, index=12) shouldEqual Vector(1,2,5) // 125
+    Combinations.unrank(3, index=13) shouldEqual Vector(0,3,5) // 035
+    Combinations.unrank(3, index=14) shouldEqual Vector(1,3,5) // 135
+    Combinations.unrank(3, index=15) shouldEqual Vector(2,3,5) // 235
+    Combinations.unrank(3, index=16) shouldEqual Vector(0,4,5) // 045
+    Combinations.unrank(3, index=17) shouldEqual Vector(1,4,5) // 145
+    Combinations.unrank(3, index=18) shouldEqual Vector(2,4,5) // 245
+    Combinations.unrank(3, index=19) shouldEqual Vector(3,4,5) // 345
   }
 
   it should "provide the correct next combination" in {
@@ -164,18 +184,5 @@ class CombinationsSpec extends FlatSpec with Matchers {
       Vector(0,2), Vector(1,2), Vector(0,3), Vector(1,3), Vector(2,3), Vector(0,4), Vector(1,4), Vector(2,4), Vector(3,4), Vector(0,1),
       Vector(0,2)
     )
-  }
-
-  it should "provide a random iterator that hits every combination" in {
-    val p = 0.4
-    val r = new Random(123456)
-    val combinations = Combinations(6,3).range(10, 45).toVector
-    val result = GapSamplingIterator(Combinations(6,3).range(10, 45), p, r).toVector
-    result should not equal combinations
-    for (r <- result) {
-      combinations.contains(r) shouldBe true
-    }
-    val expectedSize = Math.round(combinations.size * p).toInt
-    result.size shouldBe expectedSize
   }
 }

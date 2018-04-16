@@ -54,12 +54,4 @@ object GapSamplingIterator {
   def apply[T: ClassTag](data: Iterator[T], p: Double, r: Random): GapSamplingIterator[T] = {
     new GapSamplingIterator[T](data, p, r)
   }
-
-  def apply[T: ClassTag](data: Iterator[T], n: Int, sample: Int): GapSamplingIterator[T] = {
-    new GapSamplingIterator[T](data, sample.toDouble / n.toDouble, new Random())
-  }
-
-  def apply[T: ClassTag](data: Iterator[T], n: Int, sample: Int, r: Random): GapSamplingIterator[T] = {
-    new GapSamplingIterator[T](data, sample.toDouble / n.toDouble, r)
-  }
 }
