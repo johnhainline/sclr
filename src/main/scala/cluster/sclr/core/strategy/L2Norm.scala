@@ -22,13 +22,14 @@ class L2Norm(val dataset: Dataset, val workload: Workload, simpleAlgorithm: Bool
     result
   }.toMap
   lazy val terms = termToIndices.keys.toVector
+  lazy val setCover = new SetCover(terms, workload.mu, dataset.xLength, simpleAlgorithm = simpleAlgorithm)
 
   def run(yDimensions: Vector[Int], rows: Vector[Int]): Option[Result] = {
 
     // Construct redness score with a map of XYZ.id -> redness
     val (idToRedness, coeff1, coeff2) = constructRednessScores(dataset.data, yDimensions, rows)
 
-    val (kDNF, error) = new SetCover(terms, idToRedness, workload.mu, dataset.xLength).lowDegPartial2(simpleAlgorithm = simpleAlgorithm)
+    val (kDNF, error) = setCover.lowDegPartial2(idToRedness)
     val kDNFString = kDNF.map(termToIndices).toString
 
     if (kDNF.nonEmpty) {

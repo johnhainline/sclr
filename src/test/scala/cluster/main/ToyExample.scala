@@ -45,10 +45,12 @@ object ToyExample {
     val notInside = BitSet(p1.id, p2.id, p3.id, p6.id, p2red.id)
     val allDnfs = Vector(raining, notRaining, sleepwell, notSleepwell, inside, notInside)
 
-    val setCover = new SetCover(allDnfs, idToRedness, 6.0 / 11, 7)
-    val lowdegSimple = setCover.simpleGreedy(2.0)
-    System.out.println("error rate " + setCover.errorRate(lowdegSimple))
-    val lowdegComplex = setCover.complexGreedy(2.0)
-    System.out.println("error rate " + setCover.errorRate(lowdegComplex))
+    val setCoverSimple = new SetCover(allDnfs, 6.0 / 11, 7, true)
+    val lowdegSimple = setCoverSimple.lowDegPartial2(idToRedness)
+    System.out.println("error rate " + lowdegSimple._2)
+
+    val setCoverComplex = new SetCover(allDnfs, 6.0 / 11, 7, false)
+    val lowdegComplex = setCoverComplex.lowDegPartial2(idToRedness)
+    System.out.println("error rate " + lowdegComplex._2)
   }
 }
