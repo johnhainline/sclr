@@ -23,11 +23,11 @@ object CombinationsBench extends Bench.OfflineReport {
         Combinations.unrank(k, index)
       }
     }
-    measure method "unrank_new" in {
-      using(genK_Index) in { case (k, index) =>
-        unrank(k, index)
-      }
-    }
+//    measure method "unrank_new" in {
+//      using(genK_Index) in { case (k, index) =>
+//        unrank(k, index)
+//      }
+//    }
   }
 
   def unrank(k: Int, index: BigInt): Combination = {

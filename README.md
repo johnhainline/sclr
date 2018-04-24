@@ -72,11 +72,12 @@ Note that I have instructions for this using a Mac.
 1. Build project and publish it to the Google Container Registry.
    - `sbt manage/docker:publish`
    - `sbt compute/docker:publish`
+   - `sbt frontend/docker:publish`
 1. Create a remote cluster for running our Kubernetes scripts on. 
    - `gcloud container clusters list`
-   - `gcloud container clusters create sclr  --zone us-central1-a --num-nodes 1 --cluster-version=1.9.2-gke.1`
-   - `gcloud container clusters get-credentials sclr`
-   - `gcloud container clusters describe sclr`
+   - `gcloud container clusters create sclr-01  --zone us-central1-a --num-nodes 1 --cluster-version=1.9.2-gke.1`
+   - `gcloud container clusters get-credentials sclr-01`
+   - `gcloud container clusters describe sclr-01`
 
 ## Common Deploy/Run commands
 1. Deploy using Kubernetes scripts.
@@ -84,7 +85,7 @@ Note that I have instructions for this using a Mac.
 1. Check running pods, services, etc.
    - `kubectl get all -o wide`
 1. Send a single POST request (from the `compute-0` pod) to the `http-service` endpoint. This kicks off the job.
-   - `kubectl exec -ti compute-0 -- curl -vH "Content-Type: application/json" -X POST -d '{"name":"m1000","dnfSize":2, "mu":0.24}' http-service.default.svc.cluster.local:8080/begin`
+   - `kubectl exec -ti compute-0 -- curl -vH "Content-Type: application/json" -X POST -d '{"name":"m5000","dnfSize":2,"optionalSample":200,"useLPNorm":true,"mu":0.24}' http-service.default.svc.cluster.local:8080/begin`
 1. Scale the `compute` nodes to 50
    - `kubectl scale statefulsets compute --replicas=50`
 1. Make a connection to the MySQL server.
