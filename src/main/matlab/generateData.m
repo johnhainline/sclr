@@ -1,8 +1,13 @@
-function generateData(num_data, x_dim, y_dim, satisfy_rate)
-
+function generateData(num_data, x_dim, y_dim, a_dim, satisfy_rate, num_term, b)
+% @num_data: size of data wanted to generate
+% @x_dim: dimension of X
+% @y_dim: dimension of Y
+% @a_dim: dimension of a (linear predictor)
+% @satisfy_rate: rate of the data satisfying the 2-dnf
+% @num_term: number of term of the 2-dnf
+% @b: upper bound of norm(a)
 
 % generate planted 2-dnf
-num_term = 4;
 dnf = randi([-x_dim x_dim], num_term, 2);
 while (nnz(dnf) ~= 2*num_term)
     dnf = randi([-x_dim x_dim], num_term, 2);
@@ -21,12 +26,16 @@ X = zeros(num_data, x_dim);
 for i = 1:satisfy
     while (true)
         X(i,:) = randi([0 1], 1,x_dim);
-    if ((sgn(X(i,abs(dnf(1,1))))==sgn(dnf(1,1)) && sgn(X(i,abs(dnf(1,2))))==sgn(dnf(1,2))) || ...
-        (sgn(X(i,abs(dnf(2,1))))==sgn(dnf(2,1)) && sgn(X(i,abs(dnf(2,2))))==sgn(dnf(2,2))) ||...
-        (sgn(X(i,abs(dnf(3,1))))==sgn(dnf(3,1)) && sgn(X(i,abs(dnf(1,2))))==sgn(dnf(3,2))) ||...
-        (sgn(X(i,abs(dnf(4,1))))==sgn(dnf(4,1)) && sgn(X(i,abs(dnf(1,2))))==sgn(dnf(4,2)))) 
+        check = true;
+        for j = 1:num_term
+            if (sgn(X(i,abs(dnf(j,1))))==sgn(dnf(j,1)) && sgn(X(i,abs(dnf(j,2))))==sgn(dnf(j,2)))== false
+                check = false;
+                break;
+            end
+        end
+        if check ==true
             break;
-    end
+        end
     end
 end
 
@@ -34,24 +43,32 @@ end
 for i = (satisfy+1):num_data
     while (true)
         X(i,:) = randi([0 1], 1,x_dim);
-    if ((sgn(X(i,abs(dnf(1,1))))==sgn(dnf(1,1)) && sgn(X(i,abs(dnf(1,2))))==sgn(dnf(1,2))) || ...
-        (sgn(X(i,abs(dnf(2,1))))==sgn(dnf(2,1)) && sgn(X(i,abs(dnf(2,2))))==sgn(dnf(2,2))) ||...
-        (sgn(X(i,abs(dnf(3,1))))==sgn(dnf(3,1)) && sgn(X(i,abs(dnf(1,2))))==sgn(dnf(3,2))) ||...
-        (sgn(X(i,abs(dnf(4,1))))==sgn(dnf(4,1)) && sgn(X(i,abs(dnf(1,2))))==sgn(dnf(4,2)))) == false
+        check = true;
+        for j = 1:num_term
+            if (sgn(X(i,abs(dnf(j,1))))==sgn(dnf(j,1)) && sgn(X(i,abs(dnf(j,2))))==sgn(dnf(j,2)))
+                check = false;
+                break;
+            end
+        end
+        if check ==true
             break;
-    end
+        end
     end
 end
 
 
 % generate parameter Mu & planted regression dimension
 mu = normrnd(0, 0.1,satisfy,1);
-b = 1;
-planted_dim = randi(y_dim,1,2);
+while(true)
+    planted_dim = randi(y_dim,1,a_dim);
+    if (length(planted_dim)==length(unique(planted_dim)))
+        break;
+    end
+end
 
 % generate the coefficient 
 while (true)
-    coeff = normrnd(0,0.1,1,2);
+    coeff = normrnd(0,0.1,1,a_dim);
     if (norm(coeff)<= b) 
         break;
     end
