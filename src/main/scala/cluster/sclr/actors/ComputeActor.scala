@@ -1,7 +1,7 @@
 package cluster.sclr.actors
 
 import akka.actor.{Actor, ActorLogging, Props}
-import akka.cluster.pubsub.DistributedPubSubMediator.Publish
+import akka.cluster.pubsub.DistributedPubSubMediator.{Publish, Subscribe, SubscribeAck}
 import akka.cluster.pubsub.{DistributedPubSub, DistributedPubSubMediator}
 import cluster.sclr.Messages._
 import cluster.sclr.core.strategy.{KDNFStrategy, L2Norm, SupNorm}
@@ -19,6 +19,12 @@ class ComputeActor(dao: DatabaseDao) extends Actor with ActorLogging {
 
   private def askForWork(): Unit = {
     mediator ! Publish(topicManager, GetWork)
+  }
+
+  def init: Receive = {
+    case SubscribeAck(Subscribe("content", None, `self`)) =>
+      log.debug(s"subscribed to topic: $topicComputer")
+      context.become(waiting)
   }
 
   def waiting: Receive = {

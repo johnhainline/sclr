@@ -1,12 +1,12 @@
 import sbt.Keys.fork
 
-val akkaVersion = "2.5.8"
-val httpVersion = "10.0.11"
-val doobieVersion = "0.5.0"
+val akkaVersion = "2.5.12"
+val httpVersion = "10.1.0"
+val doobieVersion = "0.5.2"
 
 organization in ThisBuild := "wustl.engineering"
 scalaVersion in ThisBuild := "2.12.5"
-version in ThisBuild := "1.0.0"
+version in ThisBuild := "1.0.1"
 
 scalacOptions in ThisBuild += "-Ypartial-unification" // 2.11.9+
 scalacOptions in ThisBuild += "-Xlint" // Get more warnings

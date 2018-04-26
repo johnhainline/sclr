@@ -34,20 +34,21 @@ kubectl config get-contexts
 kubectl config use-context minikube
 kubectl config use-context gke_sclr-01_us-central1-a_sclr-01
 
+cd src/main/resources/kubernetes/; kubectl create -f mysql.yaml; kubectl create -f manage-pods.yaml; kubectl create -f compute-pods.yaml; kubectl create -f frontend-pods.yaml; cd ../../../..;
+kubectl delete pvc mysql-pv-claim; kubectl delete all -l app=sclr
+
+kubectl delete statefulsets compute --grace-period=0 --force
+
+kubectl exec -ti compute-0 -- curl -vH "Content-Type: application/json" -X POST -d '{"name":"m5000","dnfSize":2,"optionalSample":200,"useLPNorm":true,"mu":0.24}' http-service.default.svc.cluster.local:8080/begin
+
 **** MYSQL ****
 
 kubectl exec -it compute-0 -- /bin/bash
 kubectl run -it --rm --image=mysql:5.7 --restart=Never mysql-client -- mysql -h mysql-service -pKO4eD0BrP2PC19jO
 kubectl exec -it mysql-client -- mysql -h mysql-service -pKO4eD0BrP2PC19jO
 
-cd src/main/resources/kubernetes/; kubectl create -f mysql.yaml; kubectl create -f manage-pods.yaml; kubectl create -f compute-pods.yaml; kubectl create -f frontend-pods.yaml; cd ../../../..;
-kubectl delete pvc mysql-pv-claim; kubectl delete all -l app=sclr
-
-kubectl delete statefulsets compute --grace-period=0 --force
-
-kubectl exec -ti compute-0 -- curl -vH "Content-Type: application/json" -X POST -d '{"name":"m1000","dnfSize":2, "mu":0.24}' http-service.default.svc.cluster.local:8080/begin
-kubectl exec -ti mysql-85d59757b6-z8zfb -- mysqldump --add-drop-database --databases small -pKO4eD0BrP2PC19jO > backup.sql
-mysqldump --databases small -h mysql-service.default.svc.cluster.local -pKO4eD0BrP2PC19jO > backup.sql 
+kubectl exec -ti mysql-85d59757b6-z8zfb -- mysqldump --add-drop-database --databases m5000 -pKO4eD0BrP2PC19jO > backup.sql
+mysqldump --databases m5000 -h mysql-service.default.svc.cluster.local -pKO4eD0BrP2PC19jO > backup.sql 
 
 /usr/local/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/
 sudo ln -s /usr/local/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/bin/kubectl /usr/local/bin/kubectl
@@ -66,7 +67,9 @@ docker pull us.gcr.io/sclr-01/manage:latest
 docker pull us.gcr.io/sclr-01/compute:latest
 
 
-select * from medium.results order by created_at limit 1;
-select * from medium.results order by created_at desc limit 1;
+select * from m5000.results order by created_at limit 1;
+select * from m5000.results order by created_at desc limit 1;
+SELECT * FROM m5000.results WHERE error = (SELECT MIN(error) FROM m5000.results);
 
-
+Correct: 
+(-22,31), (-3,5), (21,-40), (-31,-3), (43,11), (-44,-5), (-32,42), (-9,-33), (5,-16), (9,2), (-31,-21), (29,40), (-16,21), (-7,-10), (4,-33), (15,38)
