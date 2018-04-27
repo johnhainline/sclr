@@ -5,3 +5,4 @@ target/
 *.log
 .~lock.*
 sclr-mysql-access-key.json
+/.project

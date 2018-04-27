@@ -45,7 +45,7 @@ class ManageActor(dao: DatabaseDao, r: Random = new Random()) extends Actor with
     case GetWork =>
       if (iterator.hasNext) {
         val next = iterator.next()
-        sender() ! Work(next.head, next.last)
+        sender() ! Work(selectedDimensions = next.head, selectedRows = next.last)
       } else {
         log.debug("Iterator empty, could not GetWork.")
         context.become(finished)
@@ -64,12 +64,12 @@ class ManageActor(dao: DatabaseDao, r: Random = new Random()) extends Actor with
 
   def createIterator(rowCount: Int, yLength: Int, rowsConstant: Int, optionalSample: Option[Int], r: Random):BufferedIterator[Vector[combinations.Combination]] = {
     val selectYDimensions = () => Combinations(yLength, Y_DIMENSIONS).iterator()
-    val selectRows = if (optionalSample.nonEmpty) {
+    val selectRows = if (optionalSample.isEmpty) {
       () => Combinations(rowCount, rowsConstant).iterator()
     } else {
       () => Combinations(rowCount, rowsConstant).samplingIterator(optionalSample.get, r)
     }
-    MultipliedIterator(Vector(selectYDimensions,selectRows)).buffered
+    MultipliedIterator(Vector(selectYDimensions, selectRows)).buffered
   }
 }
 
