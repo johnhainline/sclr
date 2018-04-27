@@ -1,6 +1,6 @@
 package cluster.sclr.actors
 
-import akka.actor.{Actor, ActorLogging, Props}
+import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import akka.cluster.pubsub.DistributedPubSubMediator.{Publish, Subscribe, SubscribeAck}
 import akka.cluster.pubsub.{DistributedPubSub, DistributedPubSubMediator}
 import cluster.sclr.Messages._
@@ -8,21 +8,31 @@ import cluster.sclr.core.strategy.{KDNFStrategy, L2Norm, SupNorm}
 import cluster.sclr.core.{DatabaseDao, Dataset}
 
 import scala.util.{Failure, Try}
+import scala.concurrent.duration._
 
 class ComputeActor(dao: DatabaseDao) extends Actor with ActorLogging {
+  import context.dispatcher
 
   private var strategy: KDNFStrategy = _
   private var dataset: Dataset = _
   private var workload: Workload = _
-  private val mediator = DistributedPubSub(context.system).mediator
-  mediator ! DistributedPubSubMediator.Subscribe(topicComputer, self)
+  private def mediator: ActorRef = DistributedPubSub(context.system).mediator
+
+  private val subscribeSchedule = context.system.scheduler.schedule(
+    initialDelay = 0 milliseconds,
+    interval = 1 second,
+    mediator,
+    DistributedPubSubMediator.Subscribe(topicComputer, self))
 
   private def askForWork(): Unit = {
     mediator ! Publish(topicManager, GetWork)
   }
 
+  def receive: Receive = init
+
   def init: Receive = {
-    case SubscribeAck(Subscribe("content", None, `self`)) =>
+    case SubscribeAck(Subscribe(topicComputer, None, `self`)) =>
+      subscribeSchedule.cancel()
       log.debug(s"subscribed to topic: $topicComputer")
       context.become(waiting)
   }
@@ -38,7 +48,7 @@ class ComputeActor(dao: DatabaseDao) extends Actor with ActorLogging {
   }
 
   def computing: Receive = {
-    case (work: Work) =>
+    case work: Work =>
       log.info(s"workload: ${workload.name} received work: $work")
       Try {
         strategy.run(work.selectedDimensions, work.selectedRows).map { result =>
@@ -60,8 +70,6 @@ class ComputeActor(dao: DatabaseDao) extends Actor with ActorLogging {
   def finished: Receive = {
     case _ => Unit
   }
-
-  def receive: Receive = waiting
 
 }
 

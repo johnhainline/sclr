@@ -1,23 +1,38 @@
 package cluster.sclr.actors
 
 import akka.actor.{Actor, ActorLogging, Cancellable, Props}
-import akka.cluster.pubsub.DistributedPubSubMediator.Publish
+import akka.cluster.pubsub.DistributedPubSubMediator.{Publish, Subscribe, SubscribeAck}
 import akka.cluster.pubsub.{DistributedPubSub, DistributedPubSubMediator}
 import cluster.sclr.Messages._
 import cluster.sclr.core.DatabaseDao
-import combinations.{MultipliedIterator, Combinations}
+import combinations.{Combinations, MultipliedIterator}
 
 import scala.concurrent.duration._
 import scala.util.Random
 
 class ManageActor(dao: DatabaseDao, r: Random = new Random()) extends Actor with ActorLogging {
+  import context.dispatcher
 
   private var workload: Workload = _
   private var iterator: BufferedIterator[Vector[combinations.Combination]] = _
   private var sendSchedule: Cancellable = _
 
-  private val mediator = DistributedPubSub(context.system).mediator
-  mediator ! DistributedPubSubMediator.Subscribe(topicManager, self)
+  private def mediator = DistributedPubSub(context.system).mediator
+
+  private val subscribeSchedule = context.system.scheduler.schedule(
+    initialDelay = 0 milliseconds,
+    interval = 1 second,
+    mediator,
+    DistributedPubSubMediator.Subscribe(topicManager, self))
+
+  def receive: Receive = init
+
+  def init: Receive = {
+    case SubscribeAck(Subscribe(topicManager, None, `self`)) =>
+      subscribeSchedule.cancel()
+      log.debug(s"subscribed to topic: $topicManager")
+      context.become(waiting)
+  }
 
   def waiting: Receive = {
     case work: Workload =>
@@ -59,8 +74,6 @@ class ManageActor(dao: DatabaseDao, r: Random = new Random()) extends Actor with
     case GetWork =>
       sender() ! Finished
   }
-
-  def receive: Receive = waiting
 
   def createIterator(rowCount: Int, yLength: Int, rowsConstant: Int, optionalSample: Option[Int], r: Random):BufferedIterator[Vector[combinations.Combination]] = {
     val selectYDimensions = () => Combinations(yLength, Y_DIMENSIONS).iterator()
