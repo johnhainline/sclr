@@ -1,4 +1,4 @@
-package combinations
+package combinations.iterators
 
 import scala.annotation.tailrec
 import scala.reflect.ClassTag

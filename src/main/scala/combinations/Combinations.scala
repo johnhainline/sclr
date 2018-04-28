@@ -2,6 +2,8 @@ package combinations
 
 import java.math.{MathContext, RoundingMode}
 
+import combinations.iterators.{CombinationsIterator, SamplingIterator, SubsetIterator}
+
 import scala.annotation.tailrec
 import scala.collection.mutable
 import scala.util.Random
@@ -23,9 +25,14 @@ case class Combinations(n: Int, k: Int) {
     new CombinationsIterator(n, k, 0, size, size)
   }
 
-  // Returns an iterator for a subsampling of the complete set of n choose k combinations.
+  // Returns an iterator for a subsampling of the complete set of 'n choose k' combinations.
   def samplingIterator(sample: Int, r: Random = new Random()): Iterator[Combination] = {
-    new SamplingCombinationsIterator(n, k, 0, size, sample, r)
+    new SamplingIterator(n, k, 0, size, sample, r)
+  }
+
+  // Returns an iterator for a subset of indices of n, which have 'subsetSize choose k' combinations.
+  def subsetIterator(subsetSize: Int, r: Random = new Random()): Iterator[Combination] = {
+    new SubsetIterator(n, k, 0, Combinations.choose(subsetSize, k), subsetSize, r)
   }
 
   /** The range is zero-indexed and includes Combinations at index i until j. */
@@ -35,7 +42,7 @@ case class Combinations(n: Int, k: Int) {
 
   /** The range is zero-indexed and includes Combinations at index i until j. */
   def samplingRange(i: BigInt, j: BigInt, sample: Int, r: Random = new Random()): Iterator[Combination] = {
-    new SamplingCombinationsIterator(n, k, i, j, sample, r)
+    new SamplingIterator(n, k, i, j, sample, r)
   }
 }
 

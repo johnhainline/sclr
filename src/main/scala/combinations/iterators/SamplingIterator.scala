@@ -1,4 +1,6 @@
-package combinations
+package combinations.iterators
+
+import combinations.{Combination, Combinations}
 
 import scala.util.Random
 
@@ -6,7 +8,7 @@ import scala.util.Random
   * If we ever decide to implement this taking into account the Birthday problem, then see:
   * https://math.stackexchange.com/questions/31823/collisions-in-a-sample-of-uniform-distribution?utm_medium=organic&utm_source=google_rich_qa&utm_campaign=google_rich_qa
   */
-class SamplingCombinationsIterator(n: Int, k: Int, i: BigInt, j: BigInt, sample: Int, r: Random) extends Iterator[Combination] {
+class SamplingIterator(n: Int, k: Int, i: BigInt, j: BigInt, sample: Int, r: Random) extends Iterator[Combination] {
 
   private val difference = j - i
   private val bitCount = Math.ceil(j.bitLength).toInt + 1

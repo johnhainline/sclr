@@ -5,7 +5,8 @@ import akka.cluster.pubsub.DistributedPubSubMediator.{Publish, Subscribe, Subscr
 import akka.cluster.pubsub.{DistributedPubSub, DistributedPubSubMediator}
 import cluster.sclr.Messages._
 import cluster.sclr.core.DatabaseDao
-import combinations.{Combinations, MultipliedIterator}
+import combinations.Combinations
+import combinations.iterators.MultipliedIterator
 
 import scala.concurrent.duration._
 import scala.util.Random
@@ -40,7 +41,7 @@ class ManageActor(dao: DatabaseDao, r: Random = new Random()) extends Actor with
       dao.initializeDataset(work.name)
       dao.setupSchemaAndTable(work.name, Y_DIMENSIONS, work.getRowsConstant())
       val datasetInfo = dao.getDatasetInfo(work.name)
-      iterator = createIterator(datasetInfo.rowCount, datasetInfo.yLength, work.getRowsConstant(), work.optionalSample, r)
+      iterator = createIterator(datasetInfo.rowCount, datasetInfo.yLength, work.getRowsConstant(), work.optionalSubset, r)
       workload = work
       log.debug(s"received workload for dataset: ${work.name} with dimensions:${datasetInfo.xLength} rows:${datasetInfo.rowCount} selecting dimensions:$Y_DIMENSIONS rows:${work.getRowsConstant()}")
       context.become(sending)
@@ -75,12 +76,12 @@ class ManageActor(dao: DatabaseDao, r: Random = new Random()) extends Actor with
       sender() ! Finished
   }
 
-  def createIterator(rowCount: Int, yLength: Int, rowsConstant: Int, optionalSample: Option[Int], r: Random):BufferedIterator[Vector[combinations.Combination]] = {
+  def createIterator(rowCount: Int, yLength: Int, rowsConstant: Int, optionalSubset: Option[Int], r: Random):BufferedIterator[Vector[combinations.Combination]] = {
     val selectYDimensions = () => Combinations(yLength, Y_DIMENSIONS).iterator()
-    val selectRows = if (optionalSample.isEmpty) {
+    val selectRows = if (optionalSubset.isEmpty) {
       () => Combinations(rowCount, rowsConstant).iterator()
     } else {
-      () => Combinations(rowCount, rowsConstant).samplingIterator(optionalSample.get, r)
+      () => Combinations(rowCount, rowsConstant).subsetIterator(optionalSubset.get, r)
     }
     MultipliedIterator(Vector(selectYDimensions, selectRows)).buffered
   }

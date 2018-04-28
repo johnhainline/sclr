@@ -1,5 +1,6 @@
-package combinations
+package combinations.iterators
 
+import combinations.Combinations
 import org.scalatest.{FlatSpec, Matchers}
 
 import scala.util.Random

@@ -1,5 +1,6 @@
-package combinations
+package combinations.iterators
 
+import combinations.Combinations
 import org.scalatest._
 
 import scala.util.Random

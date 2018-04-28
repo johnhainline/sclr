@@ -1,4 +1,4 @@
-package combinations
+package combinations.iterators
 
 import scala.reflect.ClassTag
 import scala.util.Random

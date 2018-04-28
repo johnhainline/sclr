@@ -1,4 +1,6 @@
-package combinations
+package combinations.iterators
+
+import combinations.{Combination, Combinations}
 
 class CombinationsIterator(n: Int, k: Int, i: BigInt, j: BigInt, size: BigInt) extends Iterator[Combination] {
   private var currentIndex: BigInt = i

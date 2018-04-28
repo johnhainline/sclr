@@ -8,7 +8,7 @@ object Messages {
 
   // Send Workload to the ManageActor to start work. ManageActor sends `Workload` to topicStatus.
   // ManageActor sends WorkConfig to topicComputer (sent every 5 sec, picked up by ComputeActors).
-  final case class Workload(name: String, dnfSize: Int, mu: Double, useLPNorm: Boolean, optionalEpsilon: Option[Double] = None, optionalSample: Option[Int] = None) {
+  final case class Workload(name: String, dnfSize: Int, mu: Double, useLPNorm: Boolean, optionalEpsilon: Option[Double] = None, optionalSubset: Option[Int] = None) {
     def getRowsConstant() = {
       if (useLPNorm) 2 else 3
     }

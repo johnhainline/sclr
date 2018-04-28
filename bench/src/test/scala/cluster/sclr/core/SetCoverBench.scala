@@ -2,7 +2,7 @@ package cluster.sclr.core
 
 import cluster.sclr.Messages.Workload
 import cluster.sclr.core.strategy.L2Norm
-import combinations.{MultipliedIterator, Combinations}
+import combinations.Combinations
 import org.scalameter.api.{Bench, Gen}
 import org.scalameter.picklers.Implicits._
 
