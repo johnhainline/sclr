@@ -22,15 +22,15 @@ object FrontendApp {
     system.log.info(s"System will start when all roles have been filled by nodes in the cluster.")
 
     Cluster(system).registerOnMemberUp {
-      system.actorOf(Props(new Terminator()), "terminator")
-      system.actorOf(FrontendActor.props(new InfoService()), "frontend")
+      system.actorOf(FrontendActor.props(new InfoService()), name = "frontend")
     }
 
     Cluster(system).registerOnMemberRemoved {
+      val status = -1
       // exit JVM when ActorSystem has been terminated
-      system.registerOnTermination(System.exit(-1))
+      system.registerOnTermination(System.exit(status))
       // in case ActorSystem shutdown takes longer than 10 seconds, exit the JVM forcefully anyway
-      system.scheduler.scheduleOnce(10 seconds)(System.exit(-1))(system.dispatcher)
+      system.scheduler.scheduleOnce(10 seconds)(System.exit(status))(system.dispatcher)
       // shut down ActorSystem
       system.terminate()
     }

@@ -3,10 +3,11 @@ package cluster.sclr.http
 import akka.actor.ActorRef
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.testkit.ScalatestRouteTest
+import akka.remote.Ack
 import akka.stream.ActorMaterializer
 import akka.testkit.{TestActor, TestProbe}
 import akka.util.ByteString
-import cluster.sclr.Messages.{Ack, Workload}
+import cluster.sclr.Messages.Workload
 import org.scalatest.{Matchers, WordSpec}
 
 class InfoServiceSpec extends WordSpec with ScalatestRouteTest with Matchers {

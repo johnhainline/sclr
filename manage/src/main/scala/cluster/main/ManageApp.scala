@@ -18,18 +18,20 @@ object ManageApp {
 
     implicit val system: ActorSystem = ActorSystem("sclr", config)
     implicit val materializer: ActorMaterializer = ActorMaterializer()
-    system.log.info(s"System will start when all roles have been filled by nodes in the cluster.")
+    val dao = new DatabaseDao()
+    system.actorOf(ManageActor.props(dao), name = "manage")
 
-    Cluster(system) registerOnMemberUp {
-      system.actorOf(Props(new Terminator()), "terminator")
-      system.actorOf(ManageActor.props(new DatabaseDao()), "manage")
-    }
+//    system.log.info(s"System will start when all roles have been filled by nodes in the cluster.")
+//    Cluster(system).registerOnMemberUp {
+//      system.actorOf(ManageActor.props(new DatabaseDao()), "manage")
+//    }
 
     Cluster(system).registerOnMemberRemoved {
+      val status = -1
       // exit JVM when ActorSystem has been terminated
-      system.registerOnTermination(System.exit(-1))
+      system.registerOnTermination(System.exit(status))
       // in case ActorSystem shutdown takes longer than 10 seconds, exit the JVM forcefully anyway
-      system.scheduler.scheduleOnce(10 seconds)(System.exit(-1))(system.dispatcher)
+      system.scheduler.scheduleOnce(10 seconds)(System.exit(status))(system.dispatcher)
       // shut down ActorSystem
       system.terminate()
     }

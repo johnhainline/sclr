@@ -1,6 +1,6 @@
 package cluster.main
 
-import akka.actor.{ActorSystem, Props}
+import akka.actor.{ActorSystem}
 import akka.cluster.Cluster
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.marshalling.Marshal
@@ -26,14 +26,14 @@ object LocalApp {
     implicit val materializer: ActorMaterializer = ActorMaterializer()
     val joinAddress = Cluster(system).selfAddress
     Cluster(system).join(joinAddress)
-    system.actorOf(Props(new Terminator()), "terminator")
 
-    val resultsDao = new DatabaseDao()
-    system.actorOf(ManageActor.props(resultsDao), "manage")
-    (1 to parallel).foreach(_ => system.actorOf(ComputeActor.props(resultsDao)))
-    system.actorOf(FrontendActor.props(new InfoService()), "frontend")
+    val dao = new DatabaseDao()
+    val infoService = new InfoService()
+    system.actorOf(ManageActor.props(dao), name = "manage")
+    system.actorOf(ComputeActor.props(parallel, dao), name = "compute")
+    system.actorOf(FrontendActor.props(infoService), name = "frontend")
 
-    val work = Workload("m5000", 2, 0.24, useLPNorm = true, optionalSubset = Some(10))
+    val work = Workload("m5000", 2, 0.24, useLPNorm = true, optionalSubset = Some(250))
     val responseFuture = Marshal(work).to[RequestEntity] flatMap { entity =>
       println(s"Sending entity: $entity")
       val request = HttpRequest(method = HttpMethods.POST, uri = "http://127.0.0.1:8080/begin", entity = entity)

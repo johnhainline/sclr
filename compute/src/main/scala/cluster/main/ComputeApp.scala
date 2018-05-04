@@ -1,6 +1,6 @@
 package cluster.main
 
-import akka.actor.{ActorSystem, Props}
+import akka.actor.ActorSystem
 import akka.cluster.Cluster
 import cluster.sclr.actors.ComputeActor
 import cluster.sclr.core.DatabaseDao
@@ -16,18 +16,29 @@ object ComputeApp {
       withFallback(appConfig)
 
     val system = ActorSystem("sclr", config)
-    system.log.info(s"System will start when all roles have been filled by nodes in the cluster.")
+    val dao = new DatabaseDao()
+    val parallel = 1
+    system.actorOf(ComputeActor.props(parallel, dao), name = "compute")
 
-    Cluster(system) registerOnMemberUp {
-      system.actorOf(Props(new Terminator()), "terminator")
-      system.actorOf(ComputeActor.props(new DatabaseDao()), "compute")
-    }
+//    system.log.info(s"System will start when all roles have been filled by nodes in the cluster.")
+//    Cluster(system) registerOnMemberUp {
+//      val supervisor = BackoffSupervisor.props(
+//        Backoff.onFailure(
+//          ComputeActor.props(new DatabaseDao()),
+//          childName = "compute",
+//          minBackoff = 3.seconds,
+//          maxBackoff = 30.seconds,
+//          randomFactor = 0.2 // adds 20% "noise" to vary the intervals slightly
+//        ).withAutoReset(5.seconds))
+//      system.actorOf(supervisor)
+//    }
 
     Cluster(system).registerOnMemberRemoved {
+      val status = -1
       // exit JVM when ActorSystem has been terminated
-      system.registerOnTermination(System.exit(-1))
+      system.registerOnTermination(System.exit(status))
       // in case ActorSystem shutdown takes longer than 10 seconds, exit the JVM forcefully anyway
-      system.scheduler.scheduleOnce(10 seconds)(System.exit(-1))(system.dispatcher)
+      system.scheduler.scheduleOnce(delay = 10 seconds)(System.exit(status))(system.dispatcher)
       // shut down ActorSystem
       system.terminate()
     }

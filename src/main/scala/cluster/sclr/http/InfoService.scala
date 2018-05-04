@@ -6,9 +6,10 @@ import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.server.Directives
 import akka.pattern.ask
+import akka.remote.Ack
 import akka.stream.ActorMaterializer
 import akka.util.Timeout
-import cluster.sclr.Messages.{Ack, Workload}
+import cluster.sclr.Messages.{Workload}
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.LazyLogging
 import spray.json.{DefaultJsonProtocol, PrettyPrinter}
