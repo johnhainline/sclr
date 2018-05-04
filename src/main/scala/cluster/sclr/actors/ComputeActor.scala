@@ -1,6 +1,6 @@
 package cluster.sclr.actors
 
-import akka.actor.{Actor, ActorLogging, ActorRef, Props}
+import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable, Props}
 import akka.cluster.pubsub.DistributedPubSubMediator.{Publish, Subscribe, SubscribeAck}
 import akka.cluster.pubsub.{DistributedPubSub, DistributedPubSubMediator}
 import cluster.sclr.Messages._
@@ -16,16 +16,23 @@ class ComputeActor(dao: DatabaseDao) extends Actor with ActorLogging {
   private var strategy: KDNFStrategy = _
   private var dataset: Dataset = _
   private var workload: Workload = _
-  private def mediator: ActorRef = DistributedPubSub(context.system).mediator
 
   private val subscribeSchedule = context.system.scheduler.schedule(
     initialDelay = 0 milliseconds,
     interval = 1 second,
-    mediator,
+    DistributedPubSub(context.system).mediator,
     DistributedPubSubMediator.Subscribe(topicComputer, self))
 
+  private var askSchedule: Cancellable = _
+
   private def askForWork(): Unit = {
-    mediator ! Publish(topicManager, GetWork)
+    if (askSchedule == null) {
+      askSchedule = context.system.scheduler.schedule(
+        initialDelay = 0 milliseconds,
+        interval = 30 seconds,
+        DistributedPubSub(context.system).mediator,
+        Publish(topicManager, GetWork))
+    }
   }
 
   def receive: Receive = init
@@ -49,6 +56,8 @@ class ComputeActor(dao: DatabaseDao) extends Actor with ActorLogging {
 
   def computing: Receive = {
     case work: Work =>
+      askSchedule.cancel()
+      askSchedule = null
       log.info(s"workload: ${workload.name} received work: $work")
       Try {
         strategy.run(work.selectedDimensions, work.selectedRows).map { result =>
@@ -63,6 +72,8 @@ class ComputeActor(dao: DatabaseDao) extends Actor with ActorLogging {
       }
       askForWork()
     case Finished =>
+      askSchedule.cancel()
+      askSchedule = null
       log.debug("received finished")
       context.become(finished)
   }

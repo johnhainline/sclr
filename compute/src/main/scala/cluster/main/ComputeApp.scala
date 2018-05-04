@@ -1,7 +1,8 @@
 package cluster.main
 
-import akka.actor.{ActorSystem, Props}
+import akka.actor.{ActorSystem, OneForOneStrategy, Props, SupervisorStrategy}
 import akka.cluster.Cluster
+import akka.pattern.{Backoff, BackoffSupervisor}
 import cluster.sclr.actors.ComputeActor
 import cluster.sclr.core.DatabaseDao
 import com.typesafe.config.ConfigFactory
@@ -20,7 +21,22 @@ object ComputeApp {
 
     Cluster(system) registerOnMemberUp {
       system.actorOf(Props(new Terminator()), "terminator")
-      system.actorOf(ComputeActor.props(new DatabaseDao()), "compute")
+      val supervisor = BackoffSupervisor.props(
+        Backoff.onFailure(
+          ComputeActor.props(new DatabaseDao()),
+          childName = "compute",
+          minBackoff = 3.seconds,
+          maxBackoff = 30.seconds,
+          randomFactor = 0.2 // adds 20% "noise" to vary the intervals slightly
+        ).withAutoReset(10.seconds) // reset if the child does not throw any errors within 10 seconds
+          .withSupervisorStrategy(
+          OneForOneStrategy() {
+            case e: Exception ⇒ {
+              system.log.warning(s"ComputeActor died. Restarting. (exception:$e)")
+              SupervisorStrategy.Restart
+            }
+          }))
+      system.actorOf(supervisor, "computeSupervisor")
     }
 
     Cluster(system).registerOnMemberRemoved {

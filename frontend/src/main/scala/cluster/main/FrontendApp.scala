@@ -1,9 +1,10 @@
 package cluster.main
 
-import akka.actor.{ActorSystem, Props}
+import akka.actor.{ActorSystem, OneForOneStrategy, Props, SupervisorStrategy}
 import akka.cluster.Cluster
+import akka.pattern.{Backoff, BackoffSupervisor}
 import akka.stream.ActorMaterializer
-import cluster.sclr.actors.{FrontendActor, ManageActor}
+import cluster.sclr.actors.{ComputeActor, FrontendActor, ManageActor}
 import cluster.sclr.core.DatabaseDao
 import cluster.sclr.http.InfoService
 import com.typesafe.config.ConfigFactory
@@ -23,7 +24,22 @@ object FrontendApp {
 
     Cluster(system).registerOnMemberUp {
       system.actorOf(Props(new Terminator()), "terminator")
-      system.actorOf(FrontendActor.props(new InfoService()), "frontend")
+      val supervisor = BackoffSupervisor.props(
+        Backoff.onFailure(
+          FrontendActor.props(new InfoService()),
+          childName = "frontend",
+          minBackoff = 3.seconds,
+          maxBackoff = 30.seconds,
+          randomFactor = 0.2 // adds 20% "noise" to vary the intervals slightly
+        ).withAutoReset(10.seconds) // reset if the child does not throw any errors within 10 seconds
+          .withSupervisorStrategy(
+          OneForOneStrategy() {
+            case e: Exception ⇒ {
+              system.log.warning(s"FrontendActor died. Restarting. (exception:$e)")
+              SupervisorStrategy.Restart
+            }
+          }))
+      system.actorOf(supervisor, "computeSupervisor")
     }
 
     Cluster(system).registerOnMemberRemoved {
