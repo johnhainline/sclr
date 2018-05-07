@@ -1,10 +1,10 @@
 package cluster.sclr.actors
 
-import akka.{Done, NotUsed}
+import akka.Done
 import akka.actor.{Actor, ActorLogging, Props}
 import akka.event.LoggingAdapter
 import akka.pattern.pipe
-import akka.stream.scaladsl.{Flow, Sink, StreamRefs}
+import akka.stream.scaladsl.{Sink, StreamRefs}
 import akka.stream.{ActorMaterializer, SinkRef}
 import cluster.sclr.Messages._
 import cluster.sclr.core.DatabaseDao

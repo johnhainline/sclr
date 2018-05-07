@@ -6,7 +6,7 @@ import akka.cluster.ClusterEvent.{InitialStateAsSnapshot, _}
 import akka.cluster.{Cluster, Member, MemberStatus}
 import akka.remote.Ack
 import akka.stream.ActorMaterializer
-import akka.stream.scaladsl.{Balance, BalanceHub, BroadcastHub, Keep, Source}
+import akka.stream.scaladsl.{BalanceHub, Keep, Source}
 import cluster.sclr.Messages._
 import cluster.sclr.core.DatabaseDao
 import combinations.Combinations
