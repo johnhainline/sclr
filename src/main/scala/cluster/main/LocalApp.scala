@@ -1,6 +1,6 @@
 package cluster.main
 
-import akka.actor.{ActorSystem}
+import akka.actor.ActorSystem
 import akka.cluster.Cluster
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.marshalling.Marshal
@@ -10,18 +10,18 @@ import cluster.sclr.Messages.Workload
 import cluster.sclr.actors.{ComputeActor, FrontendActor, ManageActor}
 import cluster.sclr.core.DatabaseDao
 import cluster.sclr.http.InfoService
+import cluster.sclr.http.JsonFormatters._
 
 import scala.concurrent.Await
-import scala.concurrent.duration.Duration
 import scala.concurrent.ExecutionContext.Implicits.global
-import cluster.sclr.http.JsonFormatters._
+import scala.concurrent.duration.Duration
 
 object LocalApp {
 
 
   def main(args: Array[String]): Unit = {
 
-    val parallel = 4
+    val parallel = 1
     implicit val system: ActorSystem = ActorSystem("sclr")
     implicit val materializer: ActorMaterializer = ActorMaterializer()
     val joinAddress = Cluster(system).selfAddress
@@ -33,7 +33,7 @@ object LocalApp {
     system.actorOf(ComputeActor.props(parallel, dao), name = "compute")
     system.actorOf(FrontendActor.props(infoService), name = "frontend")
 
-    val work = Workload("m5000", 2, 0.24, useLPNorm = true, optionalSubset = Some(250))
+    val work = Workload("tiny", 2, 0.24, useLPNorm = true)
     val responseFuture = Marshal(work).to[RequestEntity] flatMap { entity =>
       println(s"Sending entity: $entity")
       val request = HttpRequest(method = HttpMethods.POST, uri = "http://127.0.0.1:8080/begin", entity = entity)

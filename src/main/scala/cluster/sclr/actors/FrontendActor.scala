@@ -43,7 +43,7 @@ class FrontendActor(infoService: InfoService) extends Actor with ActorLogging {
             infoService.setManageActor(manageActor)
           }
           case Failure(e) => {
-            e.printStackTrace
+            log.error(e, s"could not resolve $selection (manageActor)")
             throw e
           }
         }

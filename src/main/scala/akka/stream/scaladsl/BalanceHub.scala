@@ -191,11 +191,13 @@ private[akka] class BalanceHub[T](bufferSize: Int)
 
     // Consumer API
     def poll(id: Long, hubCallback: AsyncCallback[HubEvent]): AnyRef = {
-      if (upstreamFinished) {
-        Completed
-      } else {
-        this.synchronized {
-          if (pendingQueue.isEmpty) null else pendingQueue.poll().asInstanceOf[AnyRef]
+      this.synchronized {
+        if (pendingQueue.isEmpty && upstreamFinished) {
+          Completed
+        } else if (pendingQueue.isEmpty) {
+          null
+        } else {
+          pendingQueue.poll().asInstanceOf[AnyRef]
         }
       }
     }
@@ -235,8 +237,10 @@ private[akka] class BalanceHub[T](bufferSize: Int)
 
           @tailrec def register(): Unit = {
             logic.state.get() match {
-              case Closed(Some(ex)) ⇒ failStage(ex)
-              case Closed(None)     ⇒ completeStage()
+              case Closed(Some(ex)) ⇒
+                failStage(ex)
+              case Closed(None) ⇒
+                completeStage()
               case previousState @ Open(hubCallbackFuture, registrations) ⇒
                 val newRegistrations = Consumer(id, sourceCallback) :: registrations
                 if (logic.state.compareAndSet(previousState, Open(hubCallbackFuture, newRegistrations))) {
@@ -271,8 +275,10 @@ private[akka] class BalanceHub[T](bufferSize: Int)
         }
 
         private def onCommand(cmd: ConsumerEvent): Unit = cmd match {
-          case HubCompleted(Some(ex)) ⇒ failStage(ex)
-          case HubCompleted(None)     ⇒ completeStage()
+          case HubCompleted(Some(ex)) ⇒
+            failStage(ex)
+          case HubCompleted(None) ⇒
+            completeStage()
           case Wakeup ⇒
             if (isAvailable(out)) onPull()
         }

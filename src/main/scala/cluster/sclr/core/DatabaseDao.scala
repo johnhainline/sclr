@@ -19,6 +19,7 @@ import doobie._
 case class XYZ(id: Int, x: Array[Boolean], y: Array[Double], z: Double)
 case class Dataset(data: Array[XYZ], xLength: Int, yLength: Int)
 case class DatasetInfo(xLength: Int, yLength: Int, rowCount: Int)
+case class Result(dimensions: Vector[Int], rows: Vector[Int], coefficients: Vector[Double], error: Double, kDNF: String)
 
 class DatabaseDao extends LazyLogging {
 
@@ -100,9 +101,9 @@ class DatabaseDao extends LazyLogging {
 //    import DatabaseDao.ZonedDateTimeMeta
 //    sql"SELECT id, data, created_at FROM results".query[Result].list.transact(xa).unsafeRunSync()
 //  }
-//  def getResultCount() = {
-//    sql"SELECT COUNT(*) FROM results".query[Long].unique.transact(xa).unsafeRunSync()
-//  }
+  def getResultCount(name: String): Long = {
+    sql"SELECT COUNT(*) FROM $name.results".query[Long].unique.transact(xa).unsafeRunSync()
+  }
 
   def insertResult(schema: String, result: Result): Int = {
     val insertNames = Vector("error",
