@@ -17,13 +17,12 @@ object ComputeApp {
       withFallback(appConfig)
 
     val system = ActorSystem("sclr", config)
-    val dao = new DatabaseDao()
     val parallel = 1
     system.log.info(s"System will start when all roles have been filled by nodes in the cluster.")
     Cluster(system) registerOnMemberUp {
       val supervisor = BackoffSupervisor.props(
         Backoff.onFailure(
-          ComputeActor.props(new DatabaseDao()),
+          ComputeActor.props(parallel, new DatabaseDao()),
           childName = "compute",
           minBackoff = 3.seconds,
           maxBackoff = 30.seconds,

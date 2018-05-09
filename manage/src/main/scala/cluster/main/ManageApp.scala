@@ -19,8 +19,6 @@ object ManageApp {
 
     implicit val system: ActorSystem = ActorSystem("sclr", config)
     implicit val materializer: ActorMaterializer = ActorMaterializer()
-    val dao = new DatabaseDao()
-    system.actorOf(ManageActor.props(dao), name = "manage")
 
     Cluster(system) registerOnMemberUp {
       val supervisor = BackoffSupervisor.props(
