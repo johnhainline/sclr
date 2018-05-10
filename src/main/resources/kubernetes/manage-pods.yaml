@@ -52,7 +52,7 @@ spec:
     spec:
       containers:
       - name: manage
-        image: us.gcr.io/sclr-01/manage:latest
+        image: us.gcr.io/sclr-01/manage:1.4.1
         imagePullPolicy: Always
         ports:
         - containerPort: 2551

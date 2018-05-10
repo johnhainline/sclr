@@ -64,6 +64,11 @@ class ComputeActor(parallelization: Int, dao: DatabaseDao) extends Actor with Ac
   def done: Receive = {
     case _ => Unit
   }
+
+  override def postStop(): Unit = {
+    super.postStop()
+    log.error(s"ComputeActor - stopped!")
+  }
 }
 
 object ComputeActor {

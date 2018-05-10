@@ -1,7 +1,7 @@
 package cluster.sclr.actors
 
 import akka.NotUsed
-import akka.actor.{Actor, ActorLogging, Cancellable, Props}
+import akka.actor.{Actor, ActorLogging, Props}
 import akka.cluster.pubsub.DistributedPubSub
 import akka.cluster.pubsub.DistributedPubSubMediator.Publish
 import akka.remote.Ack
@@ -62,6 +62,11 @@ class ManageActor(infoService: InfoService, dao: DatabaseDao, r: Random = new Ra
     case WorkSinkReady(sinkRef) =>
       log.debug(s"ManageActor - received WorkSinkReady($sinkRef)")
       source.runWith(sinkRef)
+  }
+
+  override def postStop(): Unit = {
+    super.postStop()
+    log.error(s"ManageActor - stopped!")
   }
 }
 

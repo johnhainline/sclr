@@ -37,7 +37,7 @@ spec:
     spec:
       containers:
       - name: compute
-        image: us.gcr.io/sclr-01/compute:latest
+        image: us.gcr.io/sclr-01/compute:1.4.1
         imagePullPolicy: Always
         ports:
         - containerPort: 2551
@@ -45,10 +45,10 @@ spec:
         resources:
           limits:
             cpu: 1000m
-            memory: 3G
+            memory: 5G
           requests:
             cpu: 1000m
-            memory: 3G
+            memory: 5G
         env:
         - name: DATABASE_HOST
           value: mysql-service
