@@ -19,10 +19,10 @@ import scala.util.Random
 
 class ManageActor(infoService: InfoService, dao: DatabaseDao, r: Random = new Random()) extends Actor with ActorLogging {
   private case object SendWorkload
+  import context._
 
   infoService.setManageActor(self)
   implicit val mat = ActorMaterializer()(context)
-  import scala.concurrent.ExecutionContext.Implicits.global
 
   def receive: Receive = waitingForWorkload
 
@@ -50,18 +50,15 @@ class ManageActor(infoService: InfoService, dao: DatabaseDao, r: Random = new Ra
       val runnableGraph = producer.toMat(BalanceHub.sink())(Keep.right)
       // Create the source that we will attach our "compute" sinks to.
       val source = runnableGraph.run()
-      val sendWorkloadSchedule = context.system.scheduler.schedule(
-        initialDelay = 0 seconds,
-        interval = 5 seconds,
-        self,
-        SendWorkload)
-      context.become(sendingWorkload(sendWorkloadSchedule, workload, source))
+      self ! SendWorkload
+      context.become(sendingWorkload(workload, source))
   }
 
-  def sendingWorkload(sendWorkloadSchedule: Cancellable, workload: Workload, source: Source[Work, NotUsed])(): Receive = {
+  def sendingWorkload(workload: Workload, source: Source[Work, NotUsed])(): Receive = {
     case SendWorkload =>
       log.debug(s"ManageActor - sending workload to topic: $workloadTopic")
       DistributedPubSub(context.system).mediator ! Publish(workloadTopic, workload)
+      context.system.scheduler.scheduleOnce(delay = 5 seconds, self, SendWorkload)
     case WorkSinkReady(sinkRef) =>
       log.debug(s"ManageActor - received WorkSinkReady($sinkRef)")
       source.runWith(sinkRef)

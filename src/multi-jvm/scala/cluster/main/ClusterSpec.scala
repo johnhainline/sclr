@@ -75,21 +75,23 @@ abstract class ClusterSpec extends MultiNodeSpec(ClusterSpecConfig)
 
       enterBarrier(name = "initialized")
 
-      import cluster.sclr.http.JsonFormatters._
-      import system.dispatcher
-      val work = Workload("tiny", 2, 0.24, useLPNorm = true)
-      val responseFuture = Marshal(work).to[RequestEntity] flatMap { entity =>
-        println(s"Sending entity: $entity")
-        val request = HttpRequest(method = HttpMethods.POST, uri = "http://127.0.0.1:8080/begin", entity = entity)
-        Http().singleRequest(request)
-      }
-      Await.result(responseFuture, Duration.Inf)
-      val dbDao = new DatabaseDao()
-      val finalCount = Combinations(6, 2).size.toLong * Combinations(50, 2).size.toLong
-      eventually (timeout(120 seconds), interval(3 seconds)) {
-        val results = dbDao.getResultCount(work.name)
-        println(results)
-        results should be (finalCount)
+      runOn(roleCompute1) {
+        import cluster.sclr.http.JsonFormatters._
+        import system.dispatcher
+        val work = Workload("tiny", 2, 0.24, useLPNorm = true)
+        val responseFuture = Marshal(work).to[RequestEntity] flatMap { entity =>
+          println(s"Sending entity: $entity")
+          val request = HttpRequest(method = HttpMethods.POST, uri = "http://127.0.0.1:8080/begin", entity = entity)
+          Http().singleRequest(request)
+        }
+        Await.result(responseFuture, Duration.Inf)
+        val dbDao = new DatabaseDao()
+        val finalCount = Combinations(6, 2).size.toLong * Combinations(50, 2).size.toLong
+        eventually (timeout(120 seconds), interval(3 seconds)) {
+          val results = dbDao.getResultCount(work.name)
+          println(results)
+          results should be (finalCount)
+        }
       }
 
       enterBarrier(name = "finished")

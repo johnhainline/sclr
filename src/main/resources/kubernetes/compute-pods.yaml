@@ -44,11 +44,11 @@ spec:
           name: akka-remote
         resources:
           limits:
-            cpu: 900m
-            memory: 2G
+            cpu: 1000m
+            memory: 3G
           requests:
-            cpu: 900m
-            memory: 2G
+            cpu: 1000m
+            memory: 3G
         env:
         - name: DATABASE_HOST
           value: mysql-service

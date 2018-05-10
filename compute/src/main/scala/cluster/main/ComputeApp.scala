@@ -31,8 +31,8 @@ object ComputeApp {
           .withSupervisorStrategy(
           OneForOneStrategy() {
             case e: Exception ⇒ {
-              system.log.warning(s"ComputeActor died. Restarting. (exception:$e)")
-              SupervisorStrategy.Restart
+              system.log.error(e, s"ComputeActor raised exception. Resuming...")
+              SupervisorStrategy.Resume
             }
           }))
       system.actorOf(supervisor, "computeSupervisor")

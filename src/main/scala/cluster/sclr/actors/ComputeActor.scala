@@ -1,12 +1,12 @@
 package cluster.sclr.actors
 
-import akka.{Done, NotUsed}
+import akka.Done
 import akka.actor.{Actor, ActorLogging, Cancellable, Props}
 import akka.cluster.pubsub.DistributedPubSub
 import akka.cluster.pubsub.DistributedPubSubMediator.{Subscribe, SubscribeAck}
 import akka.event.LoggingAdapter
 import akka.pattern.pipe
-import akka.stream.scaladsl.{Sink, Source, StreamRefs}
+import akka.stream.scaladsl.{Sink, StreamRefs}
 import akka.stream.{ActorMaterializer, SinkRef}
 import cluster.sclr.Messages._
 import cluster.sclr.core.DatabaseDao
@@ -18,21 +18,25 @@ import scala.language.postfixOps
 import scala.util.{Failure, Try}
 
 class ComputeActor(parallelization: Int, dao: DatabaseDao) extends Actor with ActorLogging {
-  import context.dispatcher
+  import context._
+  final case object TrySubscribe
   implicit val mat = ActorMaterializer()(context)
-  private val mediator = DistributedPubSub(context.system).mediator
   private var sinks: List[Sink[Work, Future[Done]]] = _
 
-  private val subscribeSchedule = context.system.scheduler.schedule(
-    initialDelay = 0 seconds,
-    interval = 3 seconds,
-    mediator,
-    Subscribe(workloadTopic, self))
+  override def preStart() = {
+    context.system.scheduler.scheduleOnce(delay = 500 millis, self, TrySubscribe)
+  }
+
   def receive: Receive = subscribingToTopic
 
+  private var subscribeOnce: Cancellable = _
   def subscribingToTopic: Receive = {
+    case TrySubscribe =>
+      DistributedPubSub(context.system).mediator ! Subscribe(workloadTopic, self)
+      subscribeOnce = context.system.scheduler.scheduleOnce(delay = 5 seconds, self, TrySubscribe)
+
     case SubscribeAck(Subscribe(`workloadTopic`, None, `self`)) =>
-      subscribeSchedule.cancel()
+      if (subscribeOnce != null) subscribeOnce.cancel()
       log.debug(s"ComputeActor - subscribed to topic: $workloadTopic")
       context.become(waitingForWorkload)
   }

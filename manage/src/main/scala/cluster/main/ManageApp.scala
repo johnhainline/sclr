@@ -32,8 +32,8 @@ object ManageApp {
           .withSupervisorStrategy(
           OneForOneStrategy() {
             case e: Exception ⇒ {
-              system.log.warning(s"ManageActor died. Restarting. (exception:$e)")
-              SupervisorStrategy.Restart
+              system.log.error(e, s"ManageActor raised exception. Resuming...")
+              SupervisorStrategy.Resume
             }
           }))
       system.actorOf(supervisor, "manageSupervisor")
