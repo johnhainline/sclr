@@ -14,8 +14,7 @@ import scala.language.postfixOps
 object ManageApp {
   def main(args: Array[String]): Unit = {
     val appConfig = ConfigFactory.load()
-    val config = ConfigFactory.parseString("akka.cluster.roles = [manage]").
-      withFallback(appConfig)
+    val config = ConfigFactory.parseString("akka.cluster.roles = [manage]").withFallback(appConfig)
 
     implicit val system: ActorSystem = ActorSystem("sclr", config)
     implicit val materializer: ActorMaterializer = ActorMaterializer()

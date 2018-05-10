@@ -4,6 +4,7 @@ import akka.Done
 import akka.actor.{Actor, ActorLogging, Props}
 import akka.event.LoggingAdapter
 import akka.pattern.pipe
+import akka.remote.Ack
 import akka.stream.scaladsl.{Sink, StreamRefs}
 import akka.stream.{ActorMaterializer, SinkRef}
 import cluster.sclr.Messages._
@@ -21,9 +22,10 @@ class ComputeActor(parallelization: Int, dao: DatabaseDao) extends Actor with Ac
 
   def receive: Receive = {
     case workload: Workload =>
+      log.debug(s"received workload: $workload")
+      sender() ! Ack
       val dataset = dao.getDataset(workload.name)
       val strategy: KDNFStrategy = if (workload.useLPNorm) new L2Norm(dataset, workload) else new SupNorm(dataset, workload)
-      log.debug(s"received workload: $workload")
 
       // obtain the source you want to offer:
       sinks = (for (i <- 0 until parallelization) yield ComputeActor.createComputeSink(workload, strategy, dao, log)).toList

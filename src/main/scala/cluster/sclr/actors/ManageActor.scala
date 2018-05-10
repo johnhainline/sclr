@@ -1,20 +1,22 @@
 package cluster.sclr.actors
 
 import akka.NotUsed
-import akka.actor.{Actor, ActorLogging, Props, RootActorPath}
+import akka.actor.{Actor, ActorLogging, ActorSelection, Props, RootActorPath}
 import akka.cluster.ClusterEvent.{InitialStateAsSnapshot, _}
 import akka.cluster.{Cluster, Member, MemberStatus}
 import akka.remote.Ack
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{BalanceHub, Keep, Source}
+import akka.pattern.ask
 import cluster.sclr.Messages._
 import cluster.sclr.core.DatabaseDao
 import combinations.Combinations
 import combinations.iterators.MultipliedIterator
 
 import scala.collection.mutable
+import scala.concurrent.duration._
 import scala.language.postfixOps
-import scala.util.Random
+import scala.util.{Failure, Random, Success}
 
 class ManageActor(dao: DatabaseDao, r: Random = new Random()) extends Actor with ActorLogging {
   implicit val mat = ActorMaterializer()(context)
@@ -30,10 +32,8 @@ class ManageActor(dao: DatabaseDao, r: Random = new Random()) extends Actor with
       dao.initializeDataset(workload.name)
       dao.setupSchemaAndTable(workload.name, ManageActor.Y_DIMENSIONS, workload.getRowsConstant())
       val info = dao.getDatasetInfo(workload.name)
-      log.debug(s"received workload for dataset: ${workload.name} with dimensions:${info.xLength} rows:${info.rowCount} selecting dimensions:${ManageActor.Y_DIMENSIONS} rows:${workload.getRowsConstant()}")
+      log.debug(s"ManageActor - received workload for dataset: ${workload.name} with dimensions:${info.xLength} rows:${info.rowCount} selecting dimensions:${ManageActor.Y_DIMENSIONS} rows:${workload.getRowsConstant()}")
       sender() ! Ack
-
-      cluster.subscribe(self, initialStateMode = InitialStateAsSnapshot, classOf[MemberEvent], classOf[UnreachableMember])
 
       // An iterator that runs through (ySize choose 2) * (rows choose 2)
       val iteratorGen = () => ManageActor.createIterator(info.rowCount, info.yLength, workload.getRowsConstant(), workload.optionalSubset, r)
@@ -45,31 +45,46 @@ class ManageActor(dao: DatabaseDao, r: Random = new Random()) extends Actor with
       // Create the source that we will attach our "compute" sinks to.
       source = runnableGraph.run()
       context.become(sendingWorkload(workload, source))
+      cluster.subscribe(self, initialStateMode = InitialStateAsSnapshot, classOf[MemberEvent], classOf[UnreachableMember])
   }
 
   def sendingWorkload(workload: Workload, source: Source[Work, NotUsed])(): Receive = {
     case state: CurrentClusterState =>
+      log.debug(s"ManageActor - received CurrentClusterState: $state")
       state.members.foreach(processMember(workload))
 
     case MemberUp(member) =>
+      log.debug(s"ManageActor - received MemberUp($member)")
       processMember(workload)(member)
     case MemberLeft(member) =>
+      log.debug(s"ManageActor - received MemberLeft($member)")
       processMember(workload)(member)
 
     case WorkSinkReady(sinkRef) =>
+      log.debug(s"ManageActor - received WorkSinkReady($sinkRef)")
       source.runWith(sinkRef)
   }
 
   private def processMember(workload: Workload)(member: Member): Unit = {
+    def sendWorkloadUntilAck(selection: ActorSelection): Unit = {
+      import scala.concurrent.ExecutionContext.Implicits.global
+      log.debug(s"ManageActor - sending workload to $selection...")
+      selection.ask(workload)(timeout = 5 seconds) onComplete {
+        case Failure(e) =>
+          log.warning(s"never got Ack when sending workload to $selection... (exception $e)")
+          sendWorkloadUntilAck(selection)
+        case Success(Ack) =>
+          log.debug(s"workload sent to $selection received")
+      }
+    }
+
     if (member.status == MemberStatus.up && !computeMembers.contains(member) && member.hasRole(role = "compute")) {
       val selection = context.actorSelection(RootActorPath(member.address) / "user" / "compute")
       computeMembers.add(member)
-      log.debug(s"sending workload to $selection...")
-      selection ! workload
+      sendWorkloadUntilAck(selection)
     } else if (member.status == MemberStatus.down && computeMembers.contains(member) && member.hasRole(role = "compute")) {
-      val selection = context.actorSelection(RootActorPath(member.address) / "user" / "compute")
       computeMembers.remove(member)
-      log.debug(s"member $selection left...")
+      log.debug(s"ManageActor - member $member left...")
     }
   }
 }

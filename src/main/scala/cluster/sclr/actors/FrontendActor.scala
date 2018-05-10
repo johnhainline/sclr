@@ -1,22 +1,20 @@
 package cluster.sclr.actors
 
-import akka.actor.{Actor, ActorLogging, Props, RootActorPath}
+import akka.actor.{Actor, ActorLogging, ActorRef, ActorSelection, Props, RootActorPath}
 import akka.cluster.{Cluster, Member}
 import akka.cluster.ClusterEvent._
-import akka.util.Timeout
-import cluster.sclr.actors.FrontendActor.{GetMembershipInfo, MembershipInfo}
+import akka.pattern.pipe
 import cluster.sclr.http.InfoService
 
-import scala.concurrent.Await
 import scala.concurrent.duration._
 import scala.language.postfixOps
 import scala.util.{Failure, Success}
 
 class FrontendActor(infoService: InfoService) extends Actor with ActorLogging {
-
-  var members: Set[Member] = Set.empty
+  private case class CheckManageActor(selection: ActorSelection)
 
   val cluster = Cluster(context.system)
+  var manageActorSelection: ActorSelection = _
 
   // subscribe to cluster changes, re-subscribe when restart
   override def preStart(): Unit = {
@@ -27,39 +25,36 @@ class FrontendActor(infoService: InfoService) extends Actor with ActorLogging {
   }
 
   override def receive: Receive = {
-    case GetMembershipInfo =>
-      sender() ! MembershipInfo(members)
+    case state: CurrentClusterState =>
+      log.debug(s"FrontendActor - received CurrentClusterState: $state")
+      state.members.foreach(processMember)
+    case MemberUp(member) =>
+      processMember(member)
 
-    case MemberUp(member) ⇒
-      log.info("Member is Up: {}", member.address)
-      members = members + member
-      if (member.hasRole("manage")) {
-        implicit val timeout = Timeout(30 seconds)
-        val selection = context.system.actorSelection(RootActorPath(member.address)/"user"/"manage")
-        log.debug(s"found the manage role, using path ${selection.pathString}")
-        import scala.concurrent.ExecutionContext.Implicits.global
-        Await.ready(selection.resolveOne(), timeout.duration).onComplete {
-          case Success(manageActor) => {
-            infoService.setManageActor(manageActor)
-          }
-          case Failure(e) => {
-            log.error(e, s"could not resolve $selection (manageActor)")
-            throw e
-          }
-        }
-      }
-    case UnreachableMember(member) ⇒
-      log.info("Member detected as unreachable: {}", member)
-    case MemberRemoved(member, previousStatus) ⇒
-      log.info("Member is Removed: {} after {}", member.address, previousStatus)
-      members = members - member
-    case _: MemberEvent ⇒ // ignore
+    case Success(manageActor: ActorRef) => {
+      log.debug("FrontendActor - resolved manageActor")
+      infoService.setManageActor(manageActor)
+    }
+    case Failure(e) => {
+      log.error(e, "FrontendActor - could not resolve manageActor")
+      requestManageActorUntilReceived()
+    }
+  }
+
+  private def processMember(member: Member): Unit = {
+    if (member.hasRole("manage")) {
+      manageActorSelection = context.system.actorSelection(RootActorPath(member.address)/"user"/"manage")
+      requestManageActorUntilReceived()
+    }
+  }
+
+  private def requestManageActorUntilReceived(): Unit = {
+    log.debug(s"FrontendActor - trying to resolve $manageActorSelection")
+    import scala.concurrent.ExecutionContext.Implicits.global
+    manageActorSelection.resolveOne(5 seconds).pipeTo(self)
   }
 }
 
 object FrontendActor {
-  case object GetMembershipInfo
-  case class MembershipInfo(members: Set[Member])
-
   def props(infoService: InfoService) = Props(new FrontendActor(infoService))
 }
