@@ -7,7 +7,7 @@ import akka.http.scaladsl.marshalling.Marshal
 import akka.http.scaladsl.model.{HttpMethods, HttpRequest, RequestEntity}
 import akka.stream.ActorMaterializer
 import cluster.sclr.Messages.Workload
-import cluster.sclr.actors.{ComputeActor, FrontendActor, ManageActor}
+import cluster.sclr.actors.{ComputeActor, ManageActor}
 import cluster.sclr.core.DatabaseDao
 import cluster.sclr.http.InfoService
 import cluster.sclr.http.JsonFormatters._
@@ -17,8 +17,6 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.Duration
 
 object LocalApp {
-
-
   def main(args: Array[String]): Unit = {
 
     val parallel = 1
@@ -29,10 +27,10 @@ object LocalApp {
 
     val dao = new DatabaseDao()
     val infoService = new InfoService()
-    system.actorOf(ManageActor.props(dao), name = "manage")
+    system.actorOf(ManageActor.props(infoService, dao), name = "manage")
     system.actorOf(ComputeActor.props(parallel, dao), name = "compute")
-    system.actorOf(FrontendActor.props(infoService), name = "frontend")
 
+    Thread.sleep(2000)
     val work = Workload("tiny", 2, 0.24, useLPNorm = true)
     val responseFuture = Marshal(work).to[RequestEntity] flatMap { entity =>
       println(s"Sending entity: $entity")

@@ -17,6 +17,23 @@ spec:
     name: manage
 
 ---
+apiVersion: v1
+kind: Service
+metadata:
+  name: http-service
+  labels:
+    name: http-service
+    app: sclr
+spec:
+  ports:
+  - protocol: TCP
+    name: http-service
+    port: 8080
+    targetPort: 8080
+  selector:
+    name: manage
+
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -36,10 +53,12 @@ spec:
       containers:
       - name: manage
         image: us.gcr.io/sclr-01/manage:latest
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         ports:
         - containerPort: 2551
           name: akka-remote
+        - containerPort: 8080
+          name: http-service
         resources:
           limits:
             cpu: 2000m
@@ -69,3 +88,7 @@ spec:
           value: 'true'
         - name: RESOLV_CONF
           value: 'on'
+        - name: HTTP_HOST
+          value: '0.0.0.0'
+        - name: HTTP_PORT
+          value: '8080'

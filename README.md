@@ -72,7 +72,6 @@ Note that I have instructions for this using a Mac.
 1. Build project and publish it to the Google Container Registry.
    - `sbt manage/docker:publish`
    - `sbt compute/docker:publish`
-   - `sbt frontend/docker:publish`
 1. Create a remote cluster for running our Kubernetes scripts on. 
    - `gcloud container clusters list`
    - `gcloud container clusters create sclr-01  --zone us-central1-a --num-nodes 1 --cluster-version=1.9.2-gke.1`
@@ -81,7 +80,7 @@ Note that I have instructions for this using a Mac.
 
 ## Common Deploy/Run commands
 1. Deploy using Kubernetes scripts.
-   - `cd src/main/resources/kubernetes/; kubectl create -f mysql.yaml; kubectl create -f compute-pods.yaml; kubectl create -f manage-pods.yaml; kubectl create -f frontend-pods.yaml; cd ../../../..;`
+   - `cd src/main/resources/kubernetes/; kubectl create -f mysql.yaml; kubectl create -f compute-pods.yaml; kubectl create -f manage-pods.yaml; cd ../../../..;`
 1. Check running pods, services, etc.
    - `kubectl get all -o wide`
 1. Send a single POST request (from the `compute-0` pod) to the `http-service` endpoint. This kicks off the job.

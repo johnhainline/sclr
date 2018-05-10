@@ -1,29 +1,46 @@
 package cluster.sclr.actors
 
-import akka.Done
-import akka.actor.{Actor, ActorLogging, Props}
+import akka.{Done, NotUsed}
+import akka.actor.{Actor, ActorLogging, Cancellable, Props}
+import akka.cluster.pubsub.DistributedPubSub
+import akka.cluster.pubsub.DistributedPubSubMediator.{Subscribe, SubscribeAck}
 import akka.event.LoggingAdapter
 import akka.pattern.pipe
-import akka.remote.Ack
-import akka.stream.scaladsl.{Sink, StreamRefs}
+import akka.stream.scaladsl.{Sink, Source, StreamRefs}
 import akka.stream.{ActorMaterializer, SinkRef}
 import cluster.sclr.Messages._
 import cluster.sclr.core.DatabaseDao
 import cluster.sclr.core.strategy.{KDNFStrategy, L2Norm, SupNorm}
 
 import scala.concurrent.Future
+import scala.concurrent.duration._
+import scala.language.postfixOps
 import scala.util.{Failure, Try}
 
 class ComputeActor(parallelization: Int, dao: DatabaseDao) extends Actor with ActorLogging {
   import context.dispatcher
   implicit val mat = ActorMaterializer()(context)
-
+  private val mediator = DistributedPubSub(context.system).mediator
   private var sinks: List[Sink[Work, Future[Done]]] = _
 
-  def receive: Receive = {
+  private val subscribeSchedule = context.system.scheduler.schedule(
+    initialDelay = 0 seconds,
+    interval = 3 seconds,
+    mediator,
+    Subscribe(workloadTopic, self))
+  def receive: Receive = subscribingToTopic
+
+  def subscribingToTopic: Receive = {
+    case SubscribeAck(Subscribe(`workloadTopic`, None, `self`)) =>
+      subscribeSchedule.cancel()
+      log.debug(s"ComputeActor - subscribed to topic: $workloadTopic")
+      context.become(waitingForWorkload)
+  }
+
+  def waitingForWorkload: Receive = {
     case workload: Workload =>
-      log.debug(s"received workload: $workload")
-      sender() ! Ack
+      val manageActor = sender()
+      log.debug(s"ComputeActor - received workload: $workload")
       val dataset = dao.getDataset(workload.name)
       val strategy: KDNFStrategy = if (workload.useLPNorm) new L2Norm(dataset, workload) else new SupNorm(dataset, workload)
 
@@ -35,8 +52,13 @@ class ComputeActor(parallelization: Int, dao: DatabaseDao) extends Actor with Ac
         // wrap the SinkRef in some domain message, such that the sender knows what source it is
         val reply: Future[WorkSinkReady] = ref.map(WorkSinkReady)
         // reply to sender
-        reply pipeTo sender()
+        reply pipeTo manageActor
       }
+      context.become(done)
+  }
+
+  def done: Receive = {
+    case _ => Unit
   }
 }
 
@@ -44,16 +66,16 @@ object ComputeActor {
   def props(parallelization: Int, dao: DatabaseDao) = Props(new ComputeActor(parallelization, dao))
 
   private def createComputeSink(workload: Workload, strategy: KDNFStrategy, dao: DatabaseDao, log: LoggingAdapter): Sink[Work, Future[Done]] = Sink.foreach[Work] { work =>
-    log.info(s"workload: ${workload.name} received work: $work")
+    log.info(s"ComputeActor - workload: ${workload.name} received work: $work")
     Try {
       strategy.run(work.selectedDimensions, work.selectedRows).map { result =>
         val rows = dao.insertResult(schema = workload.name, result)
-        log.info(s"workload: ${workload.name} saved: $result")
+        log.info(s"ComputeActor - workload: ${workload.name} saved: $result")
         rows
       }
     } match {
       case Failure(e) =>
-        log.error(s"failed to compute work:$work", e)
+        log.error(s"ComputeActor - failed to compute work:$work", e)
       case _ =>
     }
   }

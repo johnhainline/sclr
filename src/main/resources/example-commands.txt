@@ -23,24 +23,23 @@ docker images -a | grep "<none>\|us.gcr" | awk '{print $3}' | xargs docker rmi
 // short lived access to us.gcr.io
 gcloud docker -a
 cd src/main/resources/docker/; docker build -t local/openjdk-custom:latest .; cd ../../../../;
-sbt manage/docker:publish compute/docker:publish frontend/docker:publish
-sbt manage/docker:publishLocal compute/docker:publishLocal frontend/docker:publishLocal
+sbt manage/docker:publish compute/docker:publish
+sbt manage/docker:publishLocal compute/docker:publishLocal
 
 kubectl get all -o wide
-kubectl logs -v=5 compute-0
 kubectl describe pods compute-0
+kubectl logs -v=5 compute-0
+kubectl logs -v=5 -f $(kubectl get pods -o name | grep "manage")
 
 kubectl config get-contexts
 kubectl config use-context minikube
 kubectl config use-context gke_sclr-01_us-central1-a_sclr-01
 
-cd src/main/resources/kubernetes/; kubectl create -f mysql.yaml; kubectl create -f manage-pods.yaml; kubectl create -f compute-pods.yaml; kubectl create -f frontend-pods.yaml; cd ../../../..;
+cd src/main/resources/kubernetes/; kubectl create -f mysql.yaml; kubectl create -f manage-pods.yaml; kubectl create -f compute-pods.yaml; cd ../../../..;
 kubectl delete pvc mysql-pv-claim; kubectl delete all -l app=sclr
 
-kubectl delete statefulsets compute --grace-period=0 --force
-
-kubectl exec -ti compute-0 -- curl -vH "Content-Type: application/json" -X POST -d '{"name":"m5000","dnfSize":2,"optionalSample":200,"useLPNorm":true,"mu":0.24}' http-service.default.svc.cluster.local:8080/begin
-
+kubectl exec -ti compute-0 -- curl -vH "Content-Type: application/json" -X POST -d '{"name":"m5000","dnfSize":2,"optionalSample":500,"useLPNorm":true,"mu":0.2465}' http-service.default.svc.cluster.local:8080/begin
+kubectl exec -ti compute-0 -- curl -vH "Content-Type: application/json" -X POST -d '{"name":"m5000","dnfSize":2,"useLPNorm":true,"mu":0.2465}' http-service.default.svc.cluster.local:8080/begin
 **** MYSQL ****
 
 kubectl exec -it compute-0 -- /bin/bash
@@ -59,10 +58,6 @@ sudo ln -s /usr/local/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/bin/cont
 SELECT * FROM tiny.results ORDER BY error LIMIT 10;
 
 
-docker pull us.gcr.io/sclr-01/frontend:0.8.1
-docker pull us.gcr.io/sclr-01/manage:0.8.1
-docker pull us.gcr.io/sclr-01/compute:0.8.1
-docker pull us.gcr.io/sclr-01/frontend:latest
 docker pull us.gcr.io/sclr-01/manage:latest
 docker pull us.gcr.io/sclr-01/compute:latest
 

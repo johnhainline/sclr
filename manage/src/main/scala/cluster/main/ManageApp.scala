@@ -1,11 +1,12 @@
 package cluster.main
 
-import akka.actor.{ActorSystem, OneForOneStrategy, Props, SupervisorStrategy}
+import akka.actor.{ActorSystem, OneForOneStrategy, SupervisorStrategy}
 import akka.cluster.Cluster
 import akka.pattern.{Backoff, BackoffSupervisor}
 import akka.stream.ActorMaterializer
-import cluster.sclr.actors.{ComputeActor, ManageActor}
+import cluster.sclr.actors.ManageActor
 import cluster.sclr.core.DatabaseDao
+import cluster.sclr.http.InfoService
 import com.typesafe.config.ConfigFactory
 
 import scala.concurrent.duration._
@@ -22,7 +23,7 @@ object ManageApp {
     Cluster(system) registerOnMemberUp {
       val supervisor = BackoffSupervisor.props(
         Backoff.onFailure(
-          ManageActor.props(new DatabaseDao()),
+          ManageActor.props(new InfoService(), new DatabaseDao()),
           childName = "manage",
           minBackoff = 3.seconds,
           maxBackoff = 30.seconds,

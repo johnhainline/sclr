@@ -6,7 +6,7 @@ val doobieVersion = "0.5.2"
 
 organization in ThisBuild := "wustl.engineering"
 scalaVersion in ThisBuild := "2.12.5"
-version in ThisBuild := "1.3.7"
+version in ThisBuild := "1.4.0"
 
 scalacOptions in ThisBuild += "-Ypartial-unification" // 2.11.9+
 scalacOptions in ThisBuild += "-Xlint" // Get more warnings
@@ -73,17 +73,6 @@ val dockerSettings = Seq(
 )
 
 val clusterName = "sclr-01"
-
-lazy val frontend = project
-  .in(file("frontend"))
-  .settings(dockerSettings: _*)
-  .settings(
-    name := "sclr-frontend",
-    mainClass := Some("cluster.main.FrontendApp"),
-    packageName in Docker := s"$clusterName/frontend"
-  )
-  .dependsOn(sclr)
-  .enablePlugins(JavaServerAppPackaging, DockerPlugin)
 
 lazy val manage = project
   .in(file("manage"))
