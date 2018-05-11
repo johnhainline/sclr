@@ -52,7 +52,7 @@ spec:
     spec:
       containers:
       - name: manage
-        image: us.gcr.io/sclr-01/manage:1.4.1
+        image: us.gcr.io/sclr-01/sclr:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 2551
@@ -80,8 +80,12 @@ spec:
           value: 'manage-service.default.svc.cluster.local'
         - name: AKKA_REMOTING_BIND_PORT
           value: '2551'
-        - name: AKKA_SEED_NODE
+        - name: AKKA_SEED_NODES.0
+          value: 'akka.tcp://sclr@manage-service.default.svc.cluster.local:2551'
+        - name: AKKA_SEED_NODES.1
           value: 'akka.tcp://sclr@compute-0.compute-service.default.svc.cluster.local:2551'
+        - name: AKKA_CLUSTER_ROLES.0
+          value: 'manage'
         - name: DNS_RESOLVER
           value: 'async-dns'
         - name: RESOLVE_SRV

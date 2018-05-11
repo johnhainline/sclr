@@ -6,23 +6,36 @@ val doobieVersion = "0.5.2"
 
 organization in ThisBuild := "wustl.engineering"
 scalaVersion in ThisBuild := "2.12.5"
-version in ThisBuild := "1.4.1"
+version in ThisBuild := "1.5.3"
 
 scalacOptions in ThisBuild += "-Ypartial-unification" // 2.11.9+
 scalacOptions in ThisBuild += "-Xlint" // Get more warnings
 
+val dockerSettings = Seq(
+  dockerRepository := Some("us.gcr.io"),
+  dockerUpdateLatest := true,
+  dockerBaseImage := "local/openjdk-custom",
+  maintainer := "John Hainline (john.hainline@wustl.edu)",
+  packageSummary := "SCLR Server",
+  packageDescription := "Sparse Conditional Linear Regression"
+)
+
 lazy val sclr = project
   .in(file("."))
+  .settings(dockerSettings: _*)
   .settings(
     name := "sclr",
     description := "sparse-conditional-linear-regression",
+    mainClass := Some("cluster.main.MainApp"),
+    packageName in Docker := "sclr-01/sclr",
+
     resolvers ++= Seq(
       "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
       "Sonatype OSS Releases" at "https://oss.sonatype.org/content/repositories/releases"
     ),
     libraryDependencies ++= Seq(
       // sigar is a os dependent toolset to make akka-cluster-metrics give more details
-      "io.kamon" % "sigar-loader" % "1.6.6-rev002",
+//      "io.kamon" % "sigar-loader" % "1.6.6-rev002",
   //    "de.mukis" % "jama" % "2.0.0-SNAPSHOT",
 
       "org.scalatest" %% "scalatest" % "3.0.4" % Test,
@@ -60,41 +73,8 @@ lazy val sclr = project
 
     fork in run := true
   )
-  .enablePlugins(MultiJvmPlugin)
+  .enablePlugins(MultiJvmPlugin, JavaServerAppPackaging, DockerPlugin)
   .configs(MultiJvm)
-
-val dockerSettings = Seq(
-  dockerRepository := Some("us.gcr.io"),
-  dockerUpdateLatest := true,
-  dockerBaseImage := "local/openjdk-custom",
-  maintainer := "John Hainline (john.hainline@wustl.edu)",
-  packageSummary := "SCLR Server",
-  packageDescription := "Sparse Conditional Linear Regression"
-)
-
-val clusterName = "sclr-01"
-
-lazy val manage = project
-  .in(file("manage"))
-  .settings(dockerSettings: _*)
-  .settings(
-    name := "sclr-manage",
-    mainClass := Some("cluster.main.ManageApp"),
-    packageName in Docker := s"$clusterName/manage"
-  )
-  .dependsOn(sclr)
-  .enablePlugins(JavaServerAppPackaging, DockerPlugin)
-
-lazy val compute = project
-  .in(file("compute"))
-  .settings(dockerSettings: _*)
-  .settings(
-    name := "sclr-compute",
-    mainClass := Some("cluster.main.ComputeApp"),
-    packageName in Docker := s"$clusterName/compute"
-  )
-  .dependsOn(sclr)
-  .enablePlugins(JavaServerAppPackaging, DockerPlugin)
 
 // Benchmarks
 lazy val bench = project

@@ -1,9 +1,9 @@
 gcloud config set project sclr-01
 gcloud config set compute/zone us-central1-a
-gcloud container clusters create sclr-01  --zone us-central1-a --num-nodes 8 --cluster-version=1.9.2-gke.1
+gcloud container clusters create sclr-01  --zone us-central1-a --num-nodes 8 --cluster-version=1.9.7-gke.0
 gcloud compute project-info describe --project sclr-01
-gcloud container clusters get-credentials sclr-01
-gcloud container clusters delete sclr-01
+gcloud container clusters get-credentials cluster-1
+gcloud container clusters delete cluster-1
 kubectl create secret generic mysql-password --from-literal=password=KO4eD0BrP2PC19jO
 kubectl scale statefulsets compute --replicas=5
 
@@ -16,19 +16,19 @@ minikube dashboard
 eval $(minikube docker-env) // make minikube use the correct local repo
 kubectl create secret generic mysql-password --from-literal=password=KO4eD0BrP2PC19jO
 
-docker images -a |  grep "<none>\|us.gcr"
-docker images -a | grep "<none>\|us.gcr" | awk '{print $3}' | xargs docker rmi
+docker images
+docker rmi -f $(docker images -a -q)
 
-
-// short lived access to us.gcr.io
-gcloud docker -a
+// give docker access to us.gcr.io
+gcloud auth configure-docker
+docker-credential-gcr configure-docker
 cd src/main/resources/docker/; docker build -t local/openjdk-custom:latest .; cd ../../../../;
-sbt manage/docker:publish compute/docker:publish
-sbt manage/docker:publishLocal compute/docker:publishLocal
+sbt docker:publish
+sbt docker:publishLocal
 
 kubectl get all -o wide
 kubectl describe pods compute-0
-kubectl logs -v=5 compute-0
+kubectl logs -v=5 -f compute-0
 kubectl logs -v=5 -f $(kubectl get pods -o name | grep "manage")
 
 kubectl config get-contexts
