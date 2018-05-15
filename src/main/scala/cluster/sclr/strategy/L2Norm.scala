@@ -1,7 +1,7 @@
-package cluster.sclr.core.strategy
+package cluster.sclr.strategy
 
 import cluster.sclr.Messages.Workload
-import cluster.sclr.core._
+import cluster.sclr.database._
 import combinations.Combinations
 
 import scala.collection.immutable.BitSet

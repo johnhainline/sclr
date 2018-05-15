@@ -1,4 +1,4 @@
-package cluster.sclr.core.strategy
+package cluster.sclr.strategy
 
 import scala.collection.immutable.BitSet
 import scala.collection.mutable

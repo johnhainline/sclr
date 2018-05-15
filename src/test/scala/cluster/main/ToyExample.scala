@@ -1,7 +1,7 @@
 package cluster.main
 
-import cluster.sclr.core.XYZ
-import cluster.sclr.core.strategy.SetCover
+import cluster.sclr.database.XYZ
+import cluster.sclr.strategy.SetCover
 
 import scala.collection.immutable.BitSet
 

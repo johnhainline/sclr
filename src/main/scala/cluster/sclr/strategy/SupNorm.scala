@@ -1,8 +1,8 @@
-package cluster.sclr.core.strategy
+package cluster.sclr.strategy
 
 import Jama.Matrix
 import cluster.sclr.Messages.Workload
-import cluster.sclr.core.{Dataset, Result, XYZ}
+import cluster.sclr.database.{Dataset, Result, XYZ}
 import combinations.Combinations
 
 class SupNorm(val dataset: Dataset, val workload: Workload) extends KDNFStrategy(dataset) {

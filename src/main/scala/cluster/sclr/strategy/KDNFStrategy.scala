@@ -1,6 +1,6 @@
-package cluster.sclr.core.strategy
+package cluster.sclr.strategy
 
-import cluster.sclr.core.{Dataset, Result}
+import cluster.sclr.database.{Dataset, Result}
 
 abstract class KDNFStrategy(dataset: Dataset) {
   def run(yDimensions: Vector[Int], rows: Vector[Int]): Result

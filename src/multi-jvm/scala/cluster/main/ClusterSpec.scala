@@ -7,7 +7,7 @@ import akka.remote.testkit.{MultiNodeConfig, MultiNodeSpec}
 import akka.stream.ActorMaterializer
 import cluster.sclr.Messages._
 import cluster.sclr.actors.{ComputeActor, ManageActor}
-import cluster.sclr.core.DatabaseDao
+import cluster.sclr.database.DatabaseDao
 import cluster.sclr.http.InfoService
 import com.typesafe.config.{Config, ConfigFactory}
 import combinations.Combinations

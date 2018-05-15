@@ -10,14 +10,14 @@ import akka.stream.scaladsl.{Flow, Keep, Sink, Source}
 import akka.updated.stream.{SinkRef, SourceRef}
 import akka.updated.stream.scaladsl.StreamRefs
 import cluster.sclr.Messages._
-import cluster.sclr.core.strategy.{KDNFStrategy, L2Norm, SupNorm}
-import cluster.sclr.core.{DatabaseDao, Result}
+import cluster.sclr.strategy.{KDNFStrategy, L2Norm, SupNorm}
+import cluster.sclr.database.{DatabaseDao, Result}
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
-class ComputeActor(parallelization: Int, dao: DatabaseDao) extends Actor with ActorLogging {
+class ComputeActor(parallelization: Int, createDaoFunc: () => DatabaseDao) extends Actor with ActorLogging {
   import context._
   final case object TrySubscribe
   implicit val mat = ActorMaterializer()(context)
@@ -44,7 +44,7 @@ class ComputeActor(parallelization: Int, dao: DatabaseDao) extends Actor with Ac
     case workload: Workload =>
       val manageActor = sender()
       log.debug(s"ComputeActor - received workload: $workload")
-      val dataset = dao.getDataset(workload.name)
+      val dataset = createDaoFunc().getDataset(workload.name)
       val strategy: KDNFStrategy = if (workload.useLPNorm) new L2Norm(dataset, workload) else new SupNorm(dataset, workload)
 
       // obtain the flow you want to attach:
@@ -76,7 +76,7 @@ class ComputeActor(parallelization: Int, dao: DatabaseDao) extends Actor with Ac
 }
 
 object ComputeActor {
-  def props(parallelization: Int, dao: DatabaseDao) = Props(new ComputeActor(parallelization, dao))
+  def props(parallelization: Int, createDaoFunc: () => DatabaseDao) = Props(new ComputeActor(parallelization, createDaoFunc))
 
   private def createComputeFlow(strategy: KDNFStrategy, log: LoggingAdapter) = Flow[Work].map { work =>
     log.info(s"ComputeActor - received work: $work")

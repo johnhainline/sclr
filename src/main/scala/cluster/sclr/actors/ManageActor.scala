@@ -9,7 +9,7 @@ import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Keep, Sink, Source}
 import akka.updated.stream.scaladsl.{BalanceHub, MergeHub}
 import cluster.sclr.Messages._
-import cluster.sclr.core.{DatabaseDao, Result}
+import cluster.sclr.database.{DatabaseDao, Result}
 import cluster.sclr.http.InfoService
 import combinations.Combinations
 import combinations.iterators.MultipliedIterator

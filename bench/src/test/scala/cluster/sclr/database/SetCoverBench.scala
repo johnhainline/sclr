@@ -1,7 +1,7 @@
-package cluster.sclr.core
+package cluster.sclr.database
 
 import cluster.sclr.Messages.Workload
-import cluster.sclr.core.strategy.L2Norm
+import cluster.sclr.strategy.L2Norm
 import combinations.Combinations
 import org.scalameter.api.{Bench, Gen}
 import org.scalameter.picklers.Implicits._

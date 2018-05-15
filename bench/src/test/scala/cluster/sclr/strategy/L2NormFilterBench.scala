@@ -1,6 +1,6 @@
-package cluster.sclr.core.strategy
+package cluster.sclr.strategy
 
-import cluster.sclr.core.{DatabaseDaoHelper, XYZ}
+import cluster.sclr.database.{DatabaseDaoHelper, XYZ}
 import org.scalameter.api._
 import org.scalameter.picklers.Implicits._
 

@@ -62,6 +62,7 @@ docker pull us.gcr.io/sclr-01/manage:latest
 docker pull us.gcr.io/sclr-01/compute:latest
 
 
+SELECT count(*) from m5000.results;
 select * from m5000.results order by created_at limit 1;
 select * from m5000.results order by created_at desc limit 1;
 SELECT * FROM m5000.results WHERE error = (SELECT MIN(error) FROM m5000.results);

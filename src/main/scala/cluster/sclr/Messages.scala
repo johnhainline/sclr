@@ -1,7 +1,7 @@
 package cluster.sclr
 
 import akka.updated.stream.{SinkRef, SourceRef}
-import cluster.sclr.core.Result
+import cluster.sclr.database.Result
 
 object Messages {
   val workloadTopic = "workloadTopic"

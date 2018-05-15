@@ -45,10 +45,10 @@ spec:
         resources:
           limits:
             cpu: 1000m
-            memory: 5G
+            memory: 4G
           requests:
-            cpu: 1000m
-            memory: 5G
+            cpu: 900m
+            memory: 3.5G
         env:
         - name: DATABASE_HOST
           value: mysql-service

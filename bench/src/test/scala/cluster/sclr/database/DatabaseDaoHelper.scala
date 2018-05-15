@@ -1,4 +1,4 @@
-package cluster.sclr.core
+package cluster.sclr.database
 
 import scala.util.Random
 

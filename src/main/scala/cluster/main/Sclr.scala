@@ -5,7 +5,7 @@ import akka.cluster.Cluster
 import akka.pattern.{Backoff, BackoffSupervisor}
 import akka.stream.ActorMaterializer
 import cluster.sclr.actors.{ComputeActor, ManageActor}
-import cluster.sclr.core.DatabaseDao
+import cluster.sclr.database.DatabaseDao
 import cluster.sclr.http.InfoService
 import com.typesafe.config.ConfigFactory
 
@@ -41,13 +41,11 @@ object Sclr {
       val roles = cluster.getSelfRoles
       system.log.info(s"Member ${cluster.selfUniqueAddress} up. Contains roles: $roles")
 
-      val dao = new DatabaseDao()
       if (roles.contains("compute")) {
-        runResumeSupervisorForActor(name = "compute", ComputeActor.props(parallel, dao))
+        runResumeSupervisorForActor(name = "compute", ComputeActor.props(parallel, () => new DatabaseDao()))
       }
       if (roles.contains("manage")) {
-        val infoService = new InfoService()
-        runResumeSupervisorForActor(name = "manage", ManageActor.props(infoService, dao))
+        runResumeSupervisorForActor(name = "manage", ManageActor.props(new InfoService(), new DatabaseDao()))
       }
     }
 

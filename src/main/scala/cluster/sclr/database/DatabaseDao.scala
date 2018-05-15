@@ -1,4 +1,4 @@
-package cluster.sclr.core
+package cluster.sclr.database
 
 import java.io.{BufferedReader, InputStreamReader}
 import java.sql.{SQLException, Statement, Timestamp}
@@ -6,7 +6,7 @@ import java.time.{Instant, ZoneId, ZonedDateTime}
 
 import cats.effect.IO
 import cluster.sclr.ScriptRunner
-import cluster.sclr.core.DatabaseDao.{coeffNames, dimensionNames, rowNames, _}
+import cluster.sclr.database.DatabaseDao.{coeffNames, dimensionNames, rowNames, _}
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.LazyLogging
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
