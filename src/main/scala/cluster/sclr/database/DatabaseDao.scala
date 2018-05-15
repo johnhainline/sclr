@@ -6,7 +6,7 @@ import java.time.{Instant, ZoneId, ZonedDateTime}
 
 import cats.effect.IO
 import cluster.sclr.ScriptRunner
-import cluster.sclr.database.DatabaseDao.{coeffNames, dimensionNames, rowNames, _}
+import cluster.sclr.database.DatabaseDao.{coeffNames, dimensionNames, rowNames}
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.LazyLogging
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
@@ -23,15 +23,11 @@ case class Result(dimensions: Vector[Int], rows: Vector[Int], coefficients: Vect
 
 class DatabaseDao extends LazyLogging {
 
-  private lazy val xa: Transactor[IO] = DatabaseDao.makeHikariTransactor()
-
-  def clearDataset(name: String): Long = {
+  def clearDataset(xa: Transactor[IO], name: String): Long = {
     (sql"DROP SCHEMA IF EXISTS " ++ Fragment.const(name)).update.run.transact(xa).unsafeRunSync()
   }
 
-  def initializeDataset(name: String): Unit = {
-    val (driver, url, username, password) = getConfigSettings
-    val xa = Transactor.fromDriverManager[IO](driver, url, username, password)
+  def initializeDataset(xa: Transactor[IO], name: String): Unit = {
     FC.raw { connection =>
       val runner = new ScriptRunner(connection, false, false)
       val file = new BufferedReader(new InputStreamReader(getClass.getClassLoader.getResourceAsStream(s"datasets/$name.sql")))
@@ -39,7 +35,7 @@ class DatabaseDao extends LazyLogging {
     }.transact(xa).unsafeRunSync()
   }
 
-  def getDatasetInfo(name: String): DatasetInfo = {
+  def getDatasetInfo(xa: Transactor[IO], name: String): DatasetInfo = {
     val xDimensionsQuery = (fr"SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema = " ++
       Fragment.const(s"""\"$name\"""") ++ fr" AND table_name = " ++ Fragment.const(""""x"""")).query[Int]
     // We take -1 off the dimensions to account for our id primary key column.
@@ -56,11 +52,11 @@ class DatabaseDao extends LazyLogging {
     DatasetInfo(xDimensionCount, yDimensionCount, xRowCount)
   }
 
-  def getDataset(name: String): Dataset = {
+  def getDataset(xa: Transactor[IO], name: String): Dataset = {
 //    val data = sql"SELECT * FROM $name.x, $name.yz WHERE $name.x.id = $name.yz.id".query[XYZ].to[Array].transact(xa).unsafeRunSync()
 //    Dataset(data, data.head.x.length, data.head.y.length)
 
-    val info = getDatasetInfo(name)
+    val info = getDatasetInfo(xa, name)
     var statement: Statement = null
     FC.raw { connection =>
       try {
@@ -101,11 +97,11 @@ class DatabaseDao extends LazyLogging {
 //    import DatabaseDao.ZonedDateTimeMeta
 //    sql"SELECT id, data, created_at FROM results".query[Result].list.transact(xa).unsafeRunSync()
 //  }
-  def getResultCount(name: String): Long = {
+  def getResultCount(xa: Transactor[IO], name: String): Long = {
     sql"SELECT COUNT(*) FROM $name.results".query[Long].unique.transact(xa).unsafeRunSync()
   }
 
-  def insertResult(schema: String)(result: Result): Int = {
+  def insertResult(xa: Transactor[IO], schema: String)(result: Result): Int = {
     val insertNames = Vector("error",
       dimensionNames(result.dimensions.length).mkString(","),
       rowNames(result.rows.length).mkString(","),
@@ -128,8 +124,8 @@ class DatabaseDao extends LazyLogging {
     dbUpdate.run.transact(xa).unsafeRunSync()
   }
 
-  def setupSchemaAndTable(schema: String, yDimensions: Int, rows: Int): Int = {
-    setupSchema(schema)
+  def setupSchemaAndTable(xa: Transactor[IO], schema: String, yDimensions: Int, rows: Int): Int = {
+    setupSchema(xa, schema)
     try {
       val tableDims = dimensionNames(yDimensions).map(name => s"$name INT NOT NULL")
       val tableRows = rowNames(rows).map(name => s"$name INT NOT NULL")
@@ -149,7 +145,7 @@ class DatabaseDao extends LazyLogging {
     }
   }
 
-  private def setupSchema(schema: String) = {
+  private def setupSchema(xa: Transactor[IO], schema: String) = {
     try {
       val createIfNotExists = (fr"CREATE SCHEMA IF NOT EXISTS" ++ Fragment.const(schema)).update
       createIfNotExists.run.transact(xa).unsafeRunSync()
@@ -173,7 +169,7 @@ object DatabaseDao {
   private def rowNames(rows: Int) = Range(0, rows).map(row => s"row$row")
   private def coeffNames(coeffs: Int) = Range(0, coeffs).map(coeff => s"coeff$coeff")
 
-  private def makeHikariTransactor(): HikariTransactor[IO] = {
+  def makeHikariTransactor(poolSize: Int = 2): HikariTransactor[IO] = {
     val (driver, url, username, password) = getConfigSettings
     Class.forName(driver)
     val config = new HikariConfig()
@@ -181,11 +177,16 @@ object DatabaseDao {
     config.setUsername(username)
     config.setPassword(password)
     config.setAutoCommit(false)
-    config.setMaximumPoolSize(2)
+    config.setMaximumPoolSize(poolSize)
     HikariTransactor[IO](new HikariDataSource(config))
   }
 
-  private def getConfigSettings = {
+  def makeSingleTransactor(): Transactor[IO] = {
+    val (driver, url, username, password) = getConfigSettings
+    Transactor.fromDriverManager[IO](driver, url, username, password)
+  }
+
+  private def getConfigSettings: (String, String, String, String) = {
     val config = ConfigFactory.load()
     val driver   = config.getString("database.driver")
     val host     = config.getString("database.host")

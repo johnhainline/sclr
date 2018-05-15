@@ -8,11 +8,13 @@ import akka.remote.Ack
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Keep, Sink, Source}
 import akka.updated.stream.scaladsl.{BalanceHub, MergeHub}
+import cats.effect.IO
 import cluster.sclr.Messages._
 import cluster.sclr.database.{DatabaseDao, Result}
 import cluster.sclr.http.InfoService
 import combinations.Combinations
 import combinations.iterators.MultipliedIterator
+import doobie.util.transactor.Transactor
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -24,23 +26,25 @@ class ManageActor(infoService: InfoService, dao: DatabaseDao, r: Random = new Ra
 
   infoService.setManageActor(self)
   implicit val mat = ActorMaterializer()(context)
+  private val databaseConnections = 3
 
   def receive: Receive = waitingForWorkload
 
   def waitingForWorkload: Receive = {
     case workload: Workload =>
-      dao.clearDataset(workload.name)
-      dao.initializeDataset(workload.name)
-      dao.setupSchemaAndTable(workload.name, ManageActor.Y_DIMENSIONS, workload.getRowsConstant())
+      val xa = DatabaseDao.makeHikariTransactor(databaseConnections)
+      dao.clearDataset(xa, workload.name)
+      dao.initializeDataset(xa, workload.name)
+      dao.setupSchemaAndTable(xa, workload.name, ManageActor.Y_DIMENSIONS, workload.getRowsConstant())
       log.debug(s"ManageActor - received workload: $workload")
-      context.become(prepareWorkload)
+      context.become(prepareWorkload(xa))
       self ! workload
       sender() ! Ack
   }
 
-  def prepareWorkload: Receive = {
+  def prepareWorkload(xa: Transactor[IO])(): Receive = {
     case workload: Workload =>
-      val info = dao.getDatasetInfo(workload.name)
+      val info = dao.getDatasetInfo(xa, workload.name)
       log.debug(s"ManageActor - preparing workload for dataset: ${workload.name} with dimensions:${info.xLength} rows:${info.rowCount} selecting dimensions:${ManageActor.Y_DIMENSIONS} rows:${workload.getRowsConstant()}")
       // An iterator that runs through (ySize choose 2) * (rows choose 2)
       val iteratorGen = () => ManageActor.createIterator(info.rowCount, info.yLength, workload.getRowsConstant(), workload.optionalSubset, r)
@@ -54,7 +58,7 @@ class ManageActor(infoService: InfoService, dao: DatabaseDao, r: Random = new Ra
       val source = runnableSourceGraph.run()
 
       // A simple consumer that saves our results
-      val consumer = Sink.foreachParallel(parallelism = 3) {dao.insertResult(workload.name)}
+      val consumer = Sink.foreachParallel(parallelism = databaseConnections) {dao.insertResult(xa, workload.name)}
       // Attach a MergeHub Sink to the consumer to de-multiplex. This will materialize to a corresponding Sink.
       // (We need to use toMat and Keep.right since by default the materialized value to the left is used)
       val runnableSinkGraph = MergeHub.source[Result](perProducerBufferSize = 24).to(consumer)

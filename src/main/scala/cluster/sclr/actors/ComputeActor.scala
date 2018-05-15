@@ -17,7 +17,7 @@ import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
-class ComputeActor(parallelization: Int, createDaoFunc: () => DatabaseDao) extends Actor with ActorLogging {
+class ComputeActor(parallelization: Int, dao: DatabaseDao) extends Actor with ActorLogging {
   import context._
   final case object TrySubscribe
   implicit val mat = ActorMaterializer()(context)
@@ -44,7 +44,8 @@ class ComputeActor(parallelization: Int, createDaoFunc: () => DatabaseDao) exten
     case workload: Workload =>
       val manageActor = sender()
       log.debug(s"ComputeActor - received workload: $workload")
-      val dataset = createDaoFunc().getDataset(workload.name)
+      val xa = DatabaseDao.makeSingleTransactor()
+      val dataset = dao.getDataset(xa, workload.name)
       val strategy: KDNFStrategy = if (workload.useLPNorm) new L2Norm(dataset, workload) else new SupNorm(dataset, workload)
 
       // obtain the flow you want to attach:
@@ -76,7 +77,7 @@ class ComputeActor(parallelization: Int, createDaoFunc: () => DatabaseDao) exten
 }
 
 object ComputeActor {
-  def props(parallelization: Int, createDaoFunc: () => DatabaseDao) = Props(new ComputeActor(parallelization, createDaoFunc))
+  def props(parallelization: Int, dao: DatabaseDao) = Props(new ComputeActor(parallelization, dao))
 
   private def createComputeFlow(strategy: KDNFStrategy, log: LoggingAdapter) = Flow[Work].map { work =>
     log.info(s"ComputeActor - received work: $work")

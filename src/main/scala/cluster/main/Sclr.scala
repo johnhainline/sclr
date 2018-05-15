@@ -41,11 +41,12 @@ object Sclr {
       val roles = cluster.getSelfRoles
       system.log.info(s"Member ${cluster.selfUniqueAddress} up. Contains roles: $roles")
 
+      val dao = new DatabaseDao()
       if (roles.contains("compute")) {
-        runResumeSupervisorForActor(name = "compute", ComputeActor.props(parallel, () => new DatabaseDao()))
+        runResumeSupervisorForActor(name = "compute", ComputeActor.props(parallel, dao))
       }
       if (roles.contains("manage")) {
-        runResumeSupervisorForActor(name = "manage", ManageActor.props(new InfoService(), new DatabaseDao()))
+        runResumeSupervisorForActor(name = "manage", ManageActor.props(new InfoService(), dao))
       }
     }
 

@@ -87,8 +87,9 @@ abstract class ClusterSpec extends MultiNodeSpec(ClusterSpecConfig)
         Await.result(responseFuture, Duration.Inf)
         val dbDao = new DatabaseDao()
         val finalCount = Combinations(6, 2).size.toLong * Combinations(50, 2).size.toLong
+        val xa = DatabaseDao.makeHikariTransactor()
         eventually (timeout(120 seconds), interval(3 seconds)) {
-          val results = dbDao.getResultCount(work.name)
+          val results = dbDao.getResultCount(xa, work.name)
           println(results)
           results should be (finalCount)
         }
