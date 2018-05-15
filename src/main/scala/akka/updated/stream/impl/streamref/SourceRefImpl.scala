@@ -2,20 +2,21 @@
  * Copyright (C) 2018 Lightbend Inc. <https://www.lightbend.com>
  */
 
-package akka.stream.impl.streamref
+package akka.updated.stream.impl.streamref
 
 import akka.NotUsed
-import akka.actor.{ ActorRef, Terminated }
+import akka.actor.{ActorRef, Terminated}
 import akka.annotation.InternalApi
 import akka.event.Logging
 import akka.stream._
-import akka.stream.actor.{ RequestStrategy, WatermarkRequestStrategy }
+import akka.stream.actor.{RequestStrategy, WatermarkRequestStrategy}
 import akka.stream.impl.FixedSizeBuffer
 import akka.stream.scaladsl.Source
 import akka.stream.stage._
-import akka.util.{ OptionVal, PrettyDuration }
+import akka.updated.stream.{SinkRef, SourceRef}
+import akka.util.{OptionVal, PrettyDuration}
 
-import scala.concurrent.{ Future, Promise }
+import scala.concurrent.{Future, Promise}
 
 /** INTERNAL API: Implementation class, not intended to be touched directly by end-users */
 @InternalApi
@@ -51,7 +52,7 @@ private[stream] final class SourceRefStageImpl[Out](
       private[this] lazy val streamRefsMaster = StreamRefsMaster(ActorMaterializerHelper.downcast(materializer).system)
 
       // settings ---
-      import StreamRefAttributes._
+      import akka.stream.StreamRefAttributes._
       private[this] lazy val settings = ActorMaterializerHelper.downcast(materializer).settings.streamRefSettings
 
       private[this] lazy val subscriptionTimeout = inheritedAttributes

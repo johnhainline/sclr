@@ -1,4 +1,8 @@
-package akka.stream.scaladsl
+/*
+ * Copyright (C) 2018 Lightbend Inc. <https://www.lightbend.com>
+ */
+
+package akka.updated.stream.scaladsl
 
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.atomic.{AtomicLong, AtomicReference}
@@ -6,6 +10,7 @@ import java.util.concurrent.atomic.{AtomicLong, AtomicReference}
 import akka.NotUsed
 import akka.annotation.InternalApi
 import akka.stream._
+import akka.stream.scaladsl.{Sink, Source}
 import akka.stream.stage._
 
 import scala.annotation.tailrec
@@ -59,15 +64,23 @@ private[akka] class BalanceHub[T](bufferSize: Int)
   override val shape: SinkShape[T] = SinkShape(in)
 
   sealed trait HubEvent
-  private object RegistrationPending extends HubEvent
-  private final case class UnRegister(id: Long) extends HubEvent
-  final case class NeedWakeup(consumer: Consumer) extends HubEvent
 
-  final case class Consumer(id: Long, cmdCallback: AsyncCallback[ConsumerEvent])
+  private object RegistrationPending extends HubEvent
+
+  private final case class UnRegister(id: Long) extends HubEvent
+
+  final case class Waiting(consumer: Consumer) extends HubEvent
+
+  final object TryPull extends HubEvent
+
+  final case class Consumer(id: Long, consumerCallback: AsyncCallback[ConsumerEvent])
+
   private object Completed
 
   private sealed trait HubState
-  private case class Open(callbackFuture: Future[AsyncCallback[HubEvent]], registrations: List[Consumer]) extends HubState
+
+  private case class Open(hubCallbackFuture: Future[AsyncCallback[HubEvent]], registrations: List[Consumer]) extends HubState
+
   private case class Closed(failure: Option[Throwable]) extends HubState
 
   private class BalanceSinkLogic(_shape: Shape) extends GraphStageLogic(_shape) with InHandler {
@@ -80,99 +93,121 @@ private[akka] class BalanceHub[T](bufferSize: Int)
     // The pendingQueue holds all elements we received from upstream that have no consumer to go to yet.
     private val pendingQueue = new ConcurrentLinkedQueue[T]()
     // Lists all consumers that tried to get a T but couldn't.
-    private val needWakeup: mutable.LongMap[Consumer] = mutable.LongMap.empty
+    private val waiting: mutable.LongMap[Consumer] = mutable.LongMap.empty
 
     private val consumers: mutable.LongMap[Consumer] = mutable.LongMap.empty
 
     override def preStart(): Unit = {
       setKeepGoing(true)
       hubCallbackPromise.success(getAsyncCallback[HubEvent](onEvent))
-      tryPull()
+//      println(s"pulling next...")
+      pull(in)
     }
 
     override def onPush(): Unit = {
-      pendingQueue.add(grab(in))
-      tryPull()
+      val add = grab(in)
+      pendingQueue.add(add)
+//      println(s"added: $add")
+      if (pendingQueue.size < bufferSize) {
+//        println(s"pulling next...")
+        pull(in)
+      }
       wakeup()
     }
 
-    private def tryPull(): Unit = {
-      if (pendingQueue.size < bufferSize && !hasBeenPulled(in)) pull(in)
-    }
-
     private def wakeup(): Unit = {
-      needWakeup.values.headOption foreach { consumer =>
-        needWakeup -= consumer.id
-        tryPull()
-        consumer.cmdCallback.invoke(Wakeup)
+      waiting.values.headOption foreach { consumer =>
+//        println(s"Hub wakeup consumer ${consumer.id}")
+        waiting -= consumer.id
+        consumer.consumerCallback.invoke(Wakeup)
       }
     }
 
     private def wakeupAll(): Unit = {
-      val all = needWakeup.values
-      needWakeup.clear()
-      all.foreach(_.cmdCallback.invoke(Wakeup))
+//      println(s"Hub wakeupAll(), waiting: $waiting")
+      consumers.foreach { case (id, consumer) =>
+//        println(s"Hub wakeup consumer ${consumer.id}")
+        consumer.consumerCallback.invoke(Wakeup)
+      }
+      waiting.clear()
     }
 
     private def onEvent(hubEvent: HubEvent): Unit = {
       hubEvent match {
-        case NeedWakeup(consumer) ⇒
-          // If we're told a consumer needs a wakeup, then maybe we can give it an element!
-          // Also check if the consumer is now unblocked since we published an element since it went asleep.
-          if (!pendingQueue.isEmpty)
-            consumer.cmdCallback.invoke(Wakeup)
-          else {
-            needWakeup.update(consumer.id, consumer)
-            tryPull()
+        case Waiting(consumer) ⇒
+//          println(s"consumer says it is waiting: $consumer")
+          // If we're told a consumer is waiting, then maybe we can give it an element!
+          if (!pendingQueue.isEmpty) {
+//            println(s"but we have stuff in queue, so we wake it up")
+            consumer.consumerCallback.invoke(Wakeup)
+          } else {
+//            println(s"and the queue is empty, so we add it to our waiting list")
+            waiting.update(consumer.id, consumer)
+          }
+
+        case TryPull ⇒
+//          println(s"Hub TryPull")
+          if (!upstreamFinished && !isAvailable(in) && !hasBeenPulled(in)) {
+//            println(s"pulling next...")
+            pull(in)
           }
 
         case RegistrationPending ⇒
+//          println(s"RegistrationPending")
           state.getAndSet(noRegistrationsState).asInstanceOf[Open].registrations foreach { consumer ⇒
+//            println(s"Registering ${consumer.id}")
             consumers(consumer.id) = consumer
             // in case the consumer is already stopped we need to undo registration
             implicit val ec: ExecutionContext = materializer.executionContext
-            consumer.cmdCallback.invokeWithFeedback(Wakeup).onFailure {
+            consumer.consumerCallback.invokeWithFeedback(Registered).onFailure {
               case _: StreamDetachedException ⇒
-                hubCallbackPromise.future.foreach(callback ⇒
-                  callback.invoke(UnRegister(consumer.id))
-                )
+                hubCallbackPromise.future.foreach { hubCallback ⇒
+                  hubCallback.invoke(UnRegister(consumer.id))
+                }
             }
           }
 
         case UnRegister(id) ⇒
+//          println(s"UnRegister($id)")
           consumers.remove(id)
-          if (consumers.isEmpty) {
-            if (isClosed(in)) completeStage()
+          if (consumers.isEmpty && isClosed(in)) {
+//            println(s"No consumers left, completeStage()")
+            completeStage()
           }
       }
     }
 
     // Producer API
     override def onUpstreamFailure(ex: Throwable): Unit = {
+//      println(s"onUpstreamFailure: $ex")
       val failMessage = HubCompleted(Some(ex))
 
       // Notify pending consumers and set tombstone
       state.getAndSet(Closed(Some(ex))).asInstanceOf[Open].registrations foreach { consumer ⇒
-        consumer.cmdCallback.invoke(failMessage)
+        consumer.consumerCallback.invoke(failMessage)
       }
 
       // Notify registered consumers
       consumers.values.iterator foreach { consumer ⇒
-        consumer.cmdCallback.invoke(failMessage)
+        consumer.consumerCallback.invoke(failMessage)
       }
       failStage(ex)
     }
 
     override def onUpstreamFinish(): Unit = {
+//      println(s"Hub onUpstreamFinish")
       if (consumers.isEmpty) {
+//        println(s"Hub completeStage()")
         completeStage()
       } else {
+//        println(s"Hub upstreamFinished = true")
         upstreamFinished = true
         wakeupAll()
       }
     }
 
     override def postStop(): Unit = {
+//      println(s"Hub postStop()")
       // Notify pending consumers and set tombstone
 
       @tailrec def tryClose(): Unit = state.get() match {
@@ -181,7 +216,7 @@ private[akka] class BalanceHub[T](bufferSize: Int)
           if (state.compareAndSet(open, Closed(None))) {
             val completedMessage = HubCompleted(None)
             open.registrations foreach { consumer ⇒
-              consumer.cmdCallback.invoke(completedMessage)
+              consumer.consumerCallback.invoke(completedMessage)
             }
           } else tryClose()
       }
@@ -191,14 +226,15 @@ private[akka] class BalanceHub[T](bufferSize: Int)
 
     // Consumer API
     def poll(id: Long, hubCallback: AsyncCallback[HubEvent]): AnyRef = {
-      this.synchronized {
-        if (pendingQueue.isEmpty && upstreamFinished) {
+      hubCallback.invoke(TryPull)
+      if (pendingQueue.isEmpty) {
+        if (upstreamFinished) {
           Completed
-        } else if (pendingQueue.isEmpty) {
-          null
         } else {
-          pendingQueue.poll().asInstanceOf[AnyRef]
+          null
         }
+      } else {
+        pendingQueue.poll().asInstanceOf[AnyRef]
       }
     }
 
@@ -206,7 +242,11 @@ private[akka] class BalanceHub[T](bufferSize: Int)
   }
 
   sealed trait ConsumerEvent
+
   case object Wakeup extends ConsumerEvent
+
+  case object Registered extends ConsumerEvent
+
   private final case class HubCompleted(failure: Option[Throwable]) extends ConsumerEvent
 
   override def createLogicAndMaterializedValue(inheritedAttributes: Attributes): (GraphStageLogic, Source[T, NotUsed]) = {
@@ -222,44 +262,48 @@ private[akka] class BalanceHub[T](bufferSize: Int)
       override def createLogic(inheritedAttributes: Attributes): GraphStageLogic = new GraphStageLogic(shape) with OutHandler {
         private[this] val id = idCounter.getAndIncrement()
         private[this] var hubCallback: AsyncCallback[HubEvent] = _
-        private val sourceCallback = getAsyncCallback(onCommand)
-        private val consumer = Consumer(id, sourceCallback)
+        private val consumerCallback = getAsyncCallback(onCommand)
+        private val myConsumerRecord = Consumer(id, consumerCallback)
 
         override def preStart(): Unit = {
           val onHubReady: Try[AsyncCallback[HubEvent]] ⇒ Unit = {
             case Success(receivedHubCallback) ⇒
+//              println(s"onHubReady: Success")
               hubCallback = receivedHubCallback
-              if (isAvailable(out)) onPull()
               receivedHubCallback.invoke(RegistrationPending)
             case Failure(ex) ⇒
+//              println(s"onHubReady: Failure")
               failStage(ex)
           }
 
           @tailrec def register(): Unit = {
+//            println(s"consumer ${myConsumerRecord.id} register()")
             logic.state.get() match {
               case Closed(Some(ex)) ⇒
                 failStage(ex)
               case Closed(None) ⇒
                 completeStage()
-              case previousState @ Open(hubCallbackFuture, registrations) ⇒
-                val newRegistrations = Consumer(id, sourceCallback) :: registrations
+              case previousState@Open(hubCallbackFuture, registrations) ⇒
+                val newRegistrations = myConsumerRecord :: registrations
                 if (logic.state.compareAndSet(previousState, Open(hubCallbackFuture, newRegistrations))) {
+//                  println(s"consumer ${myConsumerRecord.id} register finished")
                   hubCallbackFuture.onComplete(getAsyncCallback(onHubReady).invoke)(materializer.executionContext)
                 } else {
                   register()
                 }
             }
           }
-
           register()
         }
 
         override def onPull(): Unit = {
           if (hubCallback ne null) {
             val element = logic.poll(id, hubCallback)
+//            println(s"consumer (${myConsumerRecord.id}) onPull(): got $element")
             element match {
               case null ⇒
-                hubCallback.invoke(NeedWakeup(consumer))
+//                println(s"telling hub we (${myConsumerRecord.id}) are waiting")
+                hubCallback.invoke(Waiting(myConsumerRecord))
               case Completed ⇒
                 completeStage()
               case _ ⇒
@@ -280,6 +324,10 @@ private[akka] class BalanceHub[T](bufferSize: Int)
           case HubCompleted(None) ⇒
             completeStage()
           case Wakeup ⇒
+//            println(s"consumer (${myConsumerRecord.id}) got Wakeup")
+            if (isAvailable(out)) onPull()
+          case Registered ⇒
+//            println(s"consumer (${myConsumerRecord.id}) got Registered")
             if (isAvailable(out)) onPull()
         }
 

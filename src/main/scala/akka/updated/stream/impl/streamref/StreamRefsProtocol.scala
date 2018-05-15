@@ -2,11 +2,11 @@
  * Copyright (C) 2018 Lightbend Inc. <https://www.lightbend.com>
  */
 
-package akka.stream.impl.streamref
+package akka.updated.stream.impl.streamref
 
-import akka.actor.{ ActorRef, DeadLetterSuppression }
+import akka.actor.{ActorRef, DeadLetterSuppression}
 import akka.annotation.InternalApi
-import akka.stream.impl.ReactiveStreamsCompliance
+import akka.updated.stream.impl.ReactiveStreamsCompliance
 
 /** INTERNAL API */
 @InternalApi

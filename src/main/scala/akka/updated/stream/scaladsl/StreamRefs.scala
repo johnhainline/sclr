@@ -2,11 +2,12 @@
  * Copyright (C) 2018 Lightbend Inc. <https://www.lightbend.com>
  */
 
-package akka.stream.scaladsl
+package akka.updated.stream.scaladsl
 
 import akka.annotation.ApiMayChange
-import akka.stream.{ SinkRef, SourceRef, StreamRefAttributes }
-import akka.stream.impl.streamref.{ SinkRefStageImpl, SourceRefStageImpl }
+import akka.stream.scaladsl.{Sink, Source}
+import akka.updated.stream.{SinkRef, SourceRef}
+import akka.updated.stream.impl.streamref.{SinkRefStageImpl, SourceRefStageImpl}
 import akka.util.OptionVal
 
 import scala.concurrent.Future

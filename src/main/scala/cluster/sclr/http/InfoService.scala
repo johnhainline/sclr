@@ -9,7 +9,7 @@ import akka.pattern.ask
 import akka.remote.Ack
 import akka.stream.ActorMaterializer
 import akka.util.Timeout
-import cluster.sclr.Messages.{Workload}
+import cluster.sclr.Messages.Workload
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.LazyLogging
 import spray.json.{DefaultJsonProtocol, PrettyPrinter}

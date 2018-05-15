@@ -101,10 +101,17 @@ class SetCover(allDnfs: Vector[BitSet], mu: Double, beta: Int, simpleAlgorithm: 
     (bestKDNF, minError)
   }
 
-  private val unionCache = new mutable.HashMap[Vector[BitSet], BitSet]()
   private def union(sets: Vector[BitSet]): BitSet = {
-    unionCache.getOrElseUpdate(sets, if (sets.isEmpty) BitSet.empty else sets.reduceLeft((accum, b) => accum.union(b)))
+    if (sets.isEmpty) BitSet.empty else sets.reduceLeft((accum, b) => accum.union(b))
   }
+
+  // IMPORTANT NOTE!!!
+  // For some reason, when we use this cache, it seems the system occasionally gets into an infinite loop. I don't
+  // understand why, but it happens.
+//  private val unionCache = new mutable.HashMap[Vector[BitSet], BitSet]()
+//  private def union(sets: Vector[BitSet]): BitSet = {
+//    unionCache.getOrElseUpdate(sets, if (sets.isEmpty) BitSet.empty else sets.reduceLeft((accum, b) => accum.union(b)))
+//  }
 
   private def harmonic(n: Int): Double = {
     (1 to n).foldLeft(0.0)((a,b) => a + 1.0 / b)

@@ -13,7 +13,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 object LocalApp {
   def main(args: Array[String]): Unit = {
-    implicit val system: ActorSystem = Sclr.run()
+    implicit val system: ActorSystem = Sclr.run(parallel = 4)
     val work = Workload("tiny", 2, 0.24, useLPNorm = true)
     val responseFuture = Marshal(work).to[RequestEntity] flatMap { entity =>
       println(s"Sending entity: $entity")

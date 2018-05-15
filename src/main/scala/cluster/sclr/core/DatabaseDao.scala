@@ -19,7 +19,7 @@ import doobie._
 case class XYZ(id: Int, x: Array[Boolean], y: Array[Double], z: Double)
 case class Dataset(data: Array[XYZ], xLength: Int, yLength: Int)
 case class DatasetInfo(xLength: Int, yLength: Int, rowCount: Int)
-case class Result(dimensions: Vector[Int], rows: Vector[Int], coefficients: Vector[Double], error: Double, kDNF: String)
+case class Result(dimensions: Vector[Int], rows: Vector[Int], coefficients: Vector[Double], error: Double, kDNF: Option[String])
 
 class DatabaseDao extends LazyLogging {
 
@@ -105,7 +105,7 @@ class DatabaseDao extends LazyLogging {
     sql"SELECT COUNT(*) FROM $name.results".query[Long].unique.transact(xa).unsafeRunSync()
   }
 
-  def insertResult(schema: String, result: Result): Int = {
+  def insertResult(schema: String)(result: Result): Int = {
     val insertNames = Vector("error",
       dimensionNames(result.dimensions.length).mkString(","),
       rowNames(result.rows.length).mkString(","),
@@ -139,7 +139,7 @@ class DatabaseDao extends LazyLogging {
         Fragment.const((
           Vector("id BIGINT NOT NULL AUTO_INCREMENT", "error DOUBLE NOT NULL") ++
             tableDims ++ tableRows ++ tableCoeffs ++
-            Vector("kdnf TEXT NOT NULL", "created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP", "PRIMARY KEY (id)")
+            Vector("kdnf TEXT DEFAULT NULL", "created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP", "PRIMARY KEY (id)")
           ).mkString("(", ",", ")"))
       fragment.update.run.transact(xa).unsafeRunSync()
     } catch {

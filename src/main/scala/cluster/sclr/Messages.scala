@@ -1,6 +1,7 @@
 package cluster.sclr
 
-import akka.stream.SinkRef
+import akka.updated.stream.{SinkRef, SourceRef}
+import cluster.sclr.core.Result
 
 object Messages {
   val workloadTopic = "workloadTopic"
@@ -12,5 +13,5 @@ object Messages {
   }
 
   final case class Work(selectedDimensions: Vector[Int], selectedRows: Vector[Int])
-  final case class WorkSinkReady(sinkRef: SinkRef[Work])
+  final case class WorkComputeReady(pullWork: SinkRef[Work], pushResult: SourceRef[Result])
 }

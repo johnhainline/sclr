@@ -2,19 +2,20 @@
  * Copyright (C) 2018 Lightbend Inc. <https://www.lightbend.com>
  */
 
-package akka.stream.impl.streamref
+package akka.updated.stream.impl.streamref
 
 import akka.Done
 import akka.NotUsed
-import akka.actor.{ ActorRef, Terminated }
+import akka.actor.{ActorRef, Terminated}
 import akka.annotation.InternalApi
 import akka.event.Logging
 import akka.stream._
 import akka.stream.scaladsl.Sink
 import akka.stream.stage._
-import akka.util.{ OptionVal, PrettyDuration }
+import akka.updated.stream.{SinkRef, SourceRef}
+import akka.util.{OptionVal, PrettyDuration}
 
-import scala.concurrent.{ Future, Promise }
+import scala.concurrent.{Future, Promise}
 import scala.util.Try
 
 /** INTERNAL API: Implementation class, not intended to be touched directly by end-users */
@@ -52,7 +53,7 @@ private[stream] final class SinkRefStageImpl[In] private[akka] (
       private[this] lazy val streamRefsMaster = StreamRefsMaster(ActorMaterializerHelper.downcast(materializer).system)
 
       // settings ---
-      import StreamRefAttributes._
+      import akka.stream.StreamRefAttributes._
       private[this] lazy val settings = ActorMaterializerHelper.downcast(materializer).settings.streamRefSettings
 
       private[this] lazy val subscriptionTimeout = inheritedAttributes
@@ -106,6 +107,7 @@ private[stream] final class SinkRefStageImpl[In] private[akka] (
               s"Local stream terminating, message loss (on remote side) may have happened."))
 
         case (sender, StreamRefsProtocol.CumulativeDemand(d)) ⇒
+          println(s"${this.stageActorName}: got CumulativeDemand($d) from $sender")
           // the other side may attempt to "double subscribe", which we want to fail eagerly since we're 1:1 pairings
           observeAndValidateSender(sender, "Illegal sender for CumulativeDemand")
 
@@ -126,7 +128,10 @@ private[stream] final class SinkRefStageImpl[In] private[akka] (
 
       private def tryPull() =
         if (remoteCumulativeDemandConsumed < remoteCumulativeDemandReceived && !hasBeenPulled(in)) {
+//          println(s"SinkRef ${this.stageActorName}: PULLING remoteCumulativeDemandConsumed: $remoteCumulativeDemandConsumed, remoteCumulativeDemandReceived: $remoteCumulativeDemandReceived")
           pull(in)
+//        } else {
+//          println(s"SinkRef ${this.stageActorName}: CAN'T PULL remoteCumulativeDemandConsumed: $remoteCumulativeDemandConsumed, remoteCumulativeDemandReceived: $remoteCumulativeDemandReceived, isAvailable: ${isAvailable(in)}, hasBeenPulled: ${hasBeenPulled(in)}")
         }
 
       override protected def onTimer(timerKey: Any): Unit = timerKey match {

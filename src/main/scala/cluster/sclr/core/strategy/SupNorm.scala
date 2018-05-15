@@ -8,7 +8,7 @@ import combinations.Combinations
 class SupNorm(val dataset: Dataset, val workload: Workload) extends KDNFStrategy(dataset) {
   def epsilon: Double = workload.optionalEpsilon.get
 
-  def run(yDimensions: Vector[Int], rows: Vector[Int]): Option[Result] = {
+  def run(yDimensions: Vector[Int], rows: Vector[Int]): Result = {
     var kdnf = ""
     var error = 0.0
     var coeff = Vector(0.0)
@@ -54,10 +54,8 @@ class SupNorm(val dataset: Dataset, val workload: Workload) extends KDNFStrategy
         }
       }
     }
-    if (kdnf.length > 0)
-      Some(Result(yDimensions, rows, coeff, error, kdnf))
-    else
-      None
+    val realKdnf = if (kdnf.length > 0) Some(kdnf) else None
+    Result(yDimensions, rows, coeff, error, realKdnf)
   }
 
   private def solveLinearSystem(data: Array[XYZ], yDimensions: Vector[Int], rows: Vector[Int], r1: Int, r2: Int, r3: Int) = {

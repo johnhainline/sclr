@@ -2,11 +2,12 @@
  * Copyright (C) 2018 Lightbend Inc. <https://www.lightbend.com>
  */
 
-package akka.stream
+package akka.updated.stream
 
 import akka.NotUsed
 import akka.actor.ActorRef
-import akka.stream.scaladsl.{ Sink, Source }
+import akka.stream.javadsl
+import akka.stream.scaladsl.{Sink, Source}
 
 import scala.language.implicitConversions
 
@@ -27,7 +28,7 @@ object SinkRef {
  * To create a [[SinkRef]] you have to materialize the `Sink` that you want to obtain a reference to by attaching it to a `StreamRefs.sinkRef()`.
  *
  * Stream refs can be seen as Reactive Streams over network boundaries.
- * See also [[akka.stream.SourceRef]] which is the dual of a `SinkRef`.
+ * See also [[SourceRef]] which is the dual of a `SinkRef`.
  *
  * For additional configuration see `reference.conf` as well as [[akka.stream.StreamRefAttributes]].
  */
@@ -56,7 +57,7 @@ object SourceRef {
  * To create a [[SourceRef]] you have to materialize the `Source` that you want to obtain a reference to by attaching it to a `Sink.sourceRef`.
  *
  * Stream refs can be seen as Reactive Streams over network boundaries.
- * See also [[akka.stream.SinkRef]] which is the dual of a `SourceRef`.
+ * See also [[SinkRef]] which is the dual of a `SourceRef`.
  *
  * For additional configuration see `reference.conf` as well as [[akka.stream.StreamRefAttributes]].
  */

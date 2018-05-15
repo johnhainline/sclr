@@ -32,11 +32,10 @@ object Sclr {
     system.actorOf(supervisor, name = s"${name}Supervisor")
   }
 
-  def run(): ActorSystem = {
+  def run(parallel: Int = 1): ActorSystem = {
     val config = ConfigFactory.load()
     implicit val system: ActorSystem = ActorSystem("sclr", config)
     implicit val mat: ActorMaterializer = ActorMaterializer()(system)
-    val parallel = 1
     Cluster(system) registerOnMemberUp {
       val cluster = Cluster(system)
       val roles = cluster.getSelfRoles
