@@ -45,9 +45,9 @@ class ManageActor(infoService: InfoService, dao: DatabaseDao, r: Random = new Ra
   def prepareWorkload(xa: Transactor[IO])(): Receive = {
     case workload: Workload =>
       val info = dao.getDatasetInfo(xa, workload.name)
-      log.debug(s"ManageActor - preparing workload for dataset: ${workload.name} with dimensions:${info.xLength} rows:${info.rowCount} selecting dimensions:${ManageActor.Y_DIMENSIONS} rows:${workload.getRowsConstant()}")
+      log.debug(s"ManageActor - preparing workload for dataset: ${workload.name} with dimensions:${info.yLength} rows:${info.rowCount} selecting dimensions:${ManageActor.Y_DIMENSIONS} rows:${workload.getRowsConstant()}")
       // An iterator that runs through (ySize choose 2) * (rows choose 2)
-      val iteratorGen = () => ManageActor.createIterator(info.rowCount, info.yLength, workload.getRowsConstant(), workload.optionalSubset, r)
+      val iteratorGen = () => ManageActor.createIterator(rowCount = info.rowCount, yLength = info.yLength, rowsConstant = workload.getRowsConstant(), workload.optionalSubset, r)
 
       // A simple producer that runs through our iterator
       val producer = Source.fromIterator(iteratorGen)
@@ -71,7 +71,7 @@ class ManageActor(infoService: InfoService, dao: DatabaseDao, r: Random = new Ra
 
   def sendingWorkload(workload: Workload, source: Source[Work, NotUsed], sink: Sink[Result, NotUsed])(): Receive = {
     case SendWorkload =>
-      log.debug(s"ManageActor - sending workload to topic: $workloadTopic")
+      log.debug(s"ManageActor - sending workload: $workload to topic: $workloadTopic")
       DistributedPubSub(context.system).mediator ! Publish(workloadTopic, workload)
       context.system.scheduler.scheduleOnce(delay = 5 seconds, self, SendWorkload)
     case WorkComputeReady(pushWork, pullResult) =>
@@ -90,12 +90,13 @@ object ManageActor {
 
   def props(infoService: InfoService, resultsDao: DatabaseDao) = Props(new ManageActor(infoService, resultsDao))
 
-  private def createIterator(rowCount: Int, yLength: Int, rowsConstant: Int, optionalSubset: Option[Int], r: Random): Iterator[Work] = {
+  def createIterator(rowCount: Int, yLength: Int, rowsConstant: Int, optionalSubset: Option[Int], r: Random): Iterator[Work] = {
     val selectYDimensions = () => Combinations(yLength, ManageActor.Y_DIMENSIONS).iterator()
     val selectRows = if (optionalSubset.isEmpty) {
       () => Combinations(rowCount, rowsConstant).iterator()
     } else {
-      () => Combinations(rowCount, rowsConstant).subsetIterator(optionalSubset.get, r)
+      val iteratorSeed = r.nextLong()
+      () => Combinations(rowCount, rowsConstant).subsetIterator(optionalSubset.get, new Random(iteratorSeed))
     }
     val iterator = MultipliedIterator(Vector(selectYDimensions, selectRows)).map(
       next => Work(selectedDimensions = next.head, selectedRows = next.last)

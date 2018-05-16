@@ -7,15 +7,6 @@ gcloud container clusters delete cluster-1
 kubectl create secret generic mysql-password --from-literal=password=KO4eD0BrP2PC19jO
 kubectl scale statefulsets compute --replicas=5
 
-
-
-minikube start --cpus 4 --memory 4096
-minikube addons enable kube-dns
-minikube addons list
-minikube dashboard
-eval $(minikube docker-env) // make minikube use the correct local repo
-kubectl create secret generic mysql-password --from-literal=password=KO4eD0BrP2PC19jO
-
 docker images
 docker rmi -f $(docker images -a -q)
 
@@ -38,15 +29,14 @@ kubectl config use-context gke_sclr-01_us-central1-a_sclr-01
 cd src/main/resources/kubernetes/; kubectl create -f mysql.yaml; kubectl create -f manage-pods.yaml; kubectl create -f compute-pods.yaml; cd ../../../..;
 kubectl delete pvc mysql-pv-claim; kubectl delete all -l app=sclr
 
-kubectl exec -ti compute-0 -- curl -vH "Content-Type: application/json" -X POST -d '{"name":"m5000","dnfSize":2,"optionalSample":500,"useLPNorm":true,"mu":0.2465}' http-service.default.svc.cluster.local:8080/begin
-kubectl exec -ti compute-0 -- curl -vH "Content-Type: application/json" -X POST -d '{"name":"m5000","dnfSize":2,"useLPNorm":true,"mu":0.2465}' http-service.default.svc.cluster.local:8080/begin
+kubectl exec -ti compute-0 -- curl -vH "Content-Type: application/json" -X POST -d '{"name":"m5000","dnfSize":2,"optionalSubsample":500,"useLPNorm":true,"mu":0.2465}' http-service.default.svc.cluster.local:8080/begin
 **** MYSQL ****
 
 kubectl exec -it compute-0 -- /bin/bash
 kubectl run -it --rm --image=mysql:5.7 --restart=Never mysql-client -- mysql -h mysql-service -pKO4eD0BrP2PC19jO
 kubectl exec -it mysql-client -- mysql -h mysql-service -pKO4eD0BrP2PC19jO
 
-kubectl exec -ti mysql-85d59757b6-z8zfb -- mysqldump --add-drop-database --databases m5000 -pKO4eD0BrP2PC19jO > backup.sql
+kubectl exec -ti mysql-7d98565cb6-nqcvd -- mysqldump --add-drop-database --databases m5000 -pKO4eD0BrP2PC19jO > backup.sql
 mysqldump --databases m5000 -h mysql-service.default.svc.cluster.local -pKO4eD0BrP2PC19jO > backup.sql 
 
 /usr/local/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/
@@ -55,12 +45,8 @@ sudo ln -s /usr/local/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/bin/dock
 sudo ln -s /usr/local/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/bin/container-builder-local /usr/local/bin/container-builder-local
 
 
-SELECT * FROM tiny.results ORDER BY error LIMIT 10;
-
-
 docker pull us.gcr.io/sclr-01/manage:latest
 docker pull us.gcr.io/sclr-01/compute:latest
-
 
 SELECT count(*) from m5000.results;
 select * from m5000.results order by created_at limit 1;

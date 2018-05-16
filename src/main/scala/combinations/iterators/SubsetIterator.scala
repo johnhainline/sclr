@@ -9,7 +9,7 @@ class SubsetIterator(n: Int, k: Int, i: BigInt, j: BigInt, subsetSize: Int, r: R
 
   private val internalIterator = new CombinationsIterator(subsetSize, k, i, j, Combinations.choose(subsetSize, k))
 
-  private val samples = {
+  val samples: Array[Int] = {
     var tries = 0
     val sampleSet = new mutable.TreeSet[Int]()
     while (tries < 3*subsetSize && sampleSet.size < subsetSize) {

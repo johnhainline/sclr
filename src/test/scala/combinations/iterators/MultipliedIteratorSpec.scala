@@ -1,5 +1,7 @@
 package combinations.iterators
 
+import cluster.sclr.Messages.Work
+import cluster.sclr.actors.ManageActor
 import combinations.Combinations
 import org.scalatest._
 
@@ -94,5 +96,24 @@ class MultipliedIteratorSpec extends FlatSpec with Matchers {
       Vector(Vector(1,2),Vector(1))  // 5
     )
     result3 shouldEqual expected3
+  }
+
+  it should "handle our particular usage correctly" in {
+    val subsetSize = 20
+    val rowCount = 5000
+    val yLength = 10
+    val expectedRows = Combinations(rowCount, 2).subsetIterator(subsetSize, new Random(new Random(1234).nextLong())).samples
+
+    val r = new Random(1234)
+    val iterator = ManageActor.createIterator(rowCount, yLength, rowsConstant = 2, Some(subsetSize), r)
+
+    val allWork = iterator.toVector
+    val row0Entries = allWork.map(_.selectedRows.head)
+    val row1Entries = allWork.map(_.selectedRows.last)
+    val entries = row0Entries.toSet.union(row1Entries.toSet)
+    entries should be (expectedRows.toSet)
+    expectedRows.length should be (subsetSize)
+    val expectedWorkSize = Combinations.choose(yLength, 2) * Combinations.choose(subsetSize, 2)
+    allWork.size should be (expectedWorkSize)
   }
 }

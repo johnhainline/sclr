@@ -26,12 +26,12 @@ case class Combinations(n: Int, k: Int) {
   }
 
   // Returns an iterator for a subsampling of the complete set of 'n choose k' combinations.
-  def samplingIterator(sample: Int, r: Random = new Random()): Iterator[Combination] = {
+  def samplingIterator(sample: Int, r: Random = new Random()): SamplingIterator = {
     new SamplingIterator(n, k, 0, size, sample, r)
   }
 
   // Returns an iterator for a subset of indices of n, which have 'subsetSize choose k' combinations.
-  def subsetIterator(subsetSize: Int, r: Random = new Random()): Iterator[Combination] = {
+  def subsetIterator(subsetSize: Int, r: Random = new Random()): SubsetIterator = {
     new SubsetIterator(n, k, 0, Combinations.choose(subsetSize, k), subsetSize, r)
   }
 
