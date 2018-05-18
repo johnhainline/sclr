@@ -1,9 +1,9 @@
 gcloud config set project sclr-01
 gcloud config set compute/zone us-central1-a
-gcloud container clusters create sclr-01  --zone us-central1-a --num-nodes 8 --cluster-version=1.9.7-gke.0
+gcloud container clusters create cluster-1  --zone us-central1-a --num-nodes 8 --cluster-version=1.9.7-gke.0
+gcloud container clusters delete cluster-1
 gcloud compute project-info describe --project sclr-01
 gcloud container clusters get-credentials cluster-1
-gcloud container clusters delete cluster-1
 kubectl create secret generic mysql-password --from-literal=password=KO4eD0BrP2PC19jO
 kubectl scale statefulsets compute --replicas=5
 
@@ -23,13 +23,13 @@ kubectl logs -v=5 -f compute-0
 kubectl logs -v=5 -f $(kubectl get pods -o name | grep "manage")
 
 kubectl config get-contexts
-kubectl config use-context minikube
 kubectl config use-context gke_sclr-01_us-central1-a_sclr-01
 
 cd src/main/resources/kubernetes/; kubectl create -f mysql.yaml; kubectl create -f manage-pods.yaml; kubectl create -f compute-pods.yaml; cd ../../../..;
 kubectl delete pvc mysql-pv-claim; kubectl delete all -l app=sclr
 
-kubectl exec -ti compute-0 -- curl -vH "Content-Type: application/json" -X POST -d '{"name":"m5000","dnfSize":2,"optionalSubsample":500,"useLPNorm":true,"mu":0.2465}' http-service.default.svc.cluster.local:8080/begin
+kubectl exec -ti compute-0 -- curl -vH "Content-Type: application/json" -X POST -d '{"name":"m5000","dnfSize":2,"optionalSubset":500,"useLPNorm":true,"mu":0.2465}' http-service.default.svc.cluster.local:8080/begin
+
 **** MYSQL ****
 
 kubectl exec -it compute-0 -- /bin/bash
