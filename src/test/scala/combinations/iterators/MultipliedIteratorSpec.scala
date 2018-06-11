@@ -1,6 +1,5 @@
 package combinations.iterators
 
-import cluster.sclr.Messages.Work
 import cluster.sclr.actors.ManageActor
 import combinations.Combinations
 import org.scalatest._

@@ -1,21 +1,21 @@
 package cluster.sclr.strategy
 
 import Jama.Matrix
-import cluster.sclr.Messages.Workload
+import cluster.sclr.Messages.{Work, Workload}
 import cluster.sclr.database.{Dataset, Result, XYZ}
 import combinations.Combinations
 
 class SupNorm(val dataset: Dataset, val workload: Workload) extends KDNFStrategy(dataset) {
   def epsilon: Double = workload.optionalEpsilon.get
 
-  def run(yDimensions: Vector[Int], rows: Vector[Int]): Result = {
+  def run(work: Work): Result = {
     var kdnf = ""
     var error = 0.0
     var coeff = Vector(0.0)
     val M = dataset.data.length
     val ro = List(-1, 1)
     for (r1 <- ro; r2 <- ro; r3 <- ro) {
-      val (coeff1, coeff2, epsilon2) = solveLinearSystem(dataset.data, yDimensions, rows, r1, r2, r3)
+      val (coeff1, coeff2, epsilon2) = solveLinearSystem(dataset.data, work.selectedDimensions, work.selectedRows, r1, r2, r3)
 
       if (epsilon2 <= epsilon && epsilon2 > 0) {
         var allDNFTerms = Combinations(dataset.xLength, workload.dnfSize).iterator().flatMap { zeroIndexedIndices =>
@@ -26,8 +26,8 @@ class SupNorm(val dataset: Dataset, val workload: Workload) extends KDNFStrategy
 
         for (i <- 0 until M) {
           val xyz = dataset.data(i)
-          val y1 = xyz.y(yDimensions(0))
-          val y2 = xyz.y(yDimensions(1))
+          val y1 = xyz.y(work.selectedDimensions(0))
+          val y2 = xyz.y(work.selectedDimensions(1))
 
           if (Math.abs(coeff1 * y1 + coeff2 * y2 - xyz.z) > epsilon) {
             allDNFTerms = allDNFTerms.filterNot(p =>
@@ -55,7 +55,7 @@ class SupNorm(val dataset: Dataset, val workload: Workload) extends KDNFStrategy
       }
     }
     val realKdnf = if (kdnf.length > 0) Some(kdnf) else None
-    Result(yDimensions, rows, coeff, error, realKdnf)
+    Result(work.index, work.selectedDimensions, work.selectedRows, coeff, error, realKdnf)
   }
 
   private def solveLinearSystem(data: Array[XYZ], yDimensions: Vector[Int], rows: Vector[Int], r1: Int, r2: Int, r3: Int) = {

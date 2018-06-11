@@ -5,13 +5,11 @@ import akka.cluster.pubsub.DistributedPubSub
 import akka.cluster.pubsub.DistributedPubSubMediator.{Subscribe, SubscribeAck}
 import akka.event.LoggingAdapter
 import akka.pattern.pipe
-import akka.stream.ActorMaterializer
-import akka.stream.scaladsl.{Flow, Keep, Sink, Source}
-import akka.updated.stream.{SinkRef, SourceRef}
-import akka.updated.stream.scaladsl.StreamRefs
+import akka.stream.{ActorMaterializer, SinkRef, SourceRef}
+import akka.stream.scaladsl.{Flow, Keep, Sink, Source, StreamRefs}
 import cluster.sclr.Messages._
-import cluster.sclr.strategy.{KDNFStrategy, L2Norm, SupNorm}
 import cluster.sclr.database.{DatabaseDao, Result}
+import cluster.sclr.strategy.{KDNFStrategy, L2Norm, SupNorm}
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
@@ -50,13 +48,13 @@ class ComputeActor(parallelization: Int, dao: DatabaseDao) extends Actor with Ac
 
       // obtain the flow you want to attach:
       val flows = (for (i <- 0 until parallelization) yield ComputeActor.createComputeFlow(strategy, log)).toList
-      for (flow <- flows) {
+      for (computeFlow <- flows) {
         // Create source of an eventual SinkRef[Work]
-        val pullWorkSource: Source[Work, Future[SinkRef[Work]]] = StreamRefs.sinkRef[Work]()
+        val pullWorkSource: Source[Work, Future[SinkRef[Work]]] = StreamRefs.sinkRef[Work].named(name = "StreamRef-sink-pullWork")
         // Create sink of an eventual SourceRef[Result]
-        val pushResultSink: Sink[Result, Future[SourceRef[Result]]] = StreamRefs.sourceRef[Result]()
+        val pushResultSink: Sink[Result, Future[SourceRef[Result]]] = StreamRefs.sourceRef[Result].named(name = "StreamRef-source-pushResults")
         // materialize both SourceRef and SinkRef (the remote is a source of data, and a sink of data for us):
-        val ref = pullWorkSource.viaMat(flow)(Keep.left).toMat(pushResultSink)(Keep.both).run()
+        val ref = pullWorkSource.viaMat(computeFlow)(Keep.left).toMat(pushResultSink)(Keep.both).run()
         // wrap the Refs in some domain message
         val reply = for (pullWork <- ref._1; pushResult <- ref._2) yield {
           WorkComputeReady(pullWork, pushResult)
@@ -70,10 +68,6 @@ class ComputeActor(parallelization: Int, dao: DatabaseDao) extends Actor with Ac
   def done: Receive = {
     case _ => Unit
   }
-
-  override def postStop(): Unit = {
-    super.postStop()
-  }
 }
 
 object ComputeActor {
@@ -81,6 +75,8 @@ object ComputeActor {
 
   private def createComputeFlow(strategy: KDNFStrategy, log: LoggingAdapter) = Flow[Work].map { work =>
     log.info(s"ComputeActor - received work: $work")
-    strategy.run(work.selectedDimensions, work.selectedRows)
-  }
+//    if (work.selectedRows == Vector(5,6) && work.selectedDimensions == Vector(0,1))
+//      throw new RuntimeException(s"Explosion!")
+    strategy.run(work)
+  }.named("Compute-flow")
 }

@@ -1,6 +1,6 @@
 package cluster.sclr
 
-import akka.updated.stream.{SinkRef, SourceRef}
+import akka.stream.{SinkRef, SourceRef}
 import cluster.sclr.database.Result
 
 object Messages {
@@ -12,6 +12,6 @@ object Messages {
     }
   }
 
-  final case class Work(selectedDimensions: Vector[Int], selectedRows: Vector[Int])
+  final case class Work(index: Int, selectedDimensions: Vector[Int], selectedRows: Vector[Int])
   final case class WorkComputeReady(pullWork: SinkRef[Work], pushResult: SourceRef[Result])
 }

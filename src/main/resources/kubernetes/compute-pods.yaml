@@ -37,7 +37,7 @@ spec:
     spec:
       containers:
       - name: compute
-        image: us.gcr.io/sclr-01/sclr:latest
+        image: us.gcr.io/washu-seas-mltheory/sclr:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 2551

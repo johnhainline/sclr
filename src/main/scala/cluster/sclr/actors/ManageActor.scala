@@ -6,8 +6,7 @@ import akka.cluster.pubsub.DistributedPubSub
 import akka.cluster.pubsub.DistributedPubSubMediator.Publish
 import akka.remote.Ack
 import akka.stream.ActorMaterializer
-import akka.stream.scaladsl.{Keep, Sink, Source}
-import akka.updated.stream.scaladsl.{BalanceHub, MergeHub}
+import akka.stream.scaladsl._
 import cats.effect.IO
 import cluster.sclr.Messages._
 import cluster.sclr.database.{DatabaseDao, Result}
@@ -15,6 +14,7 @@ import cluster.sclr.http.InfoService
 import combinations.Combinations
 import combinations.iterators.MultipliedIterator
 import doobie.util.transactor.Transactor
+import streams.BalanceHub
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -51,6 +51,7 @@ class ManageActor(infoService: InfoService, dao: DatabaseDao, r: Random = new Ra
 
       // A simple producer that runs through our iterator
       val producer = Source.fromIterator(iteratorGen)
+
       // Attach a BalanceHub Sink to the producer to multiplex. This will materialize to a corresponding Source.
       // (We need to use toMat and Keep.right since by default the materialized value to the left is used)
       val runnableSourceGraph = producer.toMat(BalanceHub.sink(bufferSize = 16))(Keep.right)
@@ -58,30 +59,30 @@ class ManageActor(infoService: InfoService, dao: DatabaseDao, r: Random = new Ra
       val source = runnableSourceGraph.run()
 
       // A simple consumer that saves our results
-      val consumer = Sink.foreachParallel(parallelism = databaseConnections) {dao.insertResult(xa, workload.name)}
-      // Attach a MergeHub Sink to the consumer to de-multiplex. This will materialize to a corresponding Sink.
-      // (We need to use toMat and Keep.right since by default the materialized value to the left is used)
-      val runnableSinkGraph = MergeHub.source[Result](perProducerBufferSize = 24).to(consumer)
-      // Create the sink that we will our compute "pullResult" sources attach to.
+      val consumer = Sink.foreachParallel(parallelism = databaseConnections) {dao.insertResults(xa, workload.name)}
+
+      // MergeHub source de-multiplexes from our pushResultSink.
+      val mergeHubSource = MergeHub.source[Result](perProducerBufferSize = 16)
+      // We include a groupedWithin to make the database save in batches. We attach to our consumer to actually save.
+      val runnableSinkGraph = mergeHubSource.groupedWithin(50, 100 milliseconds).named(name = "DB-grouper").to(consumer)
       val sink = runnableSinkGraph.run()
 
       self ! SendWorkload
       context.become(sendingWorkload(workload, source, sink))
   }
 
+  // iteratorSource -> pullWorkSource -> computeFlow -> pushResultsSink -> saveSink
   def sendingWorkload(workload: Workload, source: Source[Work, NotUsed], sink: Sink[Result, NotUsed])(): Receive = {
     case SendWorkload =>
       log.debug(s"ManageActor - sending workload: $workload to topic: $workloadTopic")
       DistributedPubSub(context.system).mediator ! Publish(workloadTopic, workload)
       context.system.scheduler.scheduleOnce(delay = 5 seconds, self, SendWorkload)
-    case WorkComputeReady(pushWork, pullResult) =>
-      log.debug(s"ManageActor - received WorkSinkReady($pushWork, $pullResult)")
-      source.runWith(pushWork)
-      pullResult.runWith(sink)
-  }
-
-  override def postStop(): Unit = {
-    super.postStop()
+    case WorkComputeReady(pushWorkSink, pullResultSource) =>
+      log.debug(s"ManageActor - received WorkSinkReady($pushWorkSink, $pullResultSource)")
+      // compute: flow = pullWorkSource -> computeFlow -> pushResultsSink
+      // manage:  flow = pushWorkSink   -> pullResultSource
+      val flow = Flow.fromSinkAndSource(pushWorkSink, pullResultSource).named(name = "fromSinkAndSource")
+      source.via(flow).runWith(sink)
   }
 }
 
@@ -98,9 +99,9 @@ object ManageActor {
       val iteratorSeed = r.nextLong()
       () => Combinations(rowCount, rowsConstant).subsetIterator(optionalSubset.get, new Random(iteratorSeed))
     }
-    val iterator = MultipliedIterator(Vector(selectYDimensions, selectRows)).map(
-      next => Work(selectedDimensions = next.head, selectedRows = next.last)
-    )
+    val iterator = MultipliedIterator(Vector(selectYDimensions, selectRows)).zipWithIndex.map { case (next, index) =>
+      Work(index, selectedDimensions = next.head, selectedRows = next.last)
+    }
     iterator
   }
 }

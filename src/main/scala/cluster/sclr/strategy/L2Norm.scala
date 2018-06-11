@@ -1,6 +1,6 @@
 package cluster.sclr.strategy
 
-import cluster.sclr.Messages.Workload
+import cluster.sclr.Messages.{Work, Workload}
 import cluster.sclr.database._
 import combinations.Combinations
 
@@ -24,20 +24,22 @@ class L2Norm(val dataset: Dataset, val workload: Workload, simpleAlgorithm: Bool
   lazy val terms = termToIndices.keys.toVector
   lazy val setCover = new SetCover(terms, workload.mu, dataset.xLength, simpleAlgorithm = simpleAlgorithm)
 
-  def run(yDimensions: Vector[Int], rows: Vector[Int]): Result = {
+  def run(work: Work): Result = {
 
     // Construct redness score with a map of XYZ.id -> redness
-    val (idToRedness, coeff1, coeff2) = constructRednessScores(dataset.data, yDimensions, rows)
+    val (idToRedness, coeff1, coeff2) = constructRednessScores(dataset.data, work)
 
     val (kDNF, error) = setCover.lowDegPartial2(idToRedness)
     val kDNFString = kDNF.map(termToIndices).toString
 
     val realKdnf = if (kDNF.nonEmpty) Some(kDNFString) else None
-    Result(yDimensions, rows, Vector(coeff1, coeff2), error, realKdnf)
+    Result(work.index, work.selectedDimensions, work.selectedRows, Vector(coeff1, coeff2), error, realKdnf)
   }
 
 
-  private def constructRednessScores(data: Array[XYZ], yDimensions: Vector[Int], rows: Vector[Int]) = {
+  private def constructRednessScores(data: Array[XYZ], work: Work) = {
+    val yDimensions = work.selectedDimensions
+    val rows = work.selectedRows
     val xyz1 = data(rows(0))
     val xyz2 = data(rows(1))
 

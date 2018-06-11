@@ -2,7 +2,7 @@
  * Copyright (C) 2018 Lightbend Inc. <https://www.lightbend.com>
  */
 
-package akka.updated.stream.scaladsl
+package streams
 
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.atomic.{AtomicLong, AtomicReference}
@@ -30,7 +30,7 @@ object BalanceHub {
   /**
     * INTERNAL API
     */
-  @InternalApi private[akka] val defaultBufferSize = 16
+  @InternalApi private[streams] val defaultBufferSize = 16
 
   /**
     * Creates a [[Sink]] that receives elements from its upstream producer and broadcasts them to a dynamic set
@@ -56,7 +56,7 @@ object BalanceHub {
 /**
   * INTERNAL API
   */
-private[akka] class BalanceHub[T](bufferSize: Int)
+private[streams] class BalanceHub[T](bufferSize: Int)
   extends GraphStageWithMaterializedValue[SinkShape[T], Source[T, NotUsed]] {
   require(bufferSize > 0, "Buffer size must be positive")
 

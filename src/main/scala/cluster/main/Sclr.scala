@@ -7,34 +7,29 @@ import akka.stream.ActorMaterializer
 import cluster.sclr.actors.{ComputeActor, ManageActor}
 import cluster.sclr.database.DatabaseDao
 import cluster.sclr.http.InfoService
-import com.typesafe.config.ConfigFactory
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
 object Sclr {
 
-  private def runResumeSupervisorForActor(name: String, props: Props)(implicit system: ActorSystem): ActorRef = {
-    val supervisor = BackoffSupervisor.props(
-      Backoff.onFailure(
-        props,
+  def runResumeSupervisorForActor(name: String, props: Props)(implicit system: ActorSystem): ActorRef = {
+    val supervisor = BackoffSupervisor.propsWithSupervisorStrategy(
+        childProps = props,
         childName = name,
         minBackoff = 3 seconds,
         maxBackoff = 30 seconds,
-        randomFactor = 0.2 // adds 20% "noise" to vary the intervals slightly
-      ).withAutoReset(resetBackoff = 10 seconds) // reset if the child does not throw any errors within 10 seconds
-        .withSupervisorStrategy(
-        OneForOneStrategy() {
+        randomFactor = 0.2, // adds 20% "noise" to vary the intervals slightly
+        strategy = OneForOneStrategy() {
           case e: Exception ⇒
             system.log.error(e, message = s"$name raised exception. Resuming...")
             SupervisorStrategy.Resume
-        }))
+        })
     system.actorOf(supervisor, name = s"${name}Supervisor")
   }
 
   def run(parallel: Int = 1): ActorSystem = {
-    val config = ConfigFactory.load()
-    implicit val system: ActorSystem = ActorSystem("sclr", config)
+    implicit val system: ActorSystem = ActorSystem("sclr")
     implicit val mat: ActorMaterializer = ActorMaterializer()(system)
     Cluster(system) registerOnMemberUp {
       val cluster = Cluster(system)

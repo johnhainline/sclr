@@ -19,9 +19,12 @@ import doobie._
 case class XYZ(id: Int, x: Array[Boolean], y: Array[Double], z: Double)
 case class Dataset(data: Array[XYZ], xLength: Int, yLength: Int)
 case class DatasetInfo(xLength: Int, yLength: Int, rowCount: Int)
-case class Result(dimensions: Vector[Int], rows: Vector[Int], coefficients: Vector[Double], error: Double, kDNF: Option[String])
+case class Result(index: Int, dimensions: Vector[Int], rows: Vector[Int], coefficients: Vector[Double], error: Double, kDNF: Option[String])
 
 class DatabaseDao extends LazyLogging {
+
+  private val indexColumn = "work_index"
+  private val errorColumn = "error"
 
   def clearDataset(xa: Transactor[IO], name: String): Long = {
     (sql"DROP SCHEMA IF EXISTS " ++ Fragment.const(name)).update.run.transact(xa).unsafeRunSync()
@@ -101,28 +104,39 @@ class DatabaseDao extends LazyLogging {
     sql"SELECT COUNT(*) FROM $name.results".query[Long].unique.transact(xa).unsafeRunSync()
   }
 
-  def insertResult(xa: Transactor[IO], schema: String)(result: Result): Int = {
-    val insertNames = Vector("error",
+
+  private def getInsertNames(result: Result) = {
+    Fragment.const(Vector(indexColumn, errorColumn,
       dimensionNames(result.dimensions.length).mkString(","),
       rowNames(result.rows.length).mkString(","),
       coeffNames(result.coefficients.length).mkString(","),
       "kdnf"
-    )
+    ).mkString("(", ",", ")"))
+  }
 
-    val reducer = { (l:Fragment, r:Fragment) => l ++ r}
+  private val reducer = { (l:Fragment, r:Fragment) => l ++ r}
+  private def getInsertValues(result: Result) = {
     val fragmentValues =
-      Fragment.const(result.error.toString) ++
+      fr"${result.index},${result.error}" ++
       result.dimensions.map(d => fr", $d").reduce(reducer) ++
       result.rows.map(r => fr", $r").reduce(reducer) ++
       result.coefficients.map(c => fr", $c").reduce(reducer)
+    Fragment.const("(") ++ fragmentValues ++ sql", ${result.kDNF}" ++ Fragment.const(")")
+  }
 
+  def insertResults(xa: Transactor[IO], schema: String)(results: Seq[Result]): Int = {
+    assert(results.nonEmpty)
+    val names = getInsertNames(results.head)
+    val values = results.map(getInsertValues)
+    val aggregateValues = values.reduce[Fragment] { case (frag1, frag2) =>
+      frag1 ++ fr"," ++ frag2
+    }
     val dbUpdate = (fr"INSERT INTO " ++ Fragment.const(s"$schema.results") ++
-      Fragment.const(insertNames.mkString("(", ",", ")")) ++
-      fr"VALUES" ++
-      Fragment.const("(") ++ fragmentValues ++ sql", ${result.kDNF}" ++ Fragment.const(")"))
-      .update
+      names ++ fr"VALUES" ++ aggregateValues).update
     dbUpdate.run.transact(xa).unsafeRunSync()
   }
+
+  def insertResult(xa: Transactor[IO], schema: String)(result: Result): Int = insertResults(xa, schema)(List(result))
 
   def setupSchemaAndTable(xa: Transactor[IO], schema: String, yDimensions: Int, rows: Int): Int = {
     setupSchema(xa, schema)
@@ -133,7 +147,7 @@ class DatabaseDao extends LazyLogging {
       val fragment = fr"CREATE TABLE IF NOT EXISTS" ++
         Fragment.const(s"$schema.results") ++
         Fragment.const((
-          Vector("id BIGINT NOT NULL AUTO_INCREMENT", "error DOUBLE NOT NULL") ++
+          Vector("id BIGINT NOT NULL AUTO_INCREMENT", s"$indexColumn BIGINT NOT NULL", s"$errorColumn DOUBLE NOT NULL") ++
             tableDims ++ tableRows ++ tableCoeffs ++
             Vector("kdnf TEXT DEFAULT NULL", "created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP", "PRIMARY KEY (id)")
           ).mkString("(", ",", ")"))

@@ -1,8 +1,16 @@
-gcloud config set project sclr-01
+Install kvm2 driver
+https://github.com/kubernetes/minikube/blob/master/docs/drivers.md#kvm2-driver
+minikube config set vm-driver kvm2
+minikube start
+minikube start --vm-driver=none
+eval $(minikube docker-env)
+
+gcloud auth login
+gcloud config set project washu-seas-mltheory
 gcloud config set compute/zone us-central1-a
 gcloud container clusters create cluster-1  --zone us-central1-a --num-nodes 8 --cluster-version=1.9.7-gke.0
 gcloud container clusters delete cluster-1
-gcloud compute project-info describe --project sclr-01
+gcloud compute project-info describe --project washu-seas-mltheory
 gcloud container clusters get-credentials cluster-1
 kubectl create secret generic mysql-password --from-literal=password=KO4eD0BrP2PC19jO
 kubectl scale statefulsets compute --replicas=5
@@ -12,7 +20,6 @@ docker rmi -f $(docker images -a -q)
 
 // give docker access to us.gcr.io
 gcloud auth configure-docker
-docker-credential-gcr configure-docker
 cd src/main/resources/docker/; docker build -t local/openjdk-custom:latest .; cd ../../../../;
 sbt docker:publish
 sbt docker:publishLocal
@@ -23,10 +30,11 @@ kubectl logs -v=5 -f compute-0
 kubectl logs -v=5 -f $(kubectl get pods -o name | grep "manage")
 
 kubectl config get-contexts
-kubectl config use-context gke_sclr-01_us-central1-a_sclr-01
+kubectl config use-context gke_washu-seas-mltheory_us-central1-a_cluster-1
 
 cd src/main/resources/kubernetes/; kubectl create -f mysql.yaml; kubectl create -f manage-pods.yaml; kubectl create -f compute-pods.yaml; cd ../../../..;
-kubectl delete pvc mysql-pv-claim; kubectl delete all -l app=sclr
+kubectl delete pvc mysql-pv-claim; kubectl delete statefulset --all; kubectl delete replicaset --all; kubectl delete deployment --all; kubectl delete all -l app=sclr
+
 
 kubectl exec -ti compute-0 -- curl -vH "Content-Type: application/json" -X POST -d '{"name":"m5000","dnfSize":2,"optionalSubset":500,"useLPNorm":true,"mu":0.2465}' http-service.default.svc.cluster.local:8080/begin
 
@@ -45,8 +53,7 @@ sudo ln -s /usr/local/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/bin/dock
 sudo ln -s /usr/local/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/bin/container-builder-local /usr/local/bin/container-builder-local
 
 
-docker pull us.gcr.io/sclr-01/manage:latest
-docker pull us.gcr.io/sclr-01/compute:latest
+docker pull us.gcr.io/washu-seas-mltheory/sclr:latest
 
 SELECT count(*) from m5000.results;
 select * from m5000.results order by created_at limit 1;
