@@ -6,7 +6,7 @@ val doobieVersion = "0.5.3"
 
 organization in ThisBuild := "wustl.engineering"
 scalaVersion in ThisBuild := "2.12.6"
-version in ThisBuild := "1.6.1"
+version in ThisBuild := "1.6.9"
 
 scalacOptions in ThisBuild += "-Ypartial-unification" // 2.11.9+
 scalacOptions in ThisBuild += "-Xlint" // Get more warnings
@@ -60,6 +60,7 @@ lazy val sclr = project
       "com.typesafe.akka" %% "akka-actor"              % akkaVersion,
       "com.typesafe.akka" %% "akka-testkit"            % akkaVersion % Test,
       "com.typesafe.akka" %% "akka-stream"             % akkaVersion,
+      "com.typesafe.akka" %% "akka-stream-contrib"     % "0.9",
       "com.typesafe.akka" %% "akka-stream-testkit"     % akkaVersion % Test,
       "com.typesafe.akka" %% "akka-cluster"            % akkaVersion,
       "com.typesafe.akka" %% "akka-cluster-metrics"    % akkaVersion,

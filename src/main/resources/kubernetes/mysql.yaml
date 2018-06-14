@@ -59,10 +59,10 @@ spec:
               key: password
         resources:
           limits:
-            cpu: 900m
-            memory: 2G
+            cpu: 3000m
+            memory: 6G
           requests:
-            cpu: 900m
+            cpu: 1000m
             memory: 2G
         ports:
         - containerPort: 3306

@@ -36,7 +36,9 @@ cd src/main/resources/kubernetes/; kubectl create -f mysql.yaml; kubectl create 
 kubectl delete pvc mysql-pv-claim; kubectl delete statefulset --all; kubectl delete replicaset --all; kubectl delete deployment --all; kubectl delete all -l app=sclr
 
 
-kubectl exec -ti compute-0 -- curl -vH "Content-Type: application/json" -X POST -d '{"name":"m5000","dnfSize":2,"optionalSubset":500,"useLPNorm":true,"mu":0.2465}' http-service.default.svc.cluster.local:8080/begin
+kubectl exec -ti compute-0 -- curl -vH "Content-Type: application/json" -d '{"name":"m5000","dnfSize":2,"optionalSubset":500,"useLPNorm":true,"mu":0.2465}' http-service.default.svc.cluster.local:8080/begin
+
+kubectl exec -ti compute-0 -- curl -vH "Content-Type: application/json" -d '{"name":"small","dnfSize":2,"useLPNorm":true,"mu":0.24}' http-service.default.svc.cluster.local:8080/begin
 
 **** MYSQL ****
 

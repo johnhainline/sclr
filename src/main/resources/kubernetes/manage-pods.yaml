@@ -65,7 +65,7 @@ spec:
             memory: 8G
           requests:
             cpu: 2000m
-            memory: 6G
+            memory: 4G
         env:
         - name: DATABASE_HOST
           value: mysql-service

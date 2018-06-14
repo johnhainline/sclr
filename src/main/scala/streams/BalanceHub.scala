@@ -1,6 +1,3 @@
-/*
- * Copyright (C) 2018 Lightbend Inc. <https://www.lightbend.com>
- */
 
 package streams
 
@@ -83,7 +80,7 @@ private[streams] class BalanceHub[T](bufferSize: Int)
 
   private case class Closed(failure: Option[Throwable]) extends HubState
 
-  private class BalanceSinkLogic(_shape: Shape) extends GraphStageLogic(_shape) with InHandler {
+  private class BalanceSinkLogic(_shape: Shape) extends GraphStageLogic(_shape) with StageLogging with InHandler {
 
     private[this] val hubCallbackPromise: Promise[AsyncCallback[HubEvent]] = Promise()
     private[this] val noRegistrationsState = Open(hubCallbackPromise.future, Nil)
@@ -100,16 +97,16 @@ private[streams] class BalanceHub[T](bufferSize: Int)
     override def preStart(): Unit = {
       setKeepGoing(true)
       hubCallbackPromise.success(getAsyncCallback[HubEvent](onEvent))
-//      println(s"pulling next...")
+      log.debug(s"pulling next...")
       pull(in)
     }
 
     override def onPush(): Unit = {
       val add = grab(in)
       pendingQueue.add(add)
-//      println(s"added: $add")
+      log.debug(s"added: $add")
       if (pendingQueue.size < bufferSize) {
-//        println(s"pulling next...")
+        log.debug(s"pulling next...")
         pull(in)
       }
       wakeup()
@@ -117,16 +114,16 @@ private[streams] class BalanceHub[T](bufferSize: Int)
 
     private def wakeup(): Unit = {
       waiting.values.headOption foreach { consumer =>
-//        println(s"Hub wakeup consumer ${consumer.id}")
+        log.debug(s"Hub wakeup consumer ${consumer.id}")
         waiting -= consumer.id
         consumer.consumerCallback.invoke(Wakeup)
       }
     }
 
     private def wakeupAll(): Unit = {
-//      println(s"Hub wakeupAll(), waiting: $waiting")
+      log.debug(s"Hub wakeupAll(), waiting: $waiting")
       consumers.foreach { case (id, consumer) =>
-//        println(s"Hub wakeup consumer ${consumer.id}")
+        log.debug(s"Hub wakeup consumer ${consumer.id}")
         consumer.consumerCallback.invoke(Wakeup)
       }
       waiting.clear()
@@ -135,27 +132,27 @@ private[streams] class BalanceHub[T](bufferSize: Int)
     private def onEvent(hubEvent: HubEvent): Unit = {
       hubEvent match {
         case Waiting(consumer) ⇒
-//          println(s"consumer says it is waiting: $consumer")
+          log.debug(s"consumer says it is waiting: $consumer")
           // If we're told a consumer is waiting, then maybe we can give it an element!
           if (!pendingQueue.isEmpty) {
-//            println(s"but we have stuff in queue, so we wake it up")
+            log.debug(s"but we have stuff in queue, so we wake it up")
             consumer.consumerCallback.invoke(Wakeup)
           } else {
-//            println(s"and the queue is empty, so we add it to our waiting list")
+            log.debug(s"and the queue is empty, so we add it to our waiting list")
             waiting.update(consumer.id, consumer)
           }
 
         case TryPull ⇒
-//          println(s"Hub TryPull")
+          log.debug(s"Hub TryPull")
           if (!upstreamFinished && !isAvailable(in) && !hasBeenPulled(in)) {
-//            println(s"pulling next...")
+            log.debug(s"pulling next...")
             pull(in)
           }
 
         case RegistrationPending ⇒
-//          println(s"RegistrationPending")
+          log.debug(s"RegistrationPending")
           state.getAndSet(noRegistrationsState).asInstanceOf[Open].registrations foreach { consumer ⇒
-//            println(s"Registering ${consumer.id}")
+            log.debug(s"Registering ${consumer.id}")
             consumers(consumer.id) = consumer
             // in case the consumer is already stopped we need to undo registration
             implicit val ec: ExecutionContext = materializer.executionContext
@@ -168,10 +165,10 @@ private[streams] class BalanceHub[T](bufferSize: Int)
           }
 
         case UnRegister(id) ⇒
-//          println(s"UnRegister($id)")
+          log.debug(s"UnRegister($id)")
           consumers.remove(id)
           if (consumers.isEmpty && isClosed(in)) {
-//            println(s"No consumers left, completeStage()")
+            log.debug(s"No consumers left, completeStage()")
             completeStage()
           }
       }
@@ -179,7 +176,7 @@ private[streams] class BalanceHub[T](bufferSize: Int)
 
     // Producer API
     override def onUpstreamFailure(ex: Throwable): Unit = {
-//      println(s"onUpstreamFailure: $ex")
+      log.debug(s"onUpstreamFailure: $ex")
       val failMessage = HubCompleted(Some(ex))
 
       // Notify pending consumers and set tombstone
@@ -195,19 +192,19 @@ private[streams] class BalanceHub[T](bufferSize: Int)
     }
 
     override def onUpstreamFinish(): Unit = {
-//      println(s"Hub onUpstreamFinish")
+      log.debug(s"Hub onUpstreamFinish")
       if (consumers.isEmpty) {
-//        println(s"Hub completeStage()")
+        log.debug(s"Hub completeStage()")
         completeStage()
       } else {
-//        println(s"Hub upstreamFinished = true")
+        log.debug(s"Hub upstreamFinished = true")
         upstreamFinished = true
         wakeupAll()
       }
     }
 
     override def postStop(): Unit = {
-//      println(s"Hub postStop()")
+      log.debug(s"Hub postStop()")
       // Notify pending consumers and set tombstone
 
       @tailrec def tryClose(): Unit = state.get() match {
@@ -259,7 +256,7 @@ private[streams] class BalanceHub[T](bufferSize: Int)
       override val shape: SourceShape[T] = SourceShape(out)
 
       // This is creating the BalanceSourceLogic, which controls all materialized sources this hub connects to.
-      override def createLogic(inheritedAttributes: Attributes): GraphStageLogic = new GraphStageLogic(shape) with OutHandler {
+      override def createLogic(inheritedAttributes: Attributes): GraphStageLogic = new GraphStageLogic(shape) with StageLogging with OutHandler {
         private[this] val id = idCounter.getAndIncrement()
         private[this] var hubCallback: AsyncCallback[HubEvent] = _
         private val consumerCallback = getAsyncCallback(onCommand)
@@ -268,25 +265,27 @@ private[streams] class BalanceHub[T](bufferSize: Int)
         override def preStart(): Unit = {
           val onHubReady: Try[AsyncCallback[HubEvent]] ⇒ Unit = {
             case Success(receivedHubCallback) ⇒
-//              println(s"onHubReady: Success")
+              log.debug(s"onHubReady: Success")
               hubCallback = receivedHubCallback
               receivedHubCallback.invoke(RegistrationPending)
             case Failure(ex) ⇒
-//              println(s"onHubReady: Failure")
+              log.debug(s"onHubReady: Failure")
               failStage(ex)
           }
 
           @tailrec def register(): Unit = {
-//            println(s"consumer ${myConsumerRecord.id} register()")
+            log.debug(s"consumer ${myConsumerRecord.id} register()")
             logic.state.get() match {
               case Closed(Some(ex)) ⇒
+                log.debug(s"consumer (${myConsumerRecord.id}) register failed with: $ex")
                 failStage(ex)
               case Closed(None) ⇒
+                log.debug(s"consumer (${myConsumerRecord.id}) register closed")
                 completeStage()
               case previousState@Open(hubCallbackFuture, registrations) ⇒
                 val newRegistrations = myConsumerRecord :: registrations
                 if (logic.state.compareAndSet(previousState, Open(hubCallbackFuture, newRegistrations))) {
-//                  println(s"consumer ${myConsumerRecord.id} register finished")
+                  log.debug(s"consumer ${myConsumerRecord.id} register finished")
                   hubCallbackFuture.onComplete(getAsyncCallback(onHubReady).invoke)(materializer.executionContext)
                 } else {
                   register()
@@ -299,10 +298,10 @@ private[streams] class BalanceHub[T](bufferSize: Int)
         override def onPull(): Unit = {
           if (hubCallback ne null) {
             val element = logic.poll(id, hubCallback)
-//            println(s"consumer (${myConsumerRecord.id}) onPull(): got $element")
+            log.debug(s"consumer (${myConsumerRecord.id}) onPull(): got $element")
             element match {
               case null ⇒
-//                println(s"telling hub we (${myConsumerRecord.id}) are waiting")
+                log.debug(s"telling hub we (${myConsumerRecord.id}) are waiting")
                 hubCallback.invoke(Waiting(myConsumerRecord))
               case Completed ⇒
                 completeStage()
@@ -313,21 +312,24 @@ private[streams] class BalanceHub[T](bufferSize: Int)
         }
 
         override def postStop(): Unit = {
+          log.debug(s"consumer (${myConsumerRecord.id}) postStop()")
           if (hubCallback ne null) {
+            log.debug(s"consumer (${myConsumerRecord.id}) unregistering")
             hubCallback.invoke(UnRegister(id))
           }
         }
 
         private def onCommand(cmd: ConsumerEvent): Unit = cmd match {
           case HubCompleted(Some(ex)) ⇒
+            log.debug(s"consumer (${myConsumerRecord.id}) got exception: $ex")
             failStage(ex)
           case HubCompleted(None) ⇒
             completeStage()
           case Wakeup ⇒
-//            println(s"consumer (${myConsumerRecord.id}) got Wakeup")
+            log.debug(s"consumer (${myConsumerRecord.id}) got Wakeup")
             if (isAvailable(out)) onPull()
           case Registered ⇒
-//            println(s"consumer (${myConsumerRecord.id}) got Registered")
+            log.debug(s"consumer (${myConsumerRecord.id}) got Registered")
             if (isAvailable(out)) onPull()
         }
 

@@ -1,6 +1,6 @@
 package combinations.iterators
 
-import cluster.sclr.actors.ManageActor
+import sclr.core.actors.ManageActor
 import combinations.Combinations
 import org.scalatest._
 
