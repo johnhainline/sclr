@@ -6,36 +6,37 @@ import scala.collection.mutable
 /**
   * Consider only building the kDNF representation and comparing it to the data directly to get set size.
   */
-class SetCover(allDnfs: Vector[BitSet], mu: Double, beta: Int, simpleAlgorithm: Boolean) {
+class SetCover(allTerms: Vector[BitSet], mu: Double, beta: Int, simpleAlgorithm: Boolean) {
 
   def lowDegPartial2(idToRedness: Map[Int, Double]): (Vector[BitSet], Double) = {
 
-    def calculateDnfCostsMap(dnfs: Vector[BitSet]): Map[BitSet, Double] = {
-      dnfs.map { dnf =>
-        val dnfTotalCost = dnf.foldLeft(0.0)((accum, p) => accum + idToRedness(p))
-        dnf -> (dnfTotalCost / dnf.size.toDouble)
+    def calculateTermCostsMap(terms: Vector[BitSet]): Map[BitSet, Double] = {
+      terms.map { term =>
+        val termTotalCost = term.foldLeft(0.0)((accumulator, term) => accumulator + idToRedness(term))
+        val termAverageCost = termTotalCost / term.size.toDouble
+        term -> termAverageCost
       }.toMap
     }
 
-    def degree(r_i: Int, sets: Vector[BitSet]): Double = {
-      sets.count(_.contains(r_i)) * idToRedness(r_i)
+    def degree(r_i: Int, terms: Vector[BitSet]): Double = {
+      terms.count(_.contains(r_i)) * idToRedness(r_i)
     }
 
     val rednessCache = new mutable.HashMap[BitSet, Double]()
-    def rednessOfSet(dnf: BitSet): Double = {
-      rednessCache.getOrElseUpdate(dnf, dnf.foldLeft(0.0)((accum, p) => accum + idToRedness(p)))
+    def rednessOfTerm(term: BitSet): Double = {
+      rednessCache.getOrElseUpdate(term, term.foldLeft(0.0)((accum, p) => accum + idToRedness(p)))
     }
 
-    def rednessOfSets(sets: Vector[BitSet]): Double = {
-      sets.foldLeft(0.0)((accum, set) => accum + rednessOfSet(set))
+    def rednessOfTerms(terms: Vector[BitSet]): Double = {
+      terms.foldLeft(0.0)((accum, term) => accum + rednessOfTerm(term))
     }
 
     def errorRate(kDNF: Vector[BitSet]): Double = {
-      val error = rednessOfSets(kDNF) / union(kDNF).size
+      val error = rednessOfTerms(kDNF) / union(kDNF).size
       if (error.isNaN) Double.MaxValue else error
     }
 
-    lazy val costsCache = calculateDnfCostsMap(allDnfs)
+    lazy val costsCache = calculateTermCostsMap(allTerms)
     lazy val sortedCostsCache = costsCache.toSeq.sortBy(_._2)
     def simpleGreedy(idToRedness: Map[Int, Double], idCount: Int, totalRedness: Double)(rednessThreshold: Double): Vector[BitSet] = {
       val sortedCosts = new mutable.ListBuffer[BitSet]()
@@ -48,7 +49,7 @@ class SetCover(allDnfs: Vector[BitSet], mu: Double, beta: Int, simpleAlgorithm: 
     }
 
     def complexGreedy(idToRedness: Map[Int, Double], idCount: Int, totalRedness: Double)(rednessThreshold: Double): Vector[BitSet] = {
-      val survivors = allDnfs.filter(set => rednessOfSet(set) <= rednessThreshold)
+      val survivors = allTerms.filter(set => rednessOfTerm(set) <= rednessThreshold)
       if (union(survivors).size < mu * idCount) {
         return Vector[BitSet]()
       }
@@ -61,7 +62,7 @@ class SetCover(allDnfs: Vector[BitSet], mu: Double, beta: Int, simpleAlgorithm: 
     }
 
     def partialGreedy(idCount: Int, cleanedDnfs: Vector[BitSet]): Vector[BitSet] = {
-      val dnfCosts = calculateDnfCostsMap(cleanedDnfs)
+      val dnfCosts = calculateTermCostsMap(cleanedDnfs)
 
       val original = new mutable.ListBuffer[BitSet]
       for (t <- cleanedDnfs) {
@@ -88,7 +89,11 @@ class SetCover(allDnfs: Vector[BitSet], mu: Double, beta: Int, simpleAlgorithm: 
     var bestKDNF = Vector[BitSet]()
     var rednessThreshold = Math.max(0.01, idToRedness.values.min)
 
-    val alg: (Double) => Vector[BitSet] = if (simpleAlgorithm) simpleGreedy(idToRedness, idCount, totalRedness) else complexGreedy(idToRedness, idCount, totalRedness)
+    val alg: Double => Vector[BitSet] =
+      if (simpleAlgorithm)
+        simpleGreedy(idToRedness, idCount, totalRedness)
+      else
+        complexGreedy(idToRedness, idCount, totalRedness)
     while (rednessThreshold < totalRedness) {
       val kDNF = alg(rednessThreshold)
       val newError = errorRate(kDNF)
@@ -117,8 +122,8 @@ class SetCover(allDnfs: Vector[BitSet], mu: Double, beta: Int, simpleAlgorithm: 
     (1 to n).foldLeft(0.0)((a,b) => a + 1.0 / b)
   }
 
-  private def mapCleanedDnfsToOriginals(sets: Vector[BitSet], r: BitSet): Map[BitSet, BitSet] = {
-    sets.map { s => (s -- r) -> s}.toMap
+  private def mapCleanedDnfsToOriginals(terms: Vector[BitSet], r: BitSet): Map[BitSet, BitSet] = {
+    terms.map { term => (term -- r) -> term}.toMap
   }
 
 }

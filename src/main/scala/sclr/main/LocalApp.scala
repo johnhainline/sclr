@@ -16,7 +16,7 @@ import scala.concurrent.duration.Duration
 object LocalApp {
   def main(args: Array[String]): Unit = {
     implicit val system: ActorSystem = Sclr.run(parallel = 4)
-    val work = Workload("bodyfat", 2, 0.24, useLPNorm = true)
+    val work = Workload("rsv", 2, 0.2, useLPNorm = true)
     val responseFuture = Marshal(work).to[RequestEntity] flatMap { entity =>
       println(s"Sending entity: $entity")
       val request = HttpRequest(method = HttpMethods.POST, uri = "http://127.0.0.1:8080/begin", entity = entity)

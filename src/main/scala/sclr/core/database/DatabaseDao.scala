@@ -19,7 +19,7 @@ import doobie._
 case class XYZ(id: Int, x: Array[Boolean], y: Array[Double], z: Double)
 case class Dataset(data: Array[XYZ], xLength: Int, yLength: Int)
 case class DatasetInfo(xLength: Int, yLength: Int, rowCount: Int)
-case class Result(index: Int, dimensions: Vector[Int], rows: Vector[Int], coefficients: Vector[Double], error: Double, kDNF: Option[String])
+case class Result(index: Int, dimensions: Vector[Int], rows: Vector[Int], coefficients: Vector[Double], error: Option[Double], kDNF: Option[String])
 
 class DatabaseDao extends LazyLogging {
 
@@ -117,7 +117,7 @@ class DatabaseDao extends LazyLogging {
   private val reducer = { (l:Fragment, r:Fragment) => l ++ r}
   private def getInsertValues(result: Result) = {
     val fragmentValues =
-      fr"${result.index},${result.error}" ++
+      fr"${result.index}, ${result.error}" ++
       result.dimensions.map(d => fr", $d").reduce(reducer) ++
       result.rows.map(r => fr", $r").reduce(reducer) ++
       result.coefficients.map(c => fr", $c").reduce(reducer)
@@ -147,7 +147,7 @@ class DatabaseDao extends LazyLogging {
       val fragment = fr"CREATE TABLE IF NOT EXISTS" ++
         Fragment.const(s"$schema.results") ++
         Fragment.const((
-          Vector("id BIGINT NOT NULL AUTO_INCREMENT", s"$indexColumn BIGINT NOT NULL", s"$errorColumn DOUBLE NOT NULL") ++
+          Vector("id BIGINT NOT NULL AUTO_INCREMENT", s"$indexColumn BIGINT NOT NULL", s"$errorColumn DOUBLE") ++
             tableDims ++ tableRows ++ tableCoeffs ++
             Vector("kdnf TEXT DEFAULT NULL", "created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP", "PRIMARY KEY (id)")
           ).mkString("(", ",", ")"))

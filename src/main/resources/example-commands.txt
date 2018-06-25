@@ -8,11 +8,16 @@ eval $(minikube docker-env)
 gcloud auth login
 gcloud config set project washu-seas-mltheory
 gcloud config set compute/zone us-central1-a
-gcloud container clusters create cluster-1  --zone us-central1-a --num-nodes 8 --cluster-version=1.9.7-gke.0
+
+
+gcloud container clusters create cluster-1  --zone us-central1-a --num-nodes 8 --cluster-version=1.9.7-gke.3
 gcloud container clusters delete cluster-1
+
 gcloud compute project-info describe --project washu-seas-mltheory
 gcloud container clusters get-credentials cluster-1
+
 kubectl create secret generic mysql-password --from-literal=password=KO4eD0BrP2PC19jO
+
 kubectl scale statefulsets compute --replicas=5
 
 docker images
@@ -33,21 +38,25 @@ kubectl config get-contexts
 kubectl config use-context gke_washu-seas-mltheory_us-central1-a_cluster-1
 
 cd src/main/resources/kubernetes/; kubectl create -f mysql.yaml; kubectl create -f manage-pods.yaml; kubectl create -f compute-pods.yaml; cd ../../../..;
+
 kubectl delete pvc mysql-pv-claim; kubectl delete statefulset --all; kubectl delete replicaset --all; kubectl delete deployment --all; kubectl delete all -l app=sclr
 
 
-kubectl exec -ti compute-0 -- curl -vH "Content-Type: application/json" -d '{"name":"m5000","dnfSize":2,"optionalSubset":500,"useLPNorm":true,"mu":0.2465}' http-service.default.svc.cluster.local:8080/begin
+kubectl exec -ti compute-0 -- curl -vH "Content-Type: application/json" -d
+'{"name":"rsv","dnfSize":2,"optionalSubset":500,"useLPNorm":true,"mu":0.2465}' http-service.default.svc.cluster.local:8080/begin
 
 kubectl exec -ti compute-0 -- curl -vH "Content-Type: application/json" -d '{"name":"small","dnfSize":2,"useLPNorm":true,"mu":0.24}' http-service.default.svc.cluster.local:8080/begin
 
 **** MYSQL ****
 
 kubectl exec -it compute-0 -- /bin/bash
+
 kubectl run -it --rm --image=mysql:5.7 --restart=Never mysql-client -- mysql -h mysql-service -pKO4eD0BrP2PC19jO
 kubectl exec -it mysql-client -- mysql -h mysql-service -pKO4eD0BrP2PC19jO
 
 kubectl exec -ti mysql-7d98565cb6-nqcvd -- mysqldump --add-drop-database --databases m5000 -pKO4eD0BrP2PC19jO > backup.sql
-mysqldump --databases m5000 -h mysql-service.default.svc.cluster.local -pKO4eD0BrP2PC19jO > backup.sql 
+
+mysqldump --databases m5000 -h mysql-service.default.svc.cluster.local -pKO4eD0BrP2PC19jO > backup.sql
 
 /usr/local/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/
 sudo ln -s /usr/local/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/bin/kubectl /usr/local/bin/kubectl

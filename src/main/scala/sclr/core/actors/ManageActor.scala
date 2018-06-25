@@ -18,7 +18,6 @@ import doobie.util.transactor.Transactor
 import sclr.core.actors.ManageActor.DB_CONNECTIONS
 import streams.BalanceHub
 
-import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.language.postfixOps
 import scala.util.{Failure, Random, Success, Try}

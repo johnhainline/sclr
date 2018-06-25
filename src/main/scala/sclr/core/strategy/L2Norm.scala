@@ -25,17 +25,18 @@ class L2Norm(val dataset: Dataset, val workload: Workload, simpleAlgorithm: Bool
   lazy val setCover = new SetCover(terms, workload.mu, dataset.xLength, simpleAlgorithm = simpleAlgorithm)
 
   def run(work: Work): Result = {
-
     // Construct redness score with a map of XYZ.id -> redness
     val (idToRedness, coeff1, coeff2) = constructRednessScores(dataset.data, work)
-
-    val (kDNF, error) = setCover.lowDegPartial2(idToRedness)
-    val kDNFString = kDNF.map(termToIndices).toString
-
-    val realKdnf = if (kDNF.nonEmpty) Some(kDNFString) else None
-    Result(work.index, work.selectedDimensions, work.selectedRows, Vector(coeff1, coeff2), error, realKdnf)
+    val (kdnf, error) = if (coeff1 == 0 && coeff2 == 0) {
+      (None, None)
+    } else {
+      val (kdnfTerms, error) = setCover.lowDegPartial2(idToRedness)
+      val kdnfString = kdnfTerms.map(termToIndices).toString
+      val kdnf = if (kdnfTerms.nonEmpty) Some(kdnfString) else None
+      (kdnf, Some(error))
+    }
+    Result(work.index, work.selectedDimensions, work.selectedRows, Vector(coeff1, coeff2), error, kdnf)
   }
-
 
   private def constructRednessScores(data: Array[XYZ], work: Work) = {
     val yDimensions = work.selectedDimensions
@@ -54,10 +55,14 @@ class L2Norm(val dataset: Dataset, val workload: Workload, simpleAlgorithm: Bool
     val a1 = (z1 * y2 - z2 * y1) / (x1 * y2 - x2 * y1)
     val a2 = (x1 * z2 - x2 * z1) / (x1 * y2 - x2 * y1)
 
-    val idToRedness = data.map { xyz =>
-      val redness = Math.pow(xyz.z - a1 * xyz.y(yDimensions(0)) - a2 * xyz.y(yDimensions(1)), 2)
-      (xyz.id, redness)
-    }.toMap
+    val idToRedness = if (a1 == 0 && a2 == 0) {
+      Map.empty[Int, Double]
+    } else {
+      data.map { xyz =>
+        val redness = Math.pow(xyz.z - a1 * xyz.y(yDimensions(0)) - a2 * xyz.y(yDimensions(1)), 2)
+        (xyz.id, redness)
+      }.toMap
+    }
     (idToRedness, a1, a2)
   }
 

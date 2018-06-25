@@ -55,7 +55,7 @@ class SupNorm(val dataset: Dataset, val workload: Workload) extends KDNFStrategy
       }
     }
     val realKdnf = if (kdnf.length > 0) Some(kdnf) else None
-    Result(work.index, work.selectedDimensions, work.selectedRows, coeff, error, realKdnf)
+    Result(work.index, work.selectedDimensions, work.selectedRows, coeff, Some(error), realKdnf)
   }
 
   private def solveLinearSystem(data: Array[XYZ], yDimensions: Vector[Int], rows: Vector[Int], r1: Int, r2: Int, r3: Int) = {
