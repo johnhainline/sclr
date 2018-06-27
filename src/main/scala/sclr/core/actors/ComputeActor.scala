@@ -1,21 +1,24 @@
 package sclr.core.actors
 
-import akka.actor.{Actor, ActorLogging, Cancellable, Props}
+import akka.Done
+import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable, Props}
 import akka.cluster.pubsub.DistributedPubSub
 import akka.cluster.pubsub.DistributedPubSubMediator.{Subscribe, SubscribeAck}
 import akka.event.LoggingAdapter
 import akka.pattern.pipe
-import akka.stream.{ActorMaterializer, SinkRef, SourceRef}
+import akka.stream._
 import akka.stream.scaladsl.{Flow, Keep, Sink, Source, StreamRefs}
 import sclr.core.Messages._
+import sclr.core.actors.LifecycleActor._
 import sclr.core.database.{DatabaseDao, Result}
 import sclr.core.strategy.{KDNFStrategy, L2Norm, SupNorm}
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.language.postfixOps
+import scala.util.{Failure, Success, Try}
 
-class ComputeActor(parallelization: Int, dao: DatabaseDao) extends Actor with ActorLogging {
+class ComputeActor(lifecycleActor: ActorRef, dao: DatabaseDao, parallelization: Int, computeCountOption: Option[Int]) extends Actor with ActorLogging {
   import context._
   final case object TrySubscribe
   implicit val mat = ActorMaterializer()(context)
@@ -42,27 +45,51 @@ class ComputeActor(parallelization: Int, dao: DatabaseDao) extends Actor with Ac
     case workload: Workload =>
       val manageActor = sender()
       log.debug(s"ComputeActor - received workload: $workload")
-      val xa = DatabaseDao.makeSingleTransactor()
-      val dataset = dao.getDataset(xa, workload.name)
-      val strategy: KDNFStrategy = if (workload.useLPNorm) new L2Norm(dataset, workload) else new SupNorm(dataset, workload)
+      Try(DatabaseDao.makeSingleTransactor()) match {
+        case Success(xa) =>
+          val dataset = dao.getDataset(xa, workload.name)
+          val strategy: KDNFStrategy = if (workload.useLPNorm) new L2Norm(dataset, workload) else new SupNorm(dataset, workload)
 
-      // obtain the flow you want to attach:
-      val flows = (for (i <- 0 until parallelization) yield ComputeActor.createComputeFlow(strategy, log)).toList
-      for (computeFlow <- flows) {
-        // Create source of an eventual SinkRef[Work]
-        val pullWorkSource: Source[Work, Future[SinkRef[Work]]] = StreamRefs.sinkRef[Work].named(name = "StreamRef-sink-pullWork")
-        // Create sink of an eventual SourceRef[Result]
-        val pushResultSink: Sink[Result, Future[SourceRef[Result]]] = StreamRefs.sourceRef[Result].named(name = "StreamRef-source-pushResults")
-        // materialize both SourceRef and SinkRef (the remote is a source of data, and a sink of data for us):
-        val ref = pullWorkSource.viaMat(computeFlow)(Keep.left).toMat(pushResultSink)(Keep.both).run()
-        // wrap the Refs in some domain message
-        val reply = for (pullWork <- ref._1; pushResult <- ref._2) yield {
-          WorkComputeReady(pullWork, pushResult)
-        }
-        // reply to sender
-        reply pipeTo manageActor
+          // obtain the flow you want to attach:
+          val flowComputeCount = computeCountOption.map { c => Math.ceil(c / parallelization).toInt }
+          for (i <- 0 until parallelization) {
+            val computeFlow = ComputeActor.createComputeFlow(strategy, log)
+
+            // Create source of an eventual SinkRef[Work]
+            val pullWorkSource: Source[Work, Future[SinkRef[Work]]] = StreamRefs.sinkRef[Work].named(name = "StreamRef-sink-pullWork")
+            // Create sink of an eventual SourceRef[Result]
+            val pushResultSink: Sink[Result, Future[SourceRef[Result]]] = StreamRefs.sourceRef[Result].named(name = "StreamRef-source-pushResults")
+            // materialize both SourceRef and SinkRef (the remote is a source of data, and a sink of data for us):
+            val ((pullWorkFuture, futureDone), pushResultFuture) = pullWorkSource
+              .viaMat(computeFlow)(Keep.left)
+              .watchTermination()(Keep.both)
+              .toMat(pushResultSink)(Keep.both)
+              .run()
+
+            // wrap the Refs in some domain message
+            val reply = for (pullWork <- pullWorkFuture; pushResult <- pushResultFuture) yield {
+              lifecycleActor ! ComputeStreamStarted(self, i)
+              WorkComputeReady(pullWork, pushResult, flowComputeCount)
+            }
+
+            // When we terminate, send a message to the LifecycleActor.
+            futureDone.onComplete {
+              case Success(Done) =>
+                lifecycleActor ! ComputeStreamCompleted(self, i)
+              case Failure(ex) =>
+                lifecycleActor ! ComputeStreamFailed(self, i, ex)
+            }
+
+            // reply to sender
+            reply pipeTo manageActor
+          }
+          lifecycleActor ! ComputeActorDone(self)
+          context.become(done)
+
+        case Failure(ex) =>
+          // we simply wait for the ManageActor to re-send the workload since it goes out repeatedly
+          log.error(ex, message = "Could not connect to database.")
       }
-      context.become(done)
   }
 
   def done: Receive = {
@@ -71,7 +98,8 @@ class ComputeActor(parallelization: Int, dao: DatabaseDao) extends Actor with Ac
 }
 
 object ComputeActor {
-  def props(parallelization: Int, dao: DatabaseDao) = Props(new ComputeActor(parallelization, dao))
+  def props(lifecycleActor: ActorRef, dao: DatabaseDao, parallel: Int, computeCountOption: Option[Int] = None) =
+    Props(new ComputeActor(lifecycleActor, dao, parallel, computeCountOption))
 
   private def createComputeFlow(strategy: KDNFStrategy, log: LoggingAdapter) = Flow[Work].map { work =>
     log.info(s"ComputeActor - received work: $work")

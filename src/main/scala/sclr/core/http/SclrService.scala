@@ -17,14 +17,14 @@ import spray.json.{DefaultJsonProtocol, PrettyPrinter}
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
-object InfoService extends DefaultJsonProtocol with SprayJsonSupport {
+object SclrService extends DefaultJsonProtocol with SprayJsonSupport {
   implicit val workloadFormat = jsonFormat6(Workload)
 }
 
-class InfoService(implicit val system: ActorSystem, implicit val materializer: ActorMaterializer)
+class SclrService(implicit val system: ActorSystem, implicit val materializer: ActorMaterializer)
   extends Directives with LazyLogging {
 
-  import InfoService._
+  import SclrService._
 
   var manageActorOption: Option[ActorRef] = None
 

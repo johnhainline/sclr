@@ -14,5 +14,5 @@ object Messages {
   }
 
   final case class Work(index: Int, selectedDimensions: Vector[Int], selectedRows: Vector[Int])
-  final case class WorkComputeReady(pullWork: SinkRef[Work], pushResult: SourceRef[Result])
+  final case class WorkComputeReady(pullWork: SinkRef[Work], pushResult: SourceRef[Result], computeCountOption: Option[Int])
 }

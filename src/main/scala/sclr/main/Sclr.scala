@@ -1,34 +1,33 @@
 package sclr.main
 
-import akka.actor.{ActorRef, ActorSystem, OneForOneStrategy, Props, SupervisorStrategy}
+import akka.actor.ActorSystem
 import akka.cluster.Cluster
-import akka.pattern.BackoffSupervisor
 import akka.stream.ActorMaterializer
-import sclr.core.actors.{ComputeActor, ManageActor}
+import sclr.core.Messages.Workload
+import sclr.core.actors.{ComputeActor, LifecycleActor, ManageActor}
 import sclr.core.database.DatabaseDao
-import sclr.core.http.InfoService
+import sclr.core.http.SclrService
 
-import scala.concurrent.duration._
 import scala.language.postfixOps
 
 object Sclr {
+  import org.rogach.scallop._
 
-  def runResumeSupervisorForActor(name: String, props: Props)(implicit system: ActorSystem): ActorRef = {
-    val supervisor = BackoffSupervisor.propsWithSupervisorStrategy(
-        childProps = props,
-        childName = name,
-        minBackoff = 3 seconds,
-        maxBackoff = 30 seconds,
-        randomFactor = 0.2, // adds 20% "noise" to vary the intervals slightly
-        strategy = OneForOneStrategy() {
-          case e: Exception ⇒
-            system.log.error(e, message = s"$name raised exception. Resuming...")
-            SupervisorStrategy.Resume
-        })
-    system.actorOf(supervisor, name = s"${name}Supervisor")
+  class Conf(arguments: Array[String]) extends ScallopConf(arguments) {
+    import spray.json._
+    implicit val workloadConverter = singleArgConverter[Workload](str => SclrService.workloadFormat.read(str.parseJson))
+    val workload = opt[Workload](descr = "manage: workload to immediately start with")
+    val parallelization = opt[Int](descr = "compute: number of compute streams to instantiate", default = Some(1), validate = 0< )
+    val count = opt[Int](descr = "compute: number of distinct pieces of work to run before exiting", validate = 0< )
+    verify()
   }
 
-  def run(parallel: Int = 1): ActorSystem = {
+  def main(args: Array[String]): Unit = {
+    run(args)
+  }
+
+  def run(args: Array[String]): ActorSystem = {
+    val conf = new Conf(args)
     implicit val system: ActorSystem = ActorSystem("sclr")
     implicit val mat: ActorMaterializer = ActorMaterializer()(system)
     Cluster(system) registerOnMemberUp {
@@ -36,29 +35,22 @@ object Sclr {
       val roles = cluster.getSelfRoles
       system.log.info(s"Member ${cluster.selfUniqueAddress} up. Contains roles: $roles")
 
+      val lifecycleActor = system.actorOf(LifecycleActor.props(), name = "lifecycle")
+
       val dao = new DatabaseDao()
       if (roles.contains("compute")) {
-        runResumeSupervisorForActor(name = "compute", ComputeActor.props(parallel, dao))
+        val parallel = conf.parallelization.apply()
+        val countOption = conf.count.toOption
+        val props = ComputeActor.props(lifecycleActor, dao, parallel, countOption)
+        system.actorOf(props, name = "compute")
       }
       if (roles.contains("manage")) {
-        runResumeSupervisorForActor(name = "manage", ManageActor.props(new InfoService(), dao))
+        val workloadOption = conf.workload.toOption
+        val props = ManageActor.props(lifecycleActor, new SclrService(), dao, workloadOption)
+        system.actorOf(props, name = "manage")
       }
-    }
-
-    Cluster(system).registerOnMemberRemoved {
-      val status = -1
-      // exit JVM when ActorSystem has been terminated
-      system.registerOnTermination(System.exit(status))
-      // in case ActorSystem shutdown takes longer than 10 seconds, exit the JVM forcefully anyway
-      system.scheduler.scheduleOnce(delay = 10 seconds)(System.exit(status))(system.dispatcher)
-      // shut down ActorSystem
-      system.terminate()
     }
 
     system
-  }
-
-  def main(args: Array[String]): Unit = {
-    run()
   }
 }

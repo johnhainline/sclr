@@ -6,14 +6,14 @@ import akka.http.scaladsl.marshalling.Marshal
 import akka.http.scaladsl.model.{HttpMethods, HttpRequest, RequestEntity}
 import akka.remote.testkit.{MultiNodeConfig, MultiNodeSpec}
 import akka.stream.ActorMaterializer
-import sclr.core.Messages._
-import sclr.core.actors.{ComputeActor, ManageActor}
-import sclr.core.database.DatabaseDao
-import sclr.core.http.InfoService
 import com.typesafe.config.{Config, ConfigFactory}
 import combinations.Combinations
 import org.scalatest.concurrent.Eventually
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
+import sclr.core.Messages._
+import sclr.core.actors.{ComputeActor, LifecycleActor, ManageActor}
+import sclr.core.database.DatabaseDao
+import sclr.core.http.SclrService
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -69,17 +69,19 @@ abstract class ClusterSpec extends MultiNodeSpec(ClusterSpecConfig)
   "The cluster" must {
     "run a test dataset" in within(max = 3 minutes) {
       runOn(roleManage) {
-        system.actorOf(ManageActor.props(new InfoService(), new DatabaseDao()), name = "manage")
+        val lifecycle = system.actorOf(LifecycleActor.props(), name = "lifecycle")
+        system.actorOf(ManageActor.props(lifecycle, new SclrService(), new DatabaseDao()), name = "manage")
       }
 
       runOn(roleCompute1, roleCompute2, roleCompute3) {
-        system.actorOf(ComputeActor.props(parallelization = 1, new DatabaseDao()), name = "compute")
+        val lifecycle = system.actorOf(LifecycleActor.props(), name = "lifecycle")
+        system.actorOf(ComputeActor.props(lifecycle, new DatabaseDao(), parallel = 1), name = "compute")
       }
 
       enterBarrier(name = "initialized")
 
       runOn(roleCompute1) {
-        import sclr.core.http.InfoService._
+        import sclr.core.http.SclrService._
         import system.dispatcher
         val responseFuture = Marshal(work).to[RequestEntity] flatMap { entity =>
           println(s"Sending entity: $entity")
@@ -100,7 +102,8 @@ abstract class ClusterSpec extends MultiNodeSpec(ClusterSpecConfig)
             system.scheduler.scheduleOnce(2 seconds, new Runnable {
               override def run(): Unit = {
                 Thread.sleep(1000)
-                system.actorOf(ComputeActor.props(parallelization = 1, new DatabaseDao()), name = "compute")
+                val lifecycle = Await.result(system.actorSelection(path = "user/lifecycle").resolveOne(5 seconds), 5 seconds)
+                system.actorOf(ComputeActor.props(lifecycle, new DatabaseDao(), parallel = 1), name = "compute")
               }
             })
           }

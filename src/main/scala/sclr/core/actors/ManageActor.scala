@@ -1,20 +1,21 @@
 package sclr.core.actors
 
-import akka.NotUsed
-import akka.actor.{Actor, ActorLogging, Props}
+import akka.{Done, NotUsed}
+import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import akka.cluster.pubsub.DistributedPubSub
 import akka.cluster.pubsub.DistributedPubSubMediator.Publish
 import akka.remote.Ack
 import akka.stream.contrib.Retry
-import akka.stream.{ActorMaterializer, ClosedShape}
+import akka.stream.{ActorMaterializer, Attributes, ClosedShape, KillSwitches}
 import akka.stream.scaladsl._
 import cats.effect.IO
 import sclr.core.Messages._
 import sclr.core.database.{DatabaseDao, DatasetInfo, Result}
-import sclr.core.http.InfoService
+import sclr.core.http.SclrService
 import combinations.Combinations
 import combinations.iterators.MultipliedIterator
 import doobie.util.transactor.Transactor
+import sclr.core.actors.LifecycleActor.{ManageStreamCompleted, ManageStreamFailed, ManageStreamStarted}
 import sclr.core.actors.ManageActor.DB_CONNECTIONS
 import streams.BalanceHub
 
@@ -22,25 +23,37 @@ import scala.concurrent.duration._
 import scala.language.postfixOps
 import scala.util.{Failure, Random, Success, Try}
 
-class ManageActor(infoService: InfoService, dao: DatabaseDao, r: Random = new Random()) extends Actor with ActorLogging {
-  private case object SendWorkload
+class ManageActor(lifecycleActor: ActorRef, infoService: SclrService, dao: DatabaseDao, workloadOption: Option[Workload], r: Random = new Random()) extends Actor with ActorLogging {
   import context._
-
+  private case object SendWorkload
   infoService.setManageActor(self)
   implicit val mat = ActorMaterializer()(context)
+
+  override def preStart(): Unit = {
+    // If we have an existing workload, then send it to ourselves so we start running it.
+    workloadOption.foreach { workload =>
+      context.system.scheduler.scheduleOnce(delay = 500 millis, self, workload)
+    }
+  }
 
   def receive: Receive = waitingForWorkload
 
   def waitingForWorkload: Receive = {
     case workload: Workload =>
-      val xa = DatabaseDao.makeHikariTransactor(ManageActor.DB_CONNECTIONS)
-      dao.clearDataset(xa, workload.name)
-      dao.initializeDataset(xa, workload.name)
-      dao.setupSchemaAndTable(xa, workload.name, ManageActor.Y_DIMENSIONS, workload.getRowsConstant())
       log.debug(s"ManageActor - received workload: $workload")
-      context.become(prepareWorkload(xa))
-      self ! workload
       sender() ! Ack
+
+      Try(DatabaseDao.makeHikariTransactor(ManageActor.DB_CONNECTIONS)) match {
+        case Success(xa) =>
+          dao.clearDataset(xa, workload.name)
+          dao.initializeDataset(xa, workload.name)
+          dao.setupSchemaAndTable(xa, workload.name, ManageActor.Y_DIMENSIONS, workload.getRowsConstant())
+          context.become(prepareWorkload(xa))
+          self ! workload
+        case Failure(ex) =>
+          log.error(ex, message = "Could not connect to database.")
+          context.system.scheduler.scheduleOnce(delay = 5 seconds, self, workload)
+      }
   }
 
   def prepareWorkload(xa: Transactor[IO])(): Receive = {
@@ -50,6 +63,7 @@ class ManageActor(infoService: InfoService, dao: DatabaseDao, r: Random = new Ra
 
       val makeConnection = makeConnectionFunctionSimple(xa, dao, info, workload, r)
 
+      lifecycleActor ! ManageStreamStarted(self)
       self ! SendWorkload
       context.become(sendingWorkload(workload, makeConnection))
   }
@@ -58,7 +72,7 @@ class ManageActor(infoService: InfoService, dao: DatabaseDao, r: Random = new Ra
     case SendWorkload =>
       log.debug(s"ManageActor - sending workload: $workload to topic: $workloadTopic")
       DistributedPubSub(context.system).mediator ! Publish(workloadTopic, workload)
-      context.system.scheduler.scheduleOnce(delay = 1 seconds, self, SendWorkload)
+      context.system.scheduler.scheduleOnce(delay = 5 seconds, self, SendWorkload)
     case workComputeReady: WorkComputeReady =>
       log.debug(s"ManageActor - received $workComputeReady")
       makeConnection(workComputeReady)
@@ -69,25 +83,40 @@ class ManageActor(infoService: InfoService, dao: DatabaseDao, r: Random = new Ra
     val iteratorGen = () => ManageActor.createIterator(rowCount = info.rowCount, yLength = info.yLength, rowsConstant = workload.getRowsConstant(), workload.optionalSubset, r)
 
     // Materializing these objects lets us eventually generate SourceRef/SinkRef instances to bind to ComputeActor.
-    val hubFlow = Flow.fromSinkAndSourceCoupledMat(BalanceHub.sink[Work](), MergeHub.source[Result])(Keep.both)
+    val balanceHub = BalanceHub.sink[Work](bufferSize = 16)
+    val mergeHub = MergeHub.source[Result](perProducerBufferSize = 1)
+    val hubFlow = Flow.fromSinkAndSourceMat(balanceHub, mergeHub)(Keep.both)
 
-    val entireStream = RunnableGraph.fromGraph(GraphDSL.create(hubFlow) { implicit b => implicit hub =>
-      import GraphDSL.Implicits._
-
-      val source  = Source.fromIterator(iteratorGen)
-      val groupRs = b.add(Flow[Result].groupedWithin(50, 100 milliseconds))
-      val save    = Sink.foreachParallel(parallelism = DB_CONNECTIONS) {dao.insertResults(xa, workload.name)}
-
-      source ~> hub ~> groupRs ~> save
-      ClosedShape
-    })
+    val source  = Source.fromIterator(iteratorGen)
+    val groupRs = Flow[Result].groupedWithin(50, 100 milliseconds)
+    val save    = Sink.foreachParallel(parallelism = DB_CONNECTIONS) {dao.insertResults(xa, workload.name)}
+                    .addAttributes(Attributes.inputBuffer(initial=4, max=100))
 
     // Materialize the stream, getting back our endlessly materializable source and sink from BalanceHub and MergeHub.
-    val (pullWorkSource, pushResultsSink) = entireStream.run()
+    val (((pullWorkSource, pushResultsSink), killSwitch), futureDone) = source
+      .viaMat(hubFlow)(Keep.right)
+      .viaMat(KillSwitches.single)(Keep.both)
+      .viaMat(groupRs)(Keep.left)
+      .toMat(save)(Keep.both)
+      .run()
+
+    // When we terminate, send a message to the LifecycleActor.
+    futureDone.onComplete {
+      case Success(Done) =>
+        lifecycleActor ! ManageStreamCompleted(self)
+      case Failure(ex) =>
+        lifecycleActor ! ManageStreamFailed(self, ex)
+    }
 
     val makeConnection: WorkComputeReady => Unit = (workComputeReady: WorkComputeReady) => {
-      val computeFlow = Flow.fromSinkAndSourceCoupled(workComputeReady.pullWork, workComputeReady.pushResult)
-      pullWorkSource.via(computeFlow).to(pushResultsSink).run()
+      val computeFlow = Flow.fromSinkAndSource(workComputeReady.pullWork, workComputeReady.pushResult)
+      val derivedSource = if (workComputeReady.computeCountOption.nonEmpty) {
+        log.debug(s"ManageActor - linked compute node only pulling work ${workComputeReady.computeCountOption.get} times")
+        pullWorkSource.take(workComputeReady.computeCountOption.get)
+      } else {
+        pullWorkSource
+      }
+      derivedSource.via(computeFlow).toMat(pushResultsSink)(Keep.both).run()
     }
     makeConnection
   }
@@ -180,14 +209,14 @@ class ManageActor(infoService: InfoService, dao: DatabaseDao, r: Random = new Ra
     }
     makeConnection
   }
-
 }
 
 object ManageActor {
   private val DB_CONNECTIONS = 3
   private val Y_DIMENSIONS = 2
 
-  def props(infoService: InfoService, resultsDao: DatabaseDao) = Props(new ManageActor(infoService, resultsDao))
+  def props(lifecycleActor: ActorRef, infoService: SclrService, resultsDao: DatabaseDao, workloadOption: Option[Workload] = None) =
+    Props(new ManageActor(lifecycleActor, infoService, resultsDao, workloadOption))
 
   def createIterator(rowCount: Int, yLength: Int, rowsConstant: Int, optionalSubset: Option[Int], r: Random): Iterator[Work] = {
     val selectYDimensions = () => Combinations(yLength, ManageActor.Y_DIMENSIONS).iterator()
