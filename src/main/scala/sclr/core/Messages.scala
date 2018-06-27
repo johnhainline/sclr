@@ -7,7 +7,9 @@ object Messages {
   val workloadTopic = "workloadTopic"
 
   final case class Workload(name: String, dnfSize: Int, mu: Double, useLPNorm: Boolean,
-                            optionalEpsilon: Option[Double] = None, optionalSubset: Option[Int] = None) {
+                            optionalEpsilon: Option[Double] = None,
+                            optionalSubset: Option[Int] = None,
+                            optionalRandomSeed: Option[Int] = None) {
     def getRowsConstant() = {
       if (useLPNorm) 2 else 3
     }

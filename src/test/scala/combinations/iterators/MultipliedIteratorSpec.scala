@@ -103,8 +103,7 @@ class MultipliedIteratorSpec extends FlatSpec with Matchers {
     val yLength = 10
     val expectedRows = Combinations(rowCount, 2).subsetIterator(subsetSize, new Random(new Random(1234).nextLong())).samples
 
-    val r = new Random(1234)
-    val iterator = ManageActor.createIterator(rowCount, yLength, rowsConstant = 2, Some(subsetSize), r)
+    val iterator = ManageActor.createIterator(rowCount, yLength, rowsConstant = 2, Some(subsetSize), Some(1))
 
     val allWork = iterator.toVector
     val row0Entries = allWork.map(_.selectedRows.head)

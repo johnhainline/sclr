@@ -18,7 +18,7 @@ import scala.concurrent.duration._
 import scala.language.postfixOps
 
 object SclrService extends DefaultJsonProtocol with SprayJsonSupport {
-  implicit val workloadFormat = jsonFormat6(Workload)
+  implicit val workloadFormat = jsonFormat7(Workload)
 }
 
 class SclrService(implicit val system: ActorSystem, implicit val materializer: ActorMaterializer)

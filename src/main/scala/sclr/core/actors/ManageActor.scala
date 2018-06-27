@@ -22,7 +22,7 @@ import scala.concurrent.duration._
 import scala.language.postfixOps
 import scala.util.{Failure, Random, Success, Try}
 
-class ManageActor(lifecycleActor: ActorRef, infoService: SclrService, dao: DatabaseDao, workloadOption: Option[Workload], r: Random = new Random()) extends Actor with ActorLogging {
+class ManageActor(lifecycleActor: ActorRef, infoService: SclrService, dao: DatabaseDao, workloadOption: Option[Workload]) extends Actor with ActorLogging {
   import context._
   private case object SendWorkload
   infoService.setManageActor(self)
@@ -60,7 +60,7 @@ class ManageActor(lifecycleActor: ActorRef, infoService: SclrService, dao: Datab
       val info = dao.getDatasetInfo(xa, workload.name)
       log.debug(s"ManageActor - preparing workload for dataset: ${workload.name} with dimensions:${info.yLength} rows:${info.rowCount} selecting dimensions:${ManageActor.Y_DIMENSIONS} rows:${workload.getRowsConstant()}")
 
-      val makeConnection = makeConnectionFunctionSimple(xa, dao, info, workload, r)
+      val makeConnection = makeConnectionFunctionSimple(xa, dao, info, workload)
 
       lifecycleActor ! ManageStreamStarted(self)
       self ! SendWorkload
@@ -77,9 +77,9 @@ class ManageActor(lifecycleActor: ActorRef, infoService: SclrService, dao: Datab
       makeConnection(workComputeReady)
   }
 
-  private def makeConnectionFunctionSimple(xa: Transactor[IO], dao: DatabaseDao, info: DatasetInfo, workload: Workload, r: Random): WorkComputeReady => Unit = {
+  private def makeConnectionFunctionSimple(xa: Transactor[IO], dao: DatabaseDao, info: DatasetInfo, workload: Workload): WorkComputeReady => Unit = {
     // An iterator that runs through (ySize choose 2) * (rows choose 2)
-    val iteratorGen = () => ManageActor.createIterator(rowCount = info.rowCount, yLength = info.yLength, rowsConstant = workload.getRowsConstant(), workload.optionalSubset, r)
+    val iteratorGen = () => ManageActor.createIterator(rowCount = info.rowCount, yLength = info.yLength, rowsConstant = workload.getRowsConstant(), workload.optionalSubset, workload.optionalRandomSeed)
 
     // Materializing these objects lets us eventually generate SourceRef/SinkRef instances to bind to ComputeActor.
     val balanceHub = BalanceHub.sink[Work](bufferSize = 32)
@@ -231,13 +231,13 @@ object ManageActor {
   def props(lifecycleActor: ActorRef, infoService: SclrService, resultsDao: DatabaseDao, workloadOption: Option[Workload] = None) =
     Props(new ManageActor(lifecycleActor, infoService, resultsDao, workloadOption))
 
-  def createIterator(rowCount: Int, yLength: Int, rowsConstant: Int, optionalSubset: Option[Int], r: Random): Iterator[Work] = {
+  def createIterator(rowCount: Int, yLength: Int, rowsConstant: Int, optionalSubset: Option[Int], optionalRandomSeed: Option[Int]): Iterator[Work] = {
     val selectYDimensions = () => Combinations(yLength, ManageActor.Y_DIMENSIONS).iterator()
     val selectRows = if (optionalSubset.isEmpty) {
       () => Combinations(rowCount, rowsConstant).iterator()
     } else {
-      val iteratorSeed = r.nextLong()
-      () => Combinations(rowCount, rowsConstant).subsetIterator(optionalSubset.get, new Random(iteratorSeed))
+      val seed = optionalRandomSeed.getOrElse(Random.nextInt())
+      () => Combinations(rowCount, rowsConstant).subsetIterator(optionalSubset.get, new Random(seed))
     }
     val iterator = MultipliedIterator(Vector(selectYDimensions, selectRows)).zipWithIndex.map { case (next, index) =>
       Work(index, selectedDimensions = next.head, selectedRows = next.last)
