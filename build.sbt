@@ -38,6 +38,9 @@ lazy val sclr = project
       // sigar is a os dependent toolset to make akka-cluster-metrics give more details
 //      "io.kamon" % "sigar-loader" % "1.6.6-rev002",
 
+      // scallop is a command line parser so we get pretty "main" args.
+      "org.rogach" %% "scallop" % "3.1.2",
+
       "org.scalatest" %% "scalatest" % "3.0.5" % Test,
       "org.scalamock" %% "scalamock" % "4.1.0" % Test,
 

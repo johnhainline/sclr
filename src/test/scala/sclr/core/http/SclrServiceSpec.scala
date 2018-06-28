@@ -10,10 +10,10 @@ import akka.util.ByteString
 import sclr.core.Messages.Workload
 import org.scalatest.{Matchers, WordSpec}
 
-class InfoServiceSpec extends WordSpec with ScalatestRouteTest with Matchers {
+class SclrServiceSpec extends WordSpec with ScalatestRouteTest with Matchers {
 
   val probe = TestProbe()
-  val infoService = new InfoService()(system, ActorMaterializer())
+  val infoService = new SclrService()(system, ActorMaterializer())
   infoService.setManageActor(probe.ref)
 
   "The service" should {
