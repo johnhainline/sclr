@@ -25,20 +25,26 @@ class L2Norm(val dataset: Dataset, val workload: Workload, simpleAlgorithm: Bool
   lazy val setCover = new SetCover(terms, workload.mu, dataset.xLength, simpleAlgorithm = simpleAlgorithm)
 
   def run(work: Work): Result = {
-    // Construct redness score with a map of XYZ.id -> redness
-    val (idToRedness, coeff1, coeff2) = constructRednessScores(dataset.data, work)
-    val (kdnf, error) = if (coeff1 == 0 && coeff2 == 0) {
-      (None, None)
-    } else {
+    val (a1, a2) = generateCoefficients(dataset.data, work)
+    if (coefficientsValid(a1, a2)) {
+      // Construct redness score with a map of XYZ.id -> redness
+      val idToRedness = constructRednessScores(dataset.data, work.selectedDimensions, a1, a2)
       val (kdnfTerms, error) = setCover.lowDegPartial2(idToRedness)
       val kdnfString = kdnfTerms.map(termToIndices).toString
       val kdnf = if (kdnfTerms.nonEmpty) Some(kdnfString) else None
-      (kdnf, Some(error))
+      Result(work.index, work.selectedDimensions, work.selectedRows, Vector(a1, a2), Some(error), kdnf)
+    } else {
+      Result(work.index, work.selectedDimensions, work.selectedRows, Vector(0, 0), None, None)
     }
-    Result(work.index, work.selectedDimensions, work.selectedRows, Vector(coeff1, coeff2), error, kdnf)
   }
 
-  private def constructRednessScores(data: Array[XYZ], work: Work) = {
+  private def coefficientsValid(coeff1: Double, coeff2: Double): Boolean = {
+    (coeff1 != 0 && coeff2 != 0) &&
+    (!coeff1.isNaN && coeff1 > Double.NegativeInfinity && coeff1 < Double.PositiveInfinity) &&
+    (!coeff2.isNaN && coeff2 > Double.NegativeInfinity && coeff2 < Double.PositiveInfinity)
+  }
+
+  private def generateCoefficients(data: Array[XYZ], work: Work) = {
     val yDimensions = work.selectedDimensions
     val rows = work.selectedRows
     val xyz1 = data(rows(0))
@@ -54,8 +60,11 @@ class L2Norm(val dataset: Dataset, val workload: Workload, simpleAlgorithm: Bool
 
     val a1 = (z1 * y2 - z2 * y1) / (x1 * y2 - x2 * y1)
     val a2 = (x1 * z2 - x2 * z1) / (x1 * y2 - x2 * y1)
+    (a1, a2)
+  }
 
-    val idToRedness = if (a1 == 0 && a2 == 0) {
+  private def constructRednessScores(data: Array[XYZ], yDimensions: Vector[Int], a1: Double, a2: Double) = {
+    val idToRedness = if (!coefficientsValid(a1, a2)) {
       Map.empty[Int, Double]
     } else {
       data.map { xyz =>
@@ -63,7 +72,7 @@ class L2Norm(val dataset: Dataset, val workload: Workload, simpleAlgorithm: Bool
         (xyz.id, redness)
       }.toMap
     }
-    (idToRedness, a1, a2)
+    idToRedness
   }
 
   private def collectFilter(data: Array[XYZ], selections: Vector[(Int, Boolean)]) = {
