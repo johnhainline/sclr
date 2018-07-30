@@ -1,7 +1,7 @@
 package sclr.core.database
 
 import java.io.{BufferedReader, InputStreamReader}
-import java.sql.{SQLException, Statement, Timestamp}
+import java.sql.{ResultSet, SQLException, Statement, Timestamp}
 import java.time.{Instant, ZoneId, ZonedDateTime}
 
 import cats.effect.IO
@@ -15,11 +15,17 @@ import doobie.util.transactor.Transactor
 import doobie.implicits._
 import doobie._
 
+import scala.reflect.ClassTag
+
 
 case class XYZ(id: Int, x: Array[Boolean], y: Array[Double], z: Double)
 case class Dataset(data: Array[XYZ], xLength: Int, yLength: Int)
 case class DatasetInfo(xLength: Int, yLength: Int, rowCount: Int)
-case class Result(index: Int, dimensions: Vector[Int], rows: Vector[Int], coefficients: Vector[Double], error: Option[Double], kDNF: Option[String])
+case class Result(index: Int, dimensions: Vector[Int], rows: Vector[Int], coefficients: Vector[Double], error: Option[Double], kDNF: Option[String]) {
+  override def toString: String = {
+    s"Result(index=$index, dims=$dimensions, rows=$rows, coeffs=$coefficients, error=$error, kdnf=$kDNF)"
+  }
+}
 
 class DatabaseDao extends LazyLogging {
 
@@ -72,16 +78,11 @@ class DatabaseDao extends LazyLogging {
         while (results.next()) {
           val id = results.getInt(1)
           val xOffset = 2
-          val x = new Array[Boolean](info.xLength)
-          for (i <- x.indices) {
-            x(i) = results.getBoolean(xOffset + i)
-          }
-          val yOffset = xOffset + info.xLength + 1 // +1 skips the extra "id" column
-          val y = new Array[Double](info.yLength)
-          for (i <- y.indices) {
-            y(i) = results.getDouble(yOffset + i)
-          }
-          val z = results.getDouble(yOffset + info.yLength)
+          val yOffset = xOffset + info.xLength + 1
+          val zOffset = yOffset + info.yLength
+          val x = getArrayFromResultSet(results, xOffset, info.xLength, results.getBoolean)
+          val y = getArrayFromResultSet(results, yOffset, info.yLength, results.getDouble)
+          val z = results.getDouble(zOffset)
           data(dataIndex) = XYZ(id, x, y, z)
           dataIndex += 1
         }
@@ -96,14 +97,43 @@ class DatabaseDao extends LazyLogging {
     }.transact(xa).unsafeRunSync()
   }
 
-//  def getResults() = {
-//    import DatabaseDao.ZonedDateTimeMeta
-//    sql"SELECT id, data, created_at FROM results".query[Result].list.transact(xa).unsafeRunSync()
-//  }
+  def getBestResult(xa: Transactor[IO], name: String, yDimensions: Int, rows: Int): Result = {
+    val info = getDatasetInfo(xa, name)
+    var statement: Statement = null
+    FC.raw { connection =>
+      try {
+        statement = connection.createStatement()
+        // Ex: (id, work_index, error, dim0, dim1, row0, row1, coeff0, coeff1, kdnf, created_at)
+        val results = statement.executeQuery(s"SELECT * FROM $name.results WHERE error = (SELECT MIN(error) from $name.results)")
+        assert(results.next())
+        val id = results.getInt(1)
+        val dimArray = getArrayFromResultSet(results, index = 4, yDimensions, results.getInt)
+        val rowArray = getArrayFromResultSet(results, index = 6, yDimensions, results.getInt)
+        val coeffArray = getArrayFromResultSet(results, index = 8, yDimensions, results.getDouble)
+        val error = Option(results.getDouble("error"))
+        val kdnf = Option(results.getString("kdnf"))
+        Result(id, dimArray.toVector, rowArray.toVector, coeffArray.toVector, error, kdnf)
+      } catch {
+        case e: SQLException =>
+          logger.error("Could not get best result from DB.", e)
+          throw e
+      } finally {
+        if (statement != null) statement.close()
+      }
+    }.transact(xa).unsafeRunSync()
+  }
+
   def getResultCount(xa: Transactor[IO], name: String): Long = {
     sql"SELECT COUNT(*) FROM $name.results".query[Long].unique.transact(xa).unsafeRunSync()
   }
 
+  private def getArrayFromResultSet[T](result: ResultSet, index: Int, count: Int, getter: Int => T)(implicit m: ClassTag[T]): Array[T] = {
+    val array = new Array[T](count)
+    for (i <- array.indices) {
+      array(i) = getter(index + i)
+    }
+    array
+  }
 
   private def getInsertNames(result: Result) = {
     Fragment.const(Vector(indexColumn, errorColumn,

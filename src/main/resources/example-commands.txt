@@ -66,10 +66,11 @@ sudo ln -s /usr/local/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/bin/cont
 
 docker pull us.gcr.io/washu-seas-mltheory/sclr:latest
 
-SELECT count(*) from m5000.results;
-select * from m5000.results order by created_at limit 1;
-select * from m5000.results order by created_at desc limit 1;
-SELECT * FROM m5000.results WHERE error = (SELECT MIN(error) FROM m5000.results);
+USE boston_train2; SELECT count(*) from results;
+USE boston_train2; select * from results order by created_at limit 1;
+USE boston_train2; select * from results order by created_at desc limit 1;
 
-Correct: 
-(-22,31), (-3,5), (21,-40), (-31,-3), (43,11), (-44,-5), (-32,42), (-9,-33), (5,-16), (9,2), (-31,-21), (29,40), (-16,21), (-7,-10), (4,-33), (15,38)
+USE boston_train2; SELECT * FROM results WHERE error = (SELECT MIN(error) FROM results);
+
+USE boston_train2; SELECT * FROM results WHERE created_at = ( SELECT MIN( created_at ) FROM results ) LIMIT 1;
+USE boston_train2; SELECT * FROM results WHERE created_at = ( SELECT MAX( created_at ) FROM results ) LIMIT 1;

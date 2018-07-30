@@ -50,7 +50,6 @@ object Sclr {
         system.actorOf(props, name = "manage")
       }
     }
-
     system
   }
 }
