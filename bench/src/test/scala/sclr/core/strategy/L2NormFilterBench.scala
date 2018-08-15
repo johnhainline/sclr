@@ -2,7 +2,6 @@ package sclr.core.strategy
 
 import sclr.core.database.{DatabaseDaoHelper, XYZ}
 import org.scalameter.api._
-import org.scalameter.picklers.Implicits._
 
 import scala.collection.immutable.BitSet
 import scala.collection.mutable.ListBuffer

@@ -69,13 +69,13 @@ abstract class StreamRefSpec extends MultiNodeSpec(StreamRefSpecConfig)
   "The cluster" must {
     "handle basic connections between StreamRefs" in within(max = 1 minutes) {
       runOn(roleManage) {
-        val lifecycle = system.actorOf(LifecycleActor.props(), name = "lifecycle")
-        system.actorOf(ManageActor.props(lifecycle, new SclrService(), new DatabaseDao(), None), name = "manage")
+        system.actorOf(LifecycleActor.props(shutdown = true), name = "lifecycle")
+        system.actorOf(ManageActor.props(new SclrService(), new DatabaseDao(), None), name = "manage")
       }
 
       runOn(roleCompute1, roleCompute2, roleCompute3) {
-        val lifecycle = system.actorOf(LifecycleActor.props(), name = "lifecycle")
-        system.actorOf(ComputeActor.props(lifecycle, new DatabaseDao(), parallel = 1), name = "compute")
+        system.actorOf(LifecycleActor.props(shutdown = true), name = "lifecycle")
+        system.actorOf(ComputeActor.props(new DatabaseDao(), parallel = 1), name = "compute")
       }
 
       enterBarrier(name = "initialized")
@@ -97,8 +97,7 @@ abstract class StreamRefSpec extends MultiNodeSpec(StreamRefSpecConfig)
         Thread.sleep(2000)
         system.actorSelection("/user/compute") ! Kill
         Thread.sleep(4000)
-        val lifecycle = Await.result(system.actorSelection(path = "user/lifecycle").resolveOne(5 seconds), 5 seconds)
-        system.actorOf(ComputeActor.props(lifecycle, new DatabaseDao(), parallel = 1), name = "compute")
+        system.actorOf(ComputeActor.props(new DatabaseDao(), parallel = 1), name = "compute")
       }
 
       enterBarrier(name = "killed")
@@ -120,13 +119,13 @@ abstract class StreamRefSpec extends MultiNodeSpec(StreamRefSpecConfig)
 
     "manage StreamRef downing" in within(max = 3 minutes) {
       runOn(roleManage) {
-        val lifecycle = system.actorOf(LifecycleActor.props(), name = "lifecycle")
-        system.actorOf(ManageActor.props(lifecycle, new SclrService(), new DatabaseDao(), None), name = "manage")
+        system.actorOf(LifecycleActor.props(shutdown = true), name = "lifecycle")
+        system.actorOf(ManageActor.props(new SclrService(), new DatabaseDao(), None), name = "manage")
       }
 
       runOn(roleCompute1, roleCompute2, roleCompute3) {
-        val lifecycle = system.actorOf(LifecycleActor.props(), name = "lifecycle")
-        system.actorOf(ComputeActor.props(lifecycle, new DatabaseDao(), parallel = 1), name = "compute")
+        system.actorOf(LifecycleActor.props(shutdown = true), name = "lifecycle")
+        system.actorOf(ComputeActor.props(new DatabaseDao(), parallel = 1), name = "compute")
       }
 
       enterBarrier(name = "initialized")
@@ -148,8 +147,7 @@ abstract class StreamRefSpec extends MultiNodeSpec(StreamRefSpecConfig)
         Thread.sleep(2000)
         system.actorSelection("/user/compute") ! Kill
         Thread.sleep(4000)
-        val lifecycle = Await.result(system.actorSelection(path = "user/lifecycle").resolveOne(5 seconds), 5 seconds)
-        system.actorOf(ComputeActor.props(lifecycle, new DatabaseDao(), parallel = 1), name = "compute")
+        system.actorOf(ComputeActor.props(new DatabaseDao(), parallel = 1), name = "compute")
       }
 
       enterBarrier(name = "killed")

@@ -17,8 +17,15 @@ object Sclr {
     import spray.json._
     implicit val workloadConverter = singleArgConverter[Workload](str => SclrService.workloadFormat.read(str.parseJson))
     val workload = opt[Workload](descr = "manage: workload to immediately start with")
-    val parallelization = opt[Int](descr = "compute: number of compute streams to instantiate", default = Some(1), validate = 0< )
+
+    // We default our compute parallelization to the number of cores available.
+    val cores = Runtime.getRuntime.availableProcessors
+    val parallelization = opt[Int](descr = "compute: number of compute streams to instantiate", default = Some(cores), validate = 0< )
     val count = opt[Int](descr = "compute: number of distinct pieces of work to run before exiting", validate = 0< )
+    val keepRunning = toggle(name = "keep-running",
+      descrYes = "keep the system running after completion (avoids shutting down ActorSystem)",
+      descrNo = "shut down ActorSystem after completion of a workload",
+      default = Some(false))
     verify()
   }
 
@@ -35,18 +42,19 @@ object Sclr {
       val roles = cluster.getSelfRoles
       system.log.info(s"Member ${cluster.selfUniqueAddress} up. Contains roles: $roles")
 
-      val lifecycleActor = system.actorOf(LifecycleActor.props(), name = "lifecycle")
+      val shutdown = !conf.keepRunning.toOption.get
+      system.actorOf(LifecycleActor.props(shutdown), name = "lifecycle")
 
       val dao = new DatabaseDao()
       if (roles.contains("compute")) {
         val parallel = conf.parallelization.apply()
         val countOption = conf.count.toOption
-        val props = ComputeActor.props(lifecycleActor, dao, parallel, countOption)
+        val props = ComputeActor.props(dao, parallel, countOption)
         system.actorOf(props, name = "compute")
       }
       if (roles.contains("manage")) {
         val workloadOption = conf.workload.toOption
-        val props = ManageActor.props(lifecycleActor, new SclrService(), dao, workloadOption)
+        val props = ManageActor.props(new SclrService(), dao, workloadOption)
         system.actorOf(props, name = "manage")
       }
     }

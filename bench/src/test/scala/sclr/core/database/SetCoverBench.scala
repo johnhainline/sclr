@@ -3,6 +3,7 @@ package sclr.core.database
 import sclr.core.Messages.Workload
 import sclr.core.strategy.L2Norm
 import combinations.Combinations
+import combinations.iterators.MultipliedIterator
 import org.scalameter.api.{Bench, Gen}
 import org.scalameter.picklers.Implicits._
 

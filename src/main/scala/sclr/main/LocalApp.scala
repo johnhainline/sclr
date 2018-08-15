@@ -3,7 +3,7 @@ package sclr.main
 object LocalApp {
   def main(args: Array[String]): Unit = {
 
-    val json = """{"name":"boston_train2","dnfSize":2,"useLPNorm":true,"optionalSubset":140,"mu":0.2}"""
+    val json = """{"name":"tiny","dnfSize":2,"useLPNorm":true,"mu":0.2}"""
     Sclr.run(Array[String]("-w", json, "-p", "4"))
 
 //    val sleep = 3000

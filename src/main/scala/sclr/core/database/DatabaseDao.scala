@@ -98,7 +98,6 @@ class DatabaseDao extends LazyLogging {
   }
 
   def getBestResult(xa: Transactor[IO], name: String, yDimensions: Int, rows: Int): Result = {
-    val info = getDatasetInfo(xa, name)
     var statement: Statement = null
     FC.raw { connection =>
       try {

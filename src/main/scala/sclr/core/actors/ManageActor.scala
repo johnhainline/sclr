@@ -1,7 +1,7 @@
 package sclr.core.actors
 
 import akka.Done
-import akka.actor.{Actor, ActorLogging, ActorRef, Props}
+import akka.actor.{Actor, ActorLogging, Cancellable, Props}
 import akka.cluster.pubsub.DistributedPubSub
 import akka.cluster.pubsub.DistributedPubSubMediator.Publish
 import akka.remote.Ack
@@ -16,15 +16,16 @@ import sclr.core.actors.LifecycleActor.{ManageStreamCompleted, ManageStreamFaile
 import sclr.core.actors.ManageActor.DB_CONNECTIONS
 import sclr.core.database.{DatabaseDao, DatasetInfo, Result}
 import sclr.core.http.SclrService
-import streams.BalanceHub
+import streams.{BalanceHub, MergeHub}
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
 import scala.util.{Failure, Random, Success, Try}
 
-class ManageActor(lifecycleActor: ActorRef, infoService: SclrService, dao: DatabaseDao, workloadOption: Option[Workload]) extends Actor with ActorLogging {
+class ManageActor(infoService: SclrService, dao: DatabaseDao, workloadOption: Option[Workload]) extends Actor with ActorLogging {
   import context._
-  private case object SendWorkload
+  private case object SendActiveWorkload
+  private case object Reset
   infoService.setManageActor(self)
   implicit val mat = ActorMaterializer()(context)
 
@@ -55,6 +56,7 @@ class ManageActor(lifecycleActor: ActorRef, infoService: SclrService, dao: Datab
       }
   }
 
+  private var workloadId = 1
   def prepareWorkload(xa: Transactor[IO])(): Receive = {
     case workload: Workload =>
       val info = dao.getDatasetInfo(xa, workload.name)
@@ -62,19 +64,25 @@ class ManageActor(lifecycleActor: ActorRef, infoService: SclrService, dao: Datab
 
       val makeConnection = makeConnectionFunctionSimple(xa, dao, info, workload)
 
-      lifecycleActor ! ManageStreamStarted(self)
-      self ! SendWorkload
-      context.become(sendingWorkload(workload, makeConnection))
+      system.eventStream.publish(ManageStreamStarted(self, workload))
+      self ! SendActiveWorkload
+      context.become(sendingWorkload(ActiveWorkload(workloadId, workload), makeConnection))
+      workloadId += 1
   }
 
-  def sendingWorkload(workload: Workload, makeConnection: WorkComputeReady => Unit)(): Receive = {
-    case SendWorkload =>
-      log.debug(s"ManageActor - sending workload: $workload to topic: $workloadTopic")
-      DistributedPubSub(context.system).mediator ! Publish(workloadTopic, workload)
-      context.system.scheduler.scheduleOnce(delay = 5 seconds, self, SendWorkload)
+  private var sendSchedule: Option[Cancellable] = None
+  def sendingWorkload(activeWorkload: ActiveWorkload, makeConnection: WorkComputeReady => Unit)(): Receive = {
+    case SendActiveWorkload =>
+      log.debug(s"ManageActor - sending workload: $activeWorkload to topic: $workloadTopic")
+      DistributedPubSub(context.system).mediator ! Publish(workloadTopic, activeWorkload)
+      sendSchedule = Some(context.system.scheduler.scheduleOnce(delay = 5 seconds, self, SendActiveWorkload))
     case workComputeReady: WorkComputeReady =>
       log.debug(s"ManageActor - received $workComputeReady")
       makeConnection(workComputeReady)
+    case Reset =>
+      log.debug(s"ManageActor - finished workload, resetting...")
+      sendSchedule.map(_.cancel())
+      context.become(waitingForWorkload)
   }
 
   private def makeConnectionFunctionSimple(xa: Transactor[IO], dao: DatabaseDao, info: DatasetInfo, workload: Workload): WorkComputeReady => Unit = {
@@ -83,42 +91,31 @@ class ManageActor(lifecycleActor: ActorRef, infoService: SclrService, dao: Datab
 
     // Materializing these objects lets us eventually generate SourceRef/SinkRef instances to bind to ComputeActor.
     val balanceHub = BalanceHub.sink[Work](bufferSize = 32)
-    val mergeHub = MergeHub.source[Result](perProducerBufferSize = 16)
+    val mergeHub = MergeHub.source[Result](perProducerBufferSize = 16, completeWhenAllUpstreamsComplete = true)
     val hubFlow = Flow.fromSinkAndSourceMat(balanceHub, mergeHub)(Keep.both)
 
     val source  = Source.fromIterator(iteratorGen)
-    val watch   = Flow[Work].watchTermination()(Keep.right)
     val groupRs = Flow[Result].groupedWithin(50, 100 milliseconds)
     val save    = Sink.foreachParallel(parallelism = DB_CONNECTIONS) {dao.insertResults(xa, workload.name)}
                     .addAttributes(Attributes.inputBuffer(initial=4, max=100))
+//    val save    = Sink.foreach(dao.insertResult(xa, workload.name))
 
     // Materialize the stream, getting back our endlessly materializable source and sink from BalanceHub and MergeHub.
-    val (((sourceDone, (pullWorkSource, pushResultsSink)), killSwitch), sinkDone) =
+    val ((pullWorkSource, pushResultsSink), sinkDone) =
       source
-      .viaMat(watch)(Keep.right)
-      .viaMat(hubFlow)(Keep.both)
-      .viaMat(KillSwitches.single)(Keep.both)
+      .viaMat(hubFlow)(Keep.right)
       .viaMat(groupRs)(Keep.left)
       .toMat(save)(Keep.both)
       .run()
 
-    // When the source is complete, stop the flow AFTER the MergeHub. This is necessary because MergeHub never stops
-    // unless it gets a "cancel" from downstream. We wait 10 seconds to allow the system to drain (which sucks).
-    sourceDone.onComplete {
-      case Success(Done) =>
-        context.system.scheduler.scheduleOnce(delay = 10 seconds, new Runnable {
-          override def run(): Unit = killSwitch.shutdown()
-        })
-      case Failure(ex) =>
-        killSwitch.abort(ex)
-    }
-
     // When we terminate, send a message to the LifecycleActor.
     sinkDone.onComplete {
       case Success(Done) =>
-        lifecycleActor ! ManageStreamCompleted(self)
+        system.eventStream.publish(ManageStreamCompleted(self, workload))
+        self ! Reset
       case Failure(ex) =>
-        lifecycleActor ! ManageStreamFailed(self, ex)
+        system.eventStream.publish(ManageStreamFailed(self, workload, ex))
+        self ! Reset
     }
 
     val makeConnection: WorkComputeReady => Unit = (workComputeReady: WorkComputeReady) => {
@@ -228,8 +225,8 @@ object ManageActor {
   private val DB_CONNECTIONS = 3
   private val Y_DIMENSIONS = 2
 
-  def props(lifecycleActor: ActorRef, infoService: SclrService, resultsDao: DatabaseDao, workloadOption: Option[Workload] = None) =
-    Props(new ManageActor(lifecycleActor, infoService, resultsDao, workloadOption))
+  def props(infoService: SclrService, resultsDao: DatabaseDao, workloadOption: Option[Workload] = None) =
+    Props(new ManageActor(infoService, resultsDao, workloadOption))
 
   def createIterator(rowCount: Int, yLength: Int, rowsConstant: Int, optionalSubset: Option[Int], optionalRandomSeed: Option[Int]): Iterator[Work] = {
     val selectYDimensions = () => Combinations(yLength, ManageActor.Y_DIMENSIONS).iterator()

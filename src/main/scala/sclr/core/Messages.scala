@@ -15,6 +15,10 @@ object Messages {
     }
   }
 
+  // This is a version of the workload sent by the ManageActor to its ComputeActors. We need to differentiate between
+  // different workload runs so we add an id.
+  final case class ActiveWorkload(id: Int, workload: Workload)
+
   final case class Work(index: Int, selectedDimensions: Vector[Int], selectedRows: Vector[Int])
   final case class WorkComputeReady(pullWork: SinkRef[Work], pushResult: SourceRef[Result], computeCountOption: Option[Int])
 }

@@ -1,6 +1,6 @@
 import sbt.Keys.fork
 
-val akkaVersion = "2.5.13"
+val akkaVersion = "2.5.14"
 val httpVersion = "10.1.1"
 val doobieVersion = "0.5.3"
 

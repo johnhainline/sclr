@@ -60,10 +60,7 @@ spec:
         resources:
           limits:
             cpu: 3000m
-            memory: 6G
-          requests:
-            cpu: 1000m
-            memory: 2G
+            memory: 12G
         ports:
         - containerPort: 3306
         volumeMounts:
