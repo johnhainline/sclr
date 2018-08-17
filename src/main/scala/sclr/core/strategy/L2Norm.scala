@@ -44,7 +44,7 @@ class L2Norm(val dataset: Dataset, val workload: Workload, simpleAlgorithm: Bool
     (!coeff2.isNaN && coeff2 > Double.NegativeInfinity && coeff2 < Double.PositiveInfinity)
   }
 
-  private def generateCoefficients(data: Array[XYZ], work: Work) = {
+  private def generateCoefficients(data: Array[XYZ], work: Work): (Double, Double) = {
     val yDimensions = work.selectedDimensions
     val rows = work.selectedRows
     val xyz1 = data(rows(0))
@@ -63,7 +63,7 @@ class L2Norm(val dataset: Dataset, val workload: Workload, simpleAlgorithm: Bool
     (a1, a2)
   }
 
-  private def constructRednessScores(data: Array[XYZ], yDimensions: Vector[Int], a1: Double, a2: Double) = {
+  private def constructRednessScores(data: Array[XYZ], yDimensions: Vector[Int], a1: Double, a2: Double): Map[Int, Double] = {
     val idToRedness = if (!coefficientsValid(a1, a2)) {
       Map.empty[Int, Double]
     } else {
@@ -75,7 +75,7 @@ class L2Norm(val dataset: Dataset, val workload: Workload, simpleAlgorithm: Bool
     idToRedness
   }
 
-  private def collectFilter(data: Array[XYZ], selections: Vector[(Int, Boolean)]) = {
+  private def collectFilter(data: Array[XYZ], selections: Vector[(Int, Boolean)]): BitSet = {
     val mapFilter = new PartialFunction[XYZ, Int] {
       def apply(xyz: XYZ) = xyz.id
       def isDefinedAt(xyz: XYZ) = selections.map(selection => xyz.x(selection._1) == selection._2).forall(identity)

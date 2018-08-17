@@ -113,8 +113,10 @@ object ComputeActor {
   def props(dao: DatabaseDao, parallel: Int, computeCountOption: Option[Int] = None) =
     Props(new ComputeActor(dao, parallel, computeCountOption))
 
-  private def createComputeFlow(strategy: KDNFStrategy, log: LoggingAdapter) = Flow[Work].map { work =>
-    log.info(s"ComputeActor - received work: $work")
-    strategy.run(work)
-  }.named("Compute-flow")
+  private def createComputeFlow(strategy: KDNFStrategy, log: LoggingAdapter) = {
+    Flow[Work].map { work =>
+      log.info(s"ComputeActor - received work: $work")
+      strategy.run(work)
+    }.named("Compute-flow")
+  }
 }

@@ -6,7 +6,7 @@ import akka.cluster.pubsub.DistributedPubSub
 import akka.cluster.pubsub.DistributedPubSubMediator.Publish
 import akka.remote.Ack
 import akka.stream.scaladsl._
-import akka.stream.{ActorMaterializer, Attributes, KillSwitches}
+import akka.stream.ActorMaterializer
 import cats.effect.IO
 import combinations.Combinations
 import combinations.iterators.MultipliedIterator
@@ -95,10 +95,9 @@ class ManageActor(infoService: SclrService, dao: DatabaseDao, workloadOption: Op
     val hubFlow = Flow.fromSinkAndSourceMat(balanceHub, mergeHub)(Keep.both)
 
     val source  = Source.fromIterator(iteratorGen)
-    val groupRs = Flow[Result].groupedWithin(50, 100 milliseconds)
+    val bufferSize = system.settings.config.getInt("akka.stream.materializer.stream-ref.buffer-capacity")
+    val groupRs = Flow[Result].groupedWithin(bufferSize * DB_CONNECTIONS, 1000 milliseconds)
     val save    = Sink.foreachParallel(parallelism = DB_CONNECTIONS) {dao.insertResults(xa, workload.name)}
-                    .addAttributes(Attributes.inputBuffer(initial=4, max=100))
-//    val save    = Sink.foreach(dao.insertResult(xa, workload.name))
 
     // Materialize the stream, getting back our endlessly materializable source and sink from BalanceHub and MergeHub.
     val ((pullWorkSource, pushResultsSink), sinkDone) =
