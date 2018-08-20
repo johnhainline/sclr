@@ -61,8 +61,8 @@ spec:
           name: http-service
         resources:
           limits:
-            cpu: 3600m
-            memory: 13G
+            cpu: 3500m
+            memory: 12G
         env:
         - name: DATABASE_HOST
           value: mysql-service

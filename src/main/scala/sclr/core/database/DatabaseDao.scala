@@ -1,7 +1,7 @@
 package sclr.core.database
 
 import java.io.{BufferedReader, InputStreamReader}
-import java.sql.{ResultSet, SQLException, Statement, Timestamp}
+import java.sql.{PreparedStatement, ResultSet, SQLException, Statement, Timestamp}
 import java.time.{Instant, ZoneId, ZonedDateTime}
 
 import cats.effect.IO
@@ -91,6 +91,8 @@ class DatabaseDao extends LazyLogging {
         case e: SQLException =>
           logger.error("Could not get dataset from DB.", e)
           throw e
+        case e: Exception =>
+          throw e
       } finally {
         if (statement != null) statement.close()
       }
@@ -134,38 +136,78 @@ class DatabaseDao extends LazyLogging {
     array
   }
 
-  private def getInsertNames(result: Result) = {
-    Fragment.const(Vector(indexColumn, errorColumn,
+  private def createInsertStatement(schema: String, result: Result): String = {
+    val names = Vector(indexColumn, errorColumn,
       dimensionNames(result.dimensions.length).mkString(","),
       rowNames(result.rows.length).mkString(","),
       coeffNames(result.coefficients.length).mkString(","),
       "kdnf"
-    ).mkString("(", ",", ")"))
+    ).mkString("(", ",", ")")
+
+    val totalItems = 2 + result.dimensions.length + result.rows.length + result.coefficients.length + 1
+    val questionMarks = (1 to totalItems).map(_ => "?").mkString("(", ",", ")")
+
+    s"INSERT INTO $schema.results $names VALUES $questionMarks"
   }
 
-  private val reducer = { (l:Fragment, r:Fragment) => l ++ r}
-  private def getInsertValues(result: Result) = {
-    val fragmentValues =
-      fr"${result.index}, ${result.error}" ++
-      result.dimensions.map(d => fr", $d").reduce(reducer) ++
-      result.rows.map(r => fr", $r").reduce(reducer) ++
-      result.coefficients.map(c => fr", $c").reduce(reducer)
-    Fragment.const("(") ++ fragmentValues ++ sql", ${result.kDNF}" ++ Fragment.const(")")
-  }
-
-  def insertResults(xa: Transactor[IO], schema: String)(results: Seq[Result]): Int = {
+  def insertResults(xa: Transactor[IO], schema: String)(results: Seq[Result]): Unit = {
     assert(results.nonEmpty)
-    val names = getInsertNames(results.head)
-    val values = results.map(getInsertValues)
-    val aggregateValues = values.reduce[Fragment] { case (frag1, frag2) =>
-      frag1 ++ fr"," ++ frag2
-    }
-    val dbUpdate = (fr"INSERT INTO " ++ Fragment.const(s"$schema.results") ++
-      names ++ fr"VALUES" ++ aggregateValues).update
-    dbUpdate.run.transact(xa).unsafeRunSync()
+
+    val insertString = createInsertStatement(schema, results.head)
+    var statement: PreparedStatement = null
+    FC.raw { connection =>
+      try {
+        val autoCommit = connection.getAutoCommit
+        connection.setAutoCommit(false)
+        statement = connection.prepareStatement(insertString)
+        var inserted = 0
+        for (result <- results) {
+          // Ex: (work_index, error, dim0, dim1, row0, row1, coeff0, coeff1, kdnf)
+          var index = 1
+          statement.setInt(index, result.index)
+          index += 1
+          result.error.foreach { error =>
+            statement.setDouble(index, error)
+          }
+          index += 1
+          for (d <- result.dimensions) {
+            statement.setInt(index, d)
+            index += 1
+          }
+          for (r <- result.rows) {
+            statement.setInt(index, r)
+            index += 1
+          }
+          for (c <- result.coefficients) {
+            statement.setDouble(index, c)
+            index += 1
+          }
+          result.kDNF.foreach { kdnf =>
+            statement.setString(index, kdnf)
+          }
+          statement.addBatch()
+
+          inserted += 1
+          if (inserted % 1024 == 0) {
+            statement.executeBatch()
+          }
+        }
+
+        statement.executeBatch()
+
+        connection.commit()
+        connection.setAutoCommit(autoCommit)
+      } catch {
+        case e: SQLException =>
+          logger.error("Could not save results to DB.", e)
+          throw e
+      } finally {
+        if (statement != null) statement.close()
+      }
+    }.transact(xa).unsafeRunSync()
   }
 
-  def insertResult(xa: Transactor[IO], schema: String)(result: Result): Int = insertResults(xa, schema)(List(result))
+  def insertResult(xa: Transactor[IO], schema: String)(result: Result): Unit = insertResults(xa, schema)(List(result))
 
   def setupSchemaAndTable(xa: Transactor[IO], schema: String, yDimensions: Int, rows: Int): Int = {
     setupSchema(xa, schema)

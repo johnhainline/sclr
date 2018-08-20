@@ -40,7 +40,7 @@ class ManageActor(infoService: SclrService, dao: DatabaseDao, workloadOption: Op
 
   def waitingForWorkload: Receive = {
     case workload: Workload =>
-      log.debug(s"ManageActor - received workload: $workload")
+      log.info(s"ManageActor - received workload: $workload")
       sender() ! Ack
 
       Try(DatabaseDao.makeHikariTransactor(ManageActor.DB_CONNECTIONS)) match {
@@ -60,7 +60,7 @@ class ManageActor(infoService: SclrService, dao: DatabaseDao, workloadOption: Op
   def prepareWorkload(xa: Transactor[IO])(): Receive = {
     case workload: Workload =>
       val info = dao.getDatasetInfo(xa, workload.name)
-      log.debug(s"ManageActor - preparing workload for dataset: ${workload.name} with dimensions:${info.yLength} rows:${info.rowCount} selecting dimensions:${ManageActor.Y_DIMENSIONS} rows:${workload.getRowsConstant()}")
+      log.info(s"ManageActor - preparing workload for dataset: ${workload.name} with dimensions:${info.yLength} rows:${info.rowCount} selecting dimensions:${ManageActor.Y_DIMENSIONS} rows:${workload.getRowsConstant()}")
 
       val makeConnection = makeConnectionFunctionSimple(xa, dao, info, workload)
 
@@ -77,10 +77,10 @@ class ManageActor(infoService: SclrService, dao: DatabaseDao, workloadOption: Op
       DistributedPubSub(context.system).mediator ! Publish(workloadTopic, activeWorkload)
       sendSchedule = Some(context.system.scheduler.scheduleOnce(delay = 5 seconds, self, SendActiveWorkload))
     case workComputeReady: WorkComputeReady =>
-      log.debug(s"ManageActor - received $workComputeReady")
+      log.info(s"ManageActor - received $workComputeReady")
       makeConnection(workComputeReady)
     case Reset =>
-      log.debug(s"ManageActor - finished workload, resetting...")
+      log.info(s"ManageActor - finished workload, resetting...")
       sendSchedule.map(_.cancel())
       context.become(waitingForWorkload)
   }

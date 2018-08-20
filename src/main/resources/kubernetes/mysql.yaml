@@ -59,8 +59,8 @@ spec:
               key: password
         resources:
           limits:
-            cpu: 3600m
-            memory: 13G
+            cpu: 3500m
+            memory: 12G
         ports:
         - containerPort: 3306
         volumeMounts:
