@@ -4,7 +4,7 @@ object LocalApp {
   def main(args: Array[String]): Unit = {
 
     val json = """{"name":"tiny","dnfSize":2,"useLPNorm":true,"mu":0.2}"""
-    Sclr.run(Array[String]("-w", json, "-p", "4"))
+    Sclr.run(Array[String]("-w", json, "-p", "4", "-k"))
 
 //    val sleep = 3000
 //    Thread.sleep(sleep)

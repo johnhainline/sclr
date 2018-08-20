@@ -10,7 +10,7 @@ gcloud config set project washu-seas-mltheory
 gcloud config set compute/zone us-central1-a
 
 
-gcloud container clusters create cluster-1  --zone us-central1-a --num-nodes 8 --cluster-version=1.9.7-gke.3
+gcloud container clusters create cluster-1  --zone us-central1-a --num-nodes 8 --cluster-version=1.9.7-gke.5
 gcloud container clusters delete cluster-1
 
 gcloud compute project-info describe --project washu-seas-mltheory
@@ -37,6 +37,9 @@ kubectl logs -v=5 -f $(kubectl get pods -o name | grep "manage")
 kubectl config get-contexts
 kubectl config use-context gke_washu-seas-mltheory_us-central1-a_cluster-1
 
+cd src/main/resources/kubernetes/; kubectl create -f mysql.yaml; cd ../../../..;
+cd src/main/resources/kubernetes/; kubectl create -f manage-pods.yaml; cd ../../../..;
+cd src/main/resources/kubernetes/; kubectl create -f compute-pods.yaml; cd ../../../..;
 cd src/main/resources/kubernetes/; kubectl create -f mysql.yaml; kubectl create -f manage-pods.yaml; kubectl create -f compute-pods.yaml; cd ../../../..;
 
 kubectl delete pvc mysql-pv-claim; kubectl delete statefulset --all; kubectl delete replicaset --all; kubectl delete deployment --all; kubectl delete all -l app=sclr
@@ -45,6 +48,7 @@ kubectl delete pvc mysql-pv-claim; kubectl delete statefulset --all; kubectl del
 kubectl exec -ti compute-0 -- curl -vH "Content-Type: application/json" -d
 '{"name":"rsv","dnfSize":2,"optionalSubset":500,"useLPNorm":true,"mu":0.2465}' http-service.default.svc.cluster.local:8080/begin
 
+kubectl exec -ti compute-0 -- curl -vH "Content-Type: application/json" -d '{"name":"tiny","dnfSize":2,"useLPNorm":true,"mu":0.24}' http-service.default.svc.cluster.local:8080/begin
 kubectl exec -ti compute-0 -- curl -vH "Content-Type: application/json" -d '{"name":"small","dnfSize":2,"useLPNorm":true,"mu":0.24}' http-service.default.svc.cluster.local:8080/begin
 
 **** MYSQL ****

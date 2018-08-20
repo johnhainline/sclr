@@ -22,9 +22,9 @@ object Sclr {
     val cores = Runtime.getRuntime.availableProcessors
     val parallelization = opt[Int](descr = "compute: number of compute streams to instantiate", default = Some(cores), validate = 0< )
     val count = opt[Int](descr = "compute: number of distinct pieces of work to run before exiting", validate = 0< )
-    val keepRunning = toggle(name = "keep-running",
-      descrYes = "keep the system running after completion (avoids shutting down ActorSystem)",
-      descrNo = "shut down ActorSystem after completion of a workload",
+    val kill = toggle(name = "kill",
+      descrYes = "kill the system after completing a Workload",
+      descrNo = "continue running, even after completing a Workload (avoids shutting down ActorSystem)",
       default = Some(false))
     verify()
   }
@@ -42,7 +42,7 @@ object Sclr {
       val roles = cluster.getSelfRoles
       system.log.info(s"Member ${cluster.selfUniqueAddress} up. Contains roles: $roles")
 
-      val shutdown = !conf.keepRunning.toOption.get
+      val shutdown = conf.kill.toOption.get
       system.actorOf(LifecycleActor.props(shutdown), name = "lifecycle")
 
       val dao = new DatabaseDao()

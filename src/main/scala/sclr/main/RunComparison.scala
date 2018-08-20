@@ -25,7 +25,7 @@ object RunComparison {
           val json = s"""{"name":"$datasetName","dnfSize":2,"useLPNorm":true,"optionalSubset":$subset,"mu":$mu}"""
           bw.write(json)
           bw.write("\n")
-          val system = Sclr.run(Array[String]("-w", json, "-p", "4"))
+          val system = Sclr.run(Array[String]("-w", json, "-p", "4", "-k"))
           Await.result(system.whenTerminated, Duration.Inf)
           val result = {
             val xa = DatabaseDao.makeSingleTransactor()

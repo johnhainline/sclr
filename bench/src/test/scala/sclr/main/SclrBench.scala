@@ -57,7 +57,7 @@ object SclrBench extends Bench.OfflineReport {
     ) in {
     measure method "standard" in {
       using(nothing) setUp { i =>
-        system = Sclr.run(Array[String]("-k"))
+        system = Sclr.run(Array[String]())
         Thread.sleep(1000)
         manageActor = Await.result(system.actorSelection(path = "/user/manage").resolveOne(), Duration.Inf)
       } tearDown { i =>
