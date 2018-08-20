@@ -66,6 +66,7 @@ class ComputeActor(dao: DatabaseDao, parallelization: Int, computeCountOption: O
 
         // obtain the flow you want to attach:
         val flowComputeCount = computeCountOption.map { c => Math.ceil(c / parallelization).toInt }
+        log.debug(s"ComputeActor - creating $parallelization compute actors")
         for (i <- 0 until parallelization) {
           val computeFlow = ComputeActor.createComputeFlow(strategy, log)
 
