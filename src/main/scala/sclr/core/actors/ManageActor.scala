@@ -77,7 +77,7 @@ class ManageActor(infoService: SclrService, dao: DatabaseDao, workloadOption: Op
       DistributedPubSub(context.system).mediator ! Publish(workloadTopic, activeWorkload)
       sendSchedule = Some(context.system.scheduler.scheduleOnce(delay = 5 seconds, self, SendActiveWorkload))
     case workComputeReady: WorkComputeReady =>
-      log.info(s"ManageActor - received $workComputeReady")
+      log.debug(s"ManageActor - received $workComputeReady")
       makeConnection(workComputeReady)
     case Reset =>
       log.info(s"ManageActor - finished workload, resetting...")

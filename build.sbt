@@ -6,7 +6,7 @@ val doobieVersion = "0.5.3"
 
 organization in ThisBuild := "wustl.engineering"
 scalaVersion in ThisBuild := "2.12.6"
-version in ThisBuild := "1.7.3"
+version in ThisBuild := "1.7.4"
 
 scalacOptions in ThisBuild += "-Ypartial-unification" // 2.11.9+
 scalacOptions in ThisBuild += "-Xlint" // Get more warnings
@@ -45,7 +45,7 @@ lazy val sclr = project
       "org.scalamock" %% "scalamock" % "4.1.0" % Test,
 
       // Logging
-      "com.typesafe.scala-logging" %% "scala-logging" % "3.7.2",
+      "com.typesafe.scala-logging" %% "scala-logging" % "3.9.0",
       "ch.qos.logback" % "logback-classic" % "1.2.3",
 
       // Doobie, a JDBC functional programming layer

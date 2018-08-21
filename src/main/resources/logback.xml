@@ -1,0 +1,21 @@
+<configuration>
+
+    <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>[%level] [%date{dd/MM/YYYY HH:mm:ss.SSS}] [%logger{10}] - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="file" class="ch.qos.logback.core.FileAppender">
+        <file>${log-file:-scala-logging.log}</file>
+        <encoder>
+            <pattern>[%level] [%date{dd/MM/YYYY HH:mm:ss.SSS}] [%logger{10}] - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <root level="info">
+        <appender-ref ref="console"/>
+        <appender-ref ref="file"/>
+    </root>
+
+</configuration>
