@@ -1,8 +1,11 @@
 package sclr.main
 
+import java.util.Collections
+
 import akka.actor.ActorSystem
 import akka.cluster.Cluster
 import akka.stream.ActorMaterializer
+import com.typesafe.config.ConfigFactory
 import sclr.core.Messages.Workload
 import sclr.core.actors.{ComputeActor, LifecycleActor, ManageActor}
 import sclr.core.database.DatabaseDao
@@ -56,6 +59,19 @@ object Sclr {
         val workloadOption = conf.workload.toOption
         val props = ManageActor.props(new SclrService(), dao, workloadOption)
         system.actorOf(props, name = "manage")
+      }
+
+      val hostPath = "debug.jmx-host"
+      val portPath = "debug.jmx-port"
+      val config = ConfigFactory.load()
+      if (config.hasPath(hostPath) && config.hasPath(portPath)) {
+        val jmxHost = config.getString(hostPath)
+        val jmxPort = config.getString(portPath)
+        javax.management.remote.JMXConnectorServerFactory.newJMXConnectorServer(
+          new javax.management.remote.JMXServiceURL(s"service:jmx:jmxmp://$jmxHost:$jmxPort"),
+          Collections.emptyMap(),
+          java.lang.management.ManagementFactory.getPlatformMBeanServer
+        ).start()
       }
     }
     system

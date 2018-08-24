@@ -18,7 +18,7 @@ gcloud container clusters get-credentials cluster-1
 
 kubectl create secret generic mysql-password --from-literal=password=KO4eD0BrP2PC19jO
 
-kubectl scale statefulsets compute --replicas=7
+kubectl scale statefulsets compute --replicas=2
 
 docker images
 docker rmi -f $(docker images -a -q)
@@ -28,6 +28,7 @@ gcloud auth configure-docker
 cd src/main/resources/docker/; docker build -t local/openjdk-custom:latest .; cd ../../../../;
 sbt docker:publish
 sbt docker:publishLocal
+
 
 kubectl get all -o wide
 kubectl describe pods compute-0
@@ -40,16 +41,18 @@ kubectl config use-context gke_washu-seas-mltheory_us-central1-a_cluster-1
 cd src/main/resources/kubernetes/; kubectl create -f mysql.yaml; cd ../../../..;
 cd src/main/resources/kubernetes/; kubectl create -f manage-pods.yaml; cd ../../../..;
 cd src/main/resources/kubernetes/; kubectl create -f compute-pods.yaml; cd ../../../..;
-cd src/main/resources/kubernetes/; kubectl create -f mysql.yaml; kubectl create -f manage-pods.yaml; kubectl create -f compute-pods.yaml; cd ../../../..;
+cd src/main/resources/kubernetes/; kubectl create -f compute-pods.yaml; kubectl create -f mysql.yaml; kubectl create -f manage-pods.yaml; cd ../../../..;
 
 kubectl delete pvc mysql-pv-claim; kubectl delete statefulset --all; kubectl delete replicaset --all; kubectl delete deployment --all; kubectl delete all -l app=sclr
 
 
-kubectl exec -ti compute-0 -- curl -vH "Content-Type: application/json" -d
-'{"name":"rsv","dnfSize":2,"optionalSubset":500,"useLPNorm":true,"mu":0.2465}' http-service.default.svc.cluster.local:8080/begin
-
 kubectl exec -ti compute-0 -- curl -vH "Content-Type: application/json" -d '{"name":"tiny","dnfSize":2,"useLPNorm":true,"mu":0.24}' http-service.default.svc.cluster.local:8080/begin
-kubectl exec -ti compute-0 -- curl -vH "Content-Type: application/json" -d '{"name":"m10000","dnfSize":2,"useLPNorm":true,"optionalSubset":500,"mu":0.24}' http-service.default.svc.cluster.local:8080/begin
+kubectl exec -ti compute-0 -- curl -vH "Content-Type: application/json" -d '{"name":"m10000","dnfSize":2,"useLPNorm":true,"optionalSubset":500,"mu":0.246}' http-service.default.svc.cluster.local:8080/begin
+
+**** DEBUG ****
+kubectl port-forward compute-0 9010 9011
+service:jmx:jmxmp://localhost:9010
+
 
 **** MYSQL ****
 
@@ -70,11 +73,11 @@ sudo ln -s /usr/local/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/bin/cont
 
 docker pull us.gcr.io/washu-seas-mltheory/sclr:latest
 
-USE boston_train2; SELECT count(*) from results;
-USE boston_train2; select * from results order by created_at limit 1;
-USE boston_train2; select * from results order by created_at desc limit 1;
+select work_index,dim0,dim1,row0,row1,error from results order by work_index;
 
-USE boston_train2; SELECT * FROM results WHERE error = (SELECT MIN(error) FROM results);
-
-USE boston_train2; SELECT * FROM results WHERE created_at = ( SELECT MIN( created_at ) FROM results ) LIMIT 1;
-USE boston_train2; SELECT * FROM results WHERE created_at = ( SELECT MAX( created_at ) FROM results ) LIMIT 1;
+SELECT count(*) from results;
+select created_at from results order by created_at limit 1;
+select created_at from results order by created_at desc limit 1;
+SELECT * FROM results WHERE error = (SELECT MIN(error) FROM results);
+SELECT * FROM results WHERE created_at = ( SELECT MIN( created_at ) FROM results ) LIMIT 1;
+SELECT * FROM results WHERE created_at = ( SELECT MAX( created_at ) FROM results ) LIMIT 1;

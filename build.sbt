@@ -6,7 +6,7 @@ val doobieVersion = "0.5.3"
 
 organization in ThisBuild := "wustl.engineering"
 scalaVersion in ThisBuild := "2.12.6"
-version in ThisBuild := "1.7.4"
+version in ThisBuild := "1.8.9"
 
 scalacOptions in ThisBuild += "-Ypartial-unification" // 2.11.9+
 scalacOptions in ThisBuild += "-Xlint" // Get more warnings
@@ -56,6 +56,9 @@ lazy val sclr = project
       // mysql connection driver
       "mysql" % "mysql-connector-java" % "5.1.45",
 
+      // JMXMP connector, used for a remote JMX connection (when debugging using VisualVM)
+      "org.glassfish.external" % "opendmk_jmxremote_optional_jar" % "1.0-b01-ea",
+
       "com.typesafe.akka" %% "akka-http"               % httpVersion,
       "com.typesafe.akka" %% "akka-http-spray-json"    % httpVersion,
       "com.typesafe.akka" %% "akka-http-testkit"       % httpVersion % Test,
@@ -72,7 +75,9 @@ lazy val sclr = project
       "com.typesafe.akka" %% "akka-multi-node-testkit" % akkaVersion
     ),
 
-    javaOptions in run ++= Seq("-Djava.library.path=./target/native"),
+    javaOptions in run ++= Seq(
+      "-Djava.library.path=./target/native"
+    ),
 
     fork in run := true
   )
