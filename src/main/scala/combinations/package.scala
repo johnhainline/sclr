@@ -1,4 +1,4 @@
 
 package object combinations {
-  type Combination = Vector[Int]
+  type Combination = Array[Int]
 }

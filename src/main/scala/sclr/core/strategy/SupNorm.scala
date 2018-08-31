@@ -5,13 +5,13 @@ import sclr.core.Messages.{Work, Workload}
 import sclr.core.database.{Dataset, Result, XYZ}
 import combinations.Combinations
 
-class SupNorm(val dataset: Dataset, val workload: Workload) extends KDNFStrategy(dataset) {
+class SupNorm(val dataset: Dataset, val workload: Workload) extends KDNFStrategy {
   def epsilon: Double = workload.optionalEpsilon.get
 
   def run(work: Work): Result = {
     var kdnf = ""
     var error = 0.0
-    var coeff = Vector(0.0)
+    var coeff = Array(0.0)
     val M = dataset.data.length
     val ro = List(-1, 1)
     for (r1 <- ro; r2 <- ro; r3 <- ro) {
@@ -49,7 +49,7 @@ class SupNorm(val dataset: Dataset, val workload: Workload) extends KDNFStrategy
           if (points.length > workload.mu * M) {
             kdnf = allDNFTerms.toString()
             error = epsilon2
-            coeff = Vector(coeff1, points.length)
+            coeff = Array(coeff1, points.length)
           }
         }
       }
@@ -58,7 +58,7 @@ class SupNorm(val dataset: Dataset, val workload: Workload) extends KDNFStrategy
     Result(work.index, work.selectedDimensions, work.selectedRows, coeff, Some(error), realKdnf)
   }
 
-  private def solveLinearSystem(data: Array[XYZ], yDimensions: Vector[Int], rows: Vector[Int], r1: Int, r2: Int, r3: Int) = {
+  private def solveLinearSystem(data: Array[XYZ], yDimensions: Array[Int], rows: Array[Int], r1: Int, r2: Int, r3: Int) = {
     val xyz1 = data(rows(0))
     val xyz2 = data(rows(1))
     val xyz3 = data(rows(2))

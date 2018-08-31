@@ -49,12 +49,12 @@ case class Combinations(n: Int, k: Int) {
 object Combinations {
   def first(n: Int, k: Int): Combination = {
     val first = for (i <- 0 until k) yield i
-    first.toVector
+    first.toArray
   }
 
   def last(n: Int, k: Int): Combination = {
     val last = for (i <- n-k until n) yield i
-    last.toVector
+    last.toArray
   }
 
   def choose(n: Int, k: Int): BigInt = {
@@ -96,7 +96,7 @@ object Combinations {
       result.prepend(l)
       m -= Combinations.choose(l, i)
     }
-    result.toVector
+    result.toArray
   }
 
   /*  We know that for
@@ -170,11 +170,11 @@ object Combinations {
     middle
   }
 
-  def rank(combinations: Vector[Combination]): Vector[(Int, BigInt)] = {
+  def rank(combinations: Array[Combination]): Array[(Int, BigInt)] = {
     combinations.map(combo => (combo.length, Combinations.rank(combo)))
   }
 
-  def unrank(kIndex: Vector[(Int, BigInt)]): Vector[Combination] = {
+  def unrank(kIndex: Array[(Int, BigInt)]): Array[Combination] = {
     kIndex.map(kIndex => Combinations.unrank(kIndex._1, kIndex._2))
   }
 
@@ -191,7 +191,7 @@ object Combinations {
         result.append(combination(i))
       }
     }
-    result.toVector
+    result.toArray
   }
 
   private def findIndex(combination: Combination): Int = {

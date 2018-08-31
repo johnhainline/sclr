@@ -6,7 +6,7 @@ import sclr.core.database.Result
 object Messages {
   val workloadTopic = "workloadTopic"
 
-  final case class Workload(name: String, dnfSize: Int, mu: Double, useLPNorm: Boolean,
+  case class Workload(name: String, dnfSize: Int, mu: Double, useLPNorm: Boolean,
                             optionalEpsilon: Option[Double] = None,
                             optionalSubset: Option[Int] = None,
                             optionalRandomSeed: Option[Int] = None) {
@@ -17,8 +17,8 @@ object Messages {
 
   // This is a version of the workload sent by the ManageActor to its ComputeActors. We need to differentiate between
   // different workload runs so we add an id.
-  final case class ActiveWorkload(id: Int, workload: Workload)
+  case class ActiveWorkload(id: Int, workload: Workload)
 
-  final case class Work(index: Int, selectedDimensions: Vector[Int], selectedRows: Vector[Int])
-  final case class WorkComputeReady(pullWork: SinkRef[Work], pushResult: SourceRef[Result], computeCountOption: Option[Int])
+  case class Work(index: Int, selectedDimensions: Array[Int], selectedRows: Array[Int])
+  case class WorkComputeReady(pullWork: SinkRef[Work], pushResult: SourceRef[Result], computeCountOption: Option[Int])
 }

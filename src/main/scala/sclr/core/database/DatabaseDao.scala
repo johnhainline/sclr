@@ -21,9 +21,10 @@ import scala.reflect.ClassTag
 case class XYZ(id: Int, x: Array[Boolean], y: Array[Double], z: Double)
 case class Dataset(data: Array[XYZ], xLength: Int, yLength: Int)
 case class DatasetInfo(xLength: Int, yLength: Int, rowCount: Int)
-case class Result(index: Int, dimensions: Vector[Int], rows: Vector[Int], coefficients: Vector[Double], error: Option[Double], kDNF: Option[String]) {
+case class Result(index: Int, dimensions: Array[Int], rows: Array[Int], coefficients: Array[Double], error: Option[Double], kDNF: Option[String]) {
   override def toString: String = {
-    s"Result(index=$index, dims=$dimensions, rows=$rows, coeffs=$coefficients, error=$error, kdnf=$kDNF)"
+    import scala.runtime.ScalaRunTime._
+    s"Result(index=$index, dims=${stringOf(dimensions)}, rows=${stringOf(rows)}, coeffs=${stringOf(coefficients)}, error=$error, kdnf=$kDNF)"
   }
 }
 
@@ -113,7 +114,7 @@ class DatabaseDao extends LazyLogging {
         val coeffArray = getArrayFromResultSet(results, index = 8, yDimensions, results.getDouble)
         val error = Option(results.getDouble("error"))
         val kdnf = Option(results.getString("kdnf"))
-        Result(id, dimArray.toVector, rowArray.toVector, coeffArray.toVector, error, kdnf)
+        Result(id, dimArray, rowArray, coeffArray, error, kdnf)
       } catch {
         case e: SQLException =>
           logger.error("Could not get best result from DB.", e)

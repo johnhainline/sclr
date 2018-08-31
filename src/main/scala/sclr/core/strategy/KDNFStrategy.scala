@@ -1,8 +1,8 @@
 package sclr.core.strategy
 
 import sclr.core.Messages.Work
-import sclr.core.database.{Dataset, Result}
+import sclr.core.database.Result
 
-abstract class KDNFStrategy(dataset: Dataset) {
+trait KDNFStrategy {
   def run(work: Work): Result
 }

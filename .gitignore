@@ -6,3 +6,4 @@ target/
 .~lock.*
 sclr-mysql-access-key.json
 /.project
+cmake-build-debug

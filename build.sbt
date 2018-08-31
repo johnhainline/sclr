@@ -79,15 +79,21 @@ lazy val sclr = project
       "-Djava.library.path=./target/native"
     ),
 
+    // Get our c header to show up at "native/include"
+    sourceDirectory in nativeCompile := sourceDirectory.value / "native",
+    target in nativeCompile := target.value / "native" / (nativePlatform).value,
+    target in javah := (sourceDirectory in nativeCompile).value / "include",
+
     fork in run := true
   )
-  .enablePlugins(MultiJvmPlugin, JavaServerAppPackaging, DockerPlugin)
+  .enablePlugins(JniNative, MultiJvmPlugin, JavaServerAppPackaging, DockerPlugin)
   .configs(MultiJvm)
 
 // Benchmarks
 lazy val bench = project
   .in(file("bench"))
   .settings(
+    target in javah := (sourceDirectory in nativeCompile).value / "include",
     name := "bench",
     testFrameworks += new TestFramework("org.scalameter.ScalaMeterFramework"),
     logBuffered := false,

@@ -1,12 +1,12 @@
 package sclr.core.strategy
 
-import sclr.core.Messages.{Work, Workload}
-import sclr.core.database._
 import combinations.Combinations
+import sclr.core.Messages.{Work, Workload}
+import sclr.core.database.{Dataset, Result, XYZ}
 
 import scala.collection.immutable.BitSet
 
-class L2Norm(val dataset: Dataset, val workload: Workload, simpleAlgorithm: Boolean = true) extends KDNFStrategy {
+class L2NormFast(val dataset: Dataset, val workload: Workload) extends KDNFStrategy {
 
   // Construct all possible dnf set memberships.
   lazy val termToIndices: Map[BitSet, (Int, Int)] = Combinations(dataset.xLength, workload.dnfSize).iterator().flatMap { zeroIndexedIndices =>
@@ -22,26 +22,26 @@ class L2Norm(val dataset: Dataset, val workload: Workload, simpleAlgorithm: Bool
     result
   }.toMap
   lazy val terms: Vector[BitSet] = termToIndices.keys.toVector
-  lazy val setCover = new SetCover(terms, workload.mu, dataset.xLength, simpleAlgorithm = simpleAlgorithm)
 
   def run(work: Work): Result = {
-    val (a1, a2) = generateCoefficients(dataset.data, work)
-    if (coefficientsValid(a1, a2)) {
-      // Construct redness score with a map of XYZ.id -> redness
-      val idToRedness = constructRednessScores(dataset.data, work.selectedDimensions, a1, a2)
-      val (kdnfTerms, error) = setCover.lowDegPartial2(idToRedness)
-      val kdnfString = kdnfTerms.map(termToIndices).toString
-      val kdnf = if (kdnfTerms.nonEmpty) Some(kdnfString) else None
-      Result(work.index, work.selectedDimensions, work.selectedRows, Array(a1, a2), Some(error), kdnf)
-    } else {
-      Result(work.index, work.selectedDimensions, work.selectedRows, Array(0, 0), None, None)
-    }
+    ???
+//    val (a1, a2) = generateCoefficients(dataset.data, work)
+//    if (coefficientsValid(a1, a2)) {
+//      // Construct redness score with a map of XYZ.id -> redness
+//      val idToRedness = constructRednessScores(dataset.data, work.selectedDimensions, a1, a2)
+//      val (kdnfTerms, error) = setCover.lowDegPartial2(idToRedness)
+//      val kdnfString = kdnfTerms.map(termToIndices).toString
+//      val kdnf = if (kdnfTerms.nonEmpty) Some(kdnfString) else None
+//      Result(work.index, work.selectedDimensions, work.selectedRows, Vector(a1, a2), Some(error), kdnf)
+//    } else {
+//      Result(work.index, work.selectedDimensions, work.selectedRows, Vector(0, 0), None, None)
+//    }
   }
 
   private def coefficientsValid(coeff1: Double, coeff2: Double): Boolean = {
     (coeff1 != 0 && coeff2 != 0) &&
-    (!coeff1.isNaN && coeff1 > Double.NegativeInfinity && coeff1 < Double.PositiveInfinity) &&
-    (!coeff2.isNaN && coeff2 > Double.NegativeInfinity && coeff2 < Double.PositiveInfinity)
+      (!coeff1.isNaN && coeff1 > Double.NegativeInfinity && coeff1 < Double.PositiveInfinity) &&
+      (!coeff2.isNaN && coeff2 > Double.NegativeInfinity && coeff2 < Double.PositiveInfinity)
   }
 
   private def generateCoefficients(data: Array[XYZ], work: Work): (Double, Double) = {
@@ -63,7 +63,7 @@ class L2Norm(val dataset: Dataset, val workload: Workload, simpleAlgorithm: Bool
     (a1, a2)
   }
 
-  private def constructRednessScores(data: Array[XYZ], yDimensions: Array[Int], a1: Double, a2: Double): Map[Int, Double] = {
+  private def constructRednessScores(data: Array[XYZ], yDimensions: Vector[Int], a1: Double, a2: Double): Map[Int, Double] = {
     val idToRedness = if (!coefficientsValid(a1, a2)) {
       Map.empty[Int, Double]
     } else {

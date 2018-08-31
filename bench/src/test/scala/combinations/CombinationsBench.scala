@@ -40,7 +40,7 @@ object CombinationsBench extends Bench.OfflineReport {
       result.prepend(l)
       m -= Combinations.choose(l, i)
     }
-    result.toVector
+    result.toArray
   }
 
 }
