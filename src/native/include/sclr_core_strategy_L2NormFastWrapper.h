@@ -10,10 +10,10 @@ extern "C" {
 /*
  * Class:     sclr_core_strategy_L2NormFastWrapper
  * Method:    prepare
- * Signature: (Lsclr/core/database/Dataset;Ljava/lang/String;IDDII)I
+ * Signature: (Lsclr/core/database/Dataset;Lsclr/core/Messages/Workload;)I
  */
 JNIEXPORT jint JNICALL Java_sclr_core_strategy_L2NormFastWrapper_prepare
-  (JNIEnv *, jobject, jobject, jstring, jint, jdouble, jdouble, jint, jint);
+  (JNIEnv *, jobject, jobject, jobject);
 
 /*
  * Class:     sclr_core_strategy_L2NormFastWrapper
