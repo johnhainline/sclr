@@ -33,7 +33,7 @@ JNIEXPORT jint JNICALL Java_sclr_core_strategy_L2NormFastWrapper_prepare
     // Our list of terms (bitsets). There should be (xLength choose dnfSize) * 4 of these.
     std::vector< boost::dynamic_bitset<> > terms;
 
-    std::vector<long long> first   = Combinations::instance()->first(n, k);
+//    std::vector<long long> first   = Combinations::instance()->first(n, k);
 //    std::vector<long long> last    = Combinations::instance()->last(n, k);
 //    std::vector<long long> current = first;
 //    bool didLast = false;

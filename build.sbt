@@ -80,9 +80,9 @@ lazy val sclr = project
     ),
 
     // Get our c header to show up at "native/include"
-    sourceDirectory in nativeCompile := sourceDirectory.value / "native",
-    target in nativeCompile := target.value / "native" / (nativePlatform).value,
-    target in javah := (sourceDirectory in nativeCompile).value / "include",
+    sourceDirectory in nativeCompile := sourceDirectory.value / "native" / "src",
+    target in nativeCompile := target.value / "native" / "src" / (nativePlatform).value,
+    target in javah := (sourceDirectory in nativeCompile).value / "src" / "include",
 
     fork in run := true
   )
@@ -93,7 +93,6 @@ lazy val sclr = project
 lazy val bench = project
   .in(file("bench"))
   .settings(
-    target in javah := (sourceDirectory in nativeCompile).value / "include",
     name := "bench",
     testFrameworks += new TestFramework("org.scalameter.ScalaMeterFramework"),
     logBuffered := false,
