@@ -15,7 +15,7 @@ Combinations *Combinations::instance() {
 }
 
 vector<long long> Combinations::first(long long n, long long k) {
-    std::vector<long long> first {};
+    std::vector<long long> first(k);
     for (long long i = 0; i < k; i++) {
         first[i] = i;
     }
@@ -23,9 +23,9 @@ vector<long long> Combinations::first(long long n, long long k) {
 }
 
 vector<long long> Combinations::last(long long n, long long k) {
-    std::vector<long long> last {};
-    for (long long i = n-k; i < n; i++) {
-        last[i] = i;
+    std::vector<long long> last(k);
+    for (long long j = 0, i = n-k; i < n; j++, i++) {
+        last[j] = i;
     }
     return last;
 }

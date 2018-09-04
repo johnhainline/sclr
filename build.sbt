@@ -80,9 +80,9 @@ lazy val sclr = project
     ),
 
     // Get our c header to show up at "native/include"
-    sourceDirectory in nativeCompile := sourceDirectory.value / "native" / "src",
-    target in nativeCompile := target.value / "native" / "src" / (nativePlatform).value,
-    target in javah := (sourceDirectory in nativeCompile).value / "src" / "include",
+    sourceDirectory in nativeCompile := sourceDirectory.value / "native",
+    target in nativeCompile := target.value / "native" / (nativePlatform).value,
+    target in javah := (sourceDirectory in nativeCompile).value / "include",
 
     fork in run := true
   )
