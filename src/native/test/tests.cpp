@@ -11,7 +11,7 @@ TEST(sample_test_case, sample_test) {
 TEST(Combinations, first) {
     auto expected = vector<long long> {0, 1};
 
-    auto result = Combinations::instance()->first(10, 2);
+    auto result = Combinations::instance().first(10, 2);
 
     EXPECT_EQ(result, expected);
 }
@@ -19,7 +19,7 @@ TEST(Combinations, first) {
 TEST(Combinations, last) {
     auto expected = vector<long long> {8, 9};
 
-    auto result = Combinations::instance()->last(10, 2);
+    auto result = Combinations::instance().last(10, 2);
 
     EXPECT_EQ(result, expected);
 }
@@ -27,7 +27,7 @@ TEST(Combinations, last) {
 TEST(Combinations, choose) {
     long long expected = 45;
 
-    auto result = Combinations::instance()->choose(10, 2);
+    auto result = Combinations::instance().choose(10, 2);
 
     EXPECT_EQ(result, expected);
 }
@@ -55,9 +55,9 @@ TEST(Combinations, next) {
                                                 { 2, 4, 5},
                                                 { 3, 4, 5} };
 
-    auto first  = Combinations::instance()->first(6, 3);
-    auto choose = Combinations::instance()->choose(6, 3);
-    auto last   = Combinations::instance()->last(6, 3);
+    auto first  = Combinations::instance().first(6, 3);
+    auto choose = Combinations::instance().choose(6, 3);
+    auto last   = Combinations::instance().last(6, 3);
 
     EXPECT_EQ(first, expected[0]);
     EXPECT_EQ(choose, expected.size());
@@ -66,6 +66,6 @@ TEST(Combinations, next) {
     auto current = first;
     for (const auto &i : expected) {
         EXPECT_EQ(current, i);
-        current = Combinations::instance()->next(current);
+        current = Combinations::instance().next(current);
     }
 }

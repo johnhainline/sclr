@@ -9,7 +9,7 @@ using namespace std;
 
 class Combinations {
 public:
-    static Combinations *instance();
+    static Combinations &instance();
 
     vector<long long> first(long long n, long long k);
     vector<long long> last(long long n, long long k);

@@ -3,50 +3,117 @@
 #include "boost/dynamic_bitset/dynamic_bitset.hpp"
 #include "sclr_core_strategy_L2NormFastWrapper.h"
 #include "Combinations.h"
+#include "Dataset.h"
+
+using namespace std;
 
 // See: https://www.cakesolutions.net/teamblogs/accessing-scala-objects-via-jni
 // See: https://stackoverflow.com/questions/29043872/android-jni-return-multiple-variables
 
-JNIEXPORT jint JNICALL Java_sclr_core_strategy_L2NormFastWrapper_prepare
-(JNIEnv *env, jobject javaThis, jobject dataset, jobject workload) {
-    // Setup access of our dataset and workload objects
+//case class XYZ(id: Int, x: Array[Boolean], y: Array[Double], z: Double)
+//case class Dataset(data: Array[XYZ], xLength: Int, yLength: Int)
+Dataset *convertToNativeType(JNIEnv *env, jobject javaThis, jobject dataset) {
+    // Setup access of our dataset object
     jclass datasetClass        = env->FindClass("sclr/core/database/Dataset");
     jmethodID dataset_xLength  = env->GetMethodID(datasetClass, "xLength", "()I");
+    jmethodID dataset_yLength  = env->GetMethodID(datasetClass, "yLength", "()I");
+    jmethodID dataset_data     = env->GetMethodID(datasetClass, "data", "()[Lsclr/core/database/XYZ;");
+
+    jclass xyzClass  = env->FindClass("sclr/core/database/XYZ");
+    jmethodID xyz_id = env->GetMethodID(xyzClass, "id", "()I");
+    jmethodID xyz_x  = env->GetMethodID(xyzClass, "x", "()[Z");
+    jmethodID xyz_y  = env->GetMethodID(xyzClass, "y", "()[D");
+    jmethodID xyz_z  = env->GetMethodID(xyzClass, "z", "()D");
+
+    auto data = (jobjectArray)env->CallObjectMethod(dataset, dataset_data);
+    auto dataLength = (unsigned long)env->GetArrayLength(data);
+    vector<XYZ*> *newData = new vector<XYZ*>(dataLength);
+    for(int i = 0; i < dataLength; i++) {
+        auto xyz = (jobject)env->GetObjectArrayElement(data, i);
+
+        auto x = (jbooleanArray)env->CallObjectMethod(xyz, xyz_x);
+        auto xLength = (unsigned long)env->GetArrayLength(x);
+        vector<bool> *newX = new vector<bool>(xLength);
+        jboolean *xBody = env->GetBooleanArrayElements(x, nullptr);
+        for (int i_x = 0; i_x < xLength; i_x++) {
+            (*newX)[i_x] = (bool)(xBody[i_x] != JNI_FALSE);
+        }
+        env->ReleaseBooleanArrayElements(x, xBody, 0);
+
+        auto y = (jdoubleArray)env->CallObjectMethod(xyz, xyz_y);
+        auto yLength = (unsigned long)env->GetArrayLength(y);
+        vector<double> *newY = new vector<double>(yLength);
+        jdouble *yBody = env->GetDoubleArrayElements(y, nullptr);
+        for (int i_y = 0; i_y < yLength; i_y++) {
+            (*newY)[i_y] = (double)yBody[i_y];
+        }
+        env->ReleaseDoubleArrayElements(y, yBody, 0);
+
+        auto id = (int)env->CallIntMethod(xyz, xyz_id);
+        auto z = (double)env->CallIntMethod(xyz, xyz_z);
+        XYZ *newXYZ = new XYZ(id, newX, newY, z);
+        (*newData)[i] = newXYZ;
+    }
+
+    auto xLength = (int)env->CallIntMethod(dataset, dataset_xLength);
+    auto yLength = (int)env->CallIntMethod(dataset, dataset_yLength);
+    return new Dataset(newData, xLength, yLength);
+}
+
+vector<boost::dynamic_bitset<> *> createBitSetsForIndices(Dataset *dataset, long long i1, long long i2) {
+    vector<vector<tuple<long long, bool>>> allForIndices = {{{i1, true}, {i2, true}}, {{i1, true}, {i2, false}}, {{i1, false}, {i2, true}}, {{i1, false}, {i2, false}}};
+    vector<boost::dynamic_bitset<> *> result(allForIndices.size());
+    for (int indicesIndex = 0; indicesIndex < allForIndices.size(); indicesIndex++) {
+        auto indices = allForIndices[indicesIndex];
+        auto data = dataset->data();
+        auto size = data->size();
+        boost::dynamic_bitset<> *bitset = new boost::dynamic_bitset<>(size);
+        for (int i = 0; i < size; i++) {
+            auto first = indices[0];
+            auto second = indices[1];
+            vector<bool> &x = &(*data)[i]->x();
+            (*bitset)[i] = x[get<0>(first)] == get<1>(first) && x[get<0>(second)] == get<1>(second);
+        }
+        result[indicesIndex] = bitset;
+    }
+    return result;
+}
+
+vector<boost::dynamic_bitset<> *> *terms = nullptr;
+
+JNIEXPORT jint JNICALL Java_sclr_core_strategy_L2NormFastWrapper_prepare
+(JNIEnv *env, jobject javaThis, jobject jdataset, jobject workload) {
+    // Setup access of our dataset and workload objects
     jclass workloadClass       = env->FindClass("sclr/core/Messages$Workload");
     jmethodID workload_dnfSize = env->GetMethodID(workloadClass, "dnfSize", "()I");
     jmethodID workload_mu      = env->GetMethodID(workloadClass, "mu", "()D");
+    int dnfSize = env->CallIntMethod(workload, workload_dnfSize);
+    double mu   = env->CallIntMethod(workload, workload_mu);
 
-    // Get Combinations class and methods
-    jclass combinationsClass        = env->FindClass("combinations/Combinations");
-    jmethodID combinations_Apply    = env->GetStaticMethodID(combinationsClass, "apply", "(II)Lcombinations/Combinations;");
-    jmethodID combinations_Iterator = env->GetMethodID(combinationsClass, "iterator", "()Lscala/collection/Iterator;");
+    auto dataset = convertToNativeType(env, javaThis, jdataset);
+    int n = dataset->xLength();
+    int k = dnfSize;
 
-    // Get Iterator class and methods
-    jclass iteratorClass = env->FindClass("scala/collection/Iterator");
-    jmethodID iterator_hasNext = env->GetMethodID(iteratorClass, "hasNext", "()Z");
-    jmethodID iterator_next = env->GetMethodID(iteratorClass, "next", "()Ljava/lang/Object;");
-
-    // Construct our Combinations object
-    int n = env->CallIntMethod(dataset, dataset_xLength);
-    int k = env->CallIntMethod(workload, workload_dnfSize);
+    auto termCount = (unsigned long)Combinations::instance().choose(n, k) * 4;
 
     // Our list of terms (bitsets). There should be (xLength choose dnfSize) * 4 of these.
-    std::vector< boost::dynamic_bitset<> > terms;
+    terms = new vector<boost::dynamic_bitset<> *>(termCount);
 
-    std::vector<long long> first   = Combinations::instance()->first(n, k);
-    std::vector<long long> last    = Combinations::instance()->last(n, k);
-    std::vector<long long> current = first;
+    vector<long long> first   = Combinations::instance().first(n, k);
+    vector<long long> last    = Combinations::instance().last(n, k);
+    vector<long long> current = first;
     bool didLast = false;
     while (!didLast) {
-        long long index1 = current[0] + 1;
-        long long index2 = current[1] + 1;
 
-        printf("(%lld %lld)\n", index1, index2);
-//        val combinations = Vector((a, b), (-a, b), (a, -b), (-a, -b))
+        printf("(%lld %lld)\n", current[0], current[1]);
+        auto bitsets = createBitSetsForIndices(dataset, current[0], current[1]);
+        for (const auto & bitset : bitsets) {
+            terms->push_back(bitset);
+        }
 
         didLast = current == last;
         if (!didLast) {
-            current = Combinations::instance()->next(current);
+            current = Combinations::instance().next(current);
         }
     }
 

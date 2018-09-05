@@ -4,14 +4,14 @@
 #include <climits>
 #include "Combinations.h"
 
-Combinations *Combinations::s_instance = 0;
+Combinations *Combinations::s_instance = nullptr;
 
 Combinations::Combinations() {}
 
-Combinations *Combinations::instance() {
+Combinations &Combinations::instance() {
     if (!s_instance)
         s_instance = new Combinations();
-    return s_instance;
+    return *s_instance;
 }
 
 vector<long long> Combinations::first(long long n, long long k) {
