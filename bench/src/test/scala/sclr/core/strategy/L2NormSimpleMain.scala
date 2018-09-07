@@ -7,7 +7,7 @@ import sclr.core.database.DatabaseDaoHelper
 
 import scala.util.Random
 
-object L2NormSimpleBench {
+object L2NormSimpleMain {
 
   def time[R](block: => R): (R, Double) = {
     val t0 = System.nanoTime()

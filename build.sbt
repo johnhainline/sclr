@@ -22,6 +22,7 @@ val dockerSettings = Seq(
 
 lazy val sclr = project
   .in(file("."))
+  .enablePlugins(JniNative, MultiJvmPlugin, JavaServerAppPackaging, DockerPlugin)
   .settings(dockerSettings: _*)
   .settings(
     name := "sclr",
@@ -81,24 +82,24 @@ lazy val sclr = project
 
     // Get our c header to show up at "native/include"
     sourceDirectory in nativeCompile := sourceDirectory.value / "native",
-    target in nativeCompile := target.value / "native" / (nativePlatform).value,
+    target in nativeCompile := target.value / "native" / nativePlatform.value,
     target in javah := (sourceDirectory in nativeCompile).value / "include",
 
     fork in run := true
   )
-  .enablePlugins(JniNative, MultiJvmPlugin, JavaServerAppPackaging, DockerPlugin)
   .configs(MultiJvm)
 
 // Benchmarks
 lazy val bench = project
   .in(file("bench"))
+  .enablePlugins(JmhPlugin)
   .settings(
     name := "bench",
-    testFrameworks += new TestFramework("org.scalameter.ScalaMeterFramework"),
-    logBuffered := false,
-    libraryDependencies ++= Seq(
-      "com.storm-enroute" %% "scalameter" % "0.9" % Test
-    ),
-    parallelExecution in Test := false
+    sourceDirectory in Jmh := (sourceDirectory in Test).value,
+    classDirectory in Jmh := (classDirectory in Test).value,
+    dependencyClasspath in Jmh := (dependencyClasspath in Test).value,
+    // rewire tasks, so that 'jmh:run' automatically invokes 'jmh:compile' (otherwise a clean 'jmh:run' would fail)
+    compile in Jmh := (compile in Jmh).dependsOn(compile in Test).value,
+    run in Jmh := (run in Jmh).dependsOn(Keys.compile in Jmh).evaluated
   )
   .dependsOn(sclr)

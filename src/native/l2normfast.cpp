@@ -10,9 +10,7 @@ using namespace std;
 // See: https://www.cakesolutions.net/teamblogs/accessing-scala-objects-via-jni
 // See: https://stackoverflow.com/questions/29043872/android-jni-return-multiple-variables
 
-//case class XYZ(id: Int, x: Array[Boolean], y: Array[Double], z: Double)
-//case class Dataset(data: Array[XYZ], xLength: Int, yLength: Int)
-Dataset *convertToNativeType(JNIEnv *env, jobject javaThis, jobject dataset) {
+unique_ptr<Dataset> convertToNativeType(JNIEnv *env, jobject javaThis, jobject dataset) {
     // Setup access of our dataset object
     jclass datasetClass        = env->FindClass("sclr/core/database/Dataset");
     jmethodID dataset_xLength  = env->GetMethodID(datasetClass, "xLength", "()I");
@@ -27,7 +25,7 @@ Dataset *convertToNativeType(JNIEnv *env, jobject javaThis, jobject dataset) {
 
     auto data = (jobjectArray)env->CallObjectMethod(dataset, dataset_data);
     auto dataLength = (unsigned long)env->GetArrayLength(data);
-    vector<XYZ*> *newData = new vector<XYZ*>(dataLength);
+    vector<unique_ptr<XYZ>> newData = new vector<XYZ*>(dataLength);
     for(int i = 0; i < dataLength; i++) {
         auto xyz = (jobject)env->GetObjectArrayElement(data, i);
 
@@ -65,21 +63,21 @@ vector<boost::dynamic_bitset<> *> createBitSetsForIndices(Dataset *dataset, long
     vector<boost::dynamic_bitset<> *> result(allForIndices.size());
     for (int indicesIndex = 0; indicesIndex < allForIndices.size(); indicesIndex++) {
         auto indices = allForIndices[indicesIndex];
-        auto data = dataset->data();
+        auto data = dataset->data;
         auto size = data->size();
         boost::dynamic_bitset<> *bitset = new boost::dynamic_bitset<>(size);
         for (int i = 0; i < size; i++) {
             auto first = indices[0];
             auto second = indices[1];
-            vector<bool> &x = &(*data)[i]->x();
-            (*bitset)[i] = x[get<0>(first)] == get<1>(first) && x[get<0>(second)] == get<1>(second);
+            vector<bool> *x = (*data)[i]->x;
+            (*bitset)[i] = (*x)[get<0>(first)] == get<1>(first) && (*x)[get<0>(second)] == get<1>(second);
         }
         result[indicesIndex] = bitset;
     }
     return result;
 }
 
-vector<boost::dynamic_bitset<> *> *terms = nullptr;
+static vector<boost::dynamic_bitset<> *> *terms = nullptr;
 
 JNIEXPORT jint JNICALL Java_sclr_core_strategy_L2NormFastWrapper_prepare
 (JNIEnv *env, jobject javaThis, jobject jdataset, jobject workload) {
@@ -91,7 +89,7 @@ JNIEXPORT jint JNICALL Java_sclr_core_strategy_L2NormFastWrapper_prepare
     double mu   = env->CallIntMethod(workload, workload_mu);
 
     auto dataset = convertToNativeType(env, javaThis, jdataset);
-    int n = dataset->xLength();
+    int n = dataset->xLength;
     int k = dnfSize;
 
     auto termCount = (unsigned long)Combinations::instance().choose(n, k) * 4;
@@ -105,7 +103,6 @@ JNIEXPORT jint JNICALL Java_sclr_core_strategy_L2NormFastWrapper_prepare
     bool didLast = false;
     while (!didLast) {
 
-        printf("(%lld %lld)\n", current[0], current[1]);
         auto bitsets = createBitSetsForIndices(dataset, current[0], current[1]);
         for (const auto & bitset : bitsets) {
             terms->push_back(bitset);

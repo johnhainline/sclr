@@ -97,4 +97,4 @@ Note that I have instructions for this using a Mac.
 
 
 ## Benchmarks
-We are using the ScalaMeter benchmarking framework. See [ScalaMeter](http://scalameter.github.io/)
+We are using the sbt-jmh benchmarking framework. See [sbt-jmh](https://github.com/ktoso/sbt-jmh)
