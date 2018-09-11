@@ -44,4 +44,3 @@ class L2NormBench {
     }
   }
 }
-

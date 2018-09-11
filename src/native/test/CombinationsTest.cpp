@@ -4,10 +4,6 @@
 
 using namespace std;
 
-TEST(sample_test_case, sample_test) {
-    EXPECT_EQ(1, 1);
-}
-
 TEST(Combinations, first) {
     auto expected = vector<long long> {0, 1};
 

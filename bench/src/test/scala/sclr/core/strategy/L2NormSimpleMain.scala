@@ -38,7 +38,7 @@ object L2NormSimpleMain {
     val totalWorkItems = printInfo(size, xLength, yLength)
     val workload = Workload("test", dnfSize, 0.24, useLPNorm = true)
     val dataset = database.fakeDataset(size, xLength, yLength)
-    val l2Norm  = new L2Norm(dataset, workload, simpleAlgorithm = true)
+    val l2Norm  = new L2NormFast(dataset, workload)
     val selectYDimensions = () => Combinations(dataset.yLength, 2).iterator()
     val selectRows = () => Combinations(dataset.data.length, workload.getRowsConstant()).iterator()
     val iterator = MultipliedIterator(Vector(selectYDimensions, selectRows)).zipWithIndex.map { case (next, index) =>

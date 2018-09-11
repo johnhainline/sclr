@@ -3,23 +3,24 @@
 
 #include <utility>
 #include <vector>
+#include <memory>
 
 using namespace std;
 
 class XYZ {
 public:
-    XYZ(int id, vector<bool> *x, vector<double> *y, double z);
-    int id;
-    vector<bool> *x;
-    vector<double> *y;
+    XYZ(long long id, unique_ptr<vector<bool>> x, unique_ptr<vector<double>> y, double z);
+    long long id;
+    unique_ptr<vector<bool>> x;
+    unique_ptr<vector<double>> y;
     double z;
 };
 
 
 class Dataset {
 public:
-    Dataset(vector<XYZ *> *data, int xLength, int yLength);
-    vector<XYZ *> *data;
+    Dataset(unique_ptr<vector<unique_ptr<XYZ>>> data, int xLength, int yLength);
+    unique_ptr<vector<unique_ptr<XYZ>>> data;
     int xLength;
     int yLength;
 };
