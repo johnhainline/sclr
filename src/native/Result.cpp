@@ -4,7 +4,7 @@
 
 #include "Result.h"
 
-Result::Result(long long index, vector<long long> dimensions, vector<long long> rows, vector<long double> coefficients, optional<long double> someError, optional<string> someKDNF) {
+Result::Result(long long index, vector<long long> dimensions, vector<long long> rows, vector<double> coefficients, optional<double> someError, optional<string> someKDNF) {
     this->index = index;
     this->dimensions = std::move(dimensions);
     this->rows = std::move(rows);

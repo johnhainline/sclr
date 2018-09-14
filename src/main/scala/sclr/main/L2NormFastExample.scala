@@ -1,13 +1,14 @@
-package sclr.core.strategy
+package sclr.main
 
 import combinations.Combinations
 import combinations.iterators.MultipliedIterator
 import sclr.core.Messages.{Work, Workload}
-import sclr.core.database.DatabaseDaoHelper
+import sclr.core.database.FakeDatabaseDao
+import sclr.core.strategy.{KDNFStrategy, L2Norm, L2NormFast}
 
 import scala.util.Random
 
-object L2NormSimpleMain {
+object L2NormFastExample {
 
   def time[R](block: => R): (R, Double) = {
     val t0 = System.nanoTime()
@@ -19,7 +20,7 @@ object L2NormSimpleMain {
 
   val dnfSize = 2
   val random = new Random(1234)
-  val database = new DatabaseDaoHelper(random)
+  val database = new FakeDatabaseDao(random)
 
   def printInfo(size: Int, xLength: Int, yLength: Int): Int = {
     val sizeYDim = Combinations(yLength, dnfSize).size
@@ -38,23 +39,28 @@ object L2NormSimpleMain {
     val totalWorkItems = printInfo(size, xLength, yLength)
     val workload = Workload("test", dnfSize, 0.24, useLPNorm = true)
     val dataset = database.fakeDataset(size, xLength, yLength)
-    val l2Norm  = new L2NormFast(dataset, workload)
+    val l2NormFast:KDNFStrategy = new L2NormFast(dataset, workload)
+    val l2Norm:KDNFStrategy = new L2Norm(dataset, workload)
     val selectYDimensions = () => Combinations(dataset.yLength, 2).iterator()
     val selectRows = () => Combinations(dataset.data.length, workload.getRowsConstant()).iterator()
-    val iterator = MultipliedIterator(Vector(selectYDimensions, selectRows)).zipWithIndex.map { case (next, index) =>
+    val iterator = () => MultipliedIterator(Vector(selectYDimensions, selectRows)).zipWithIndex.map { case (next, index) =>
       Work(index, selectedDimensions = next.head, selectedRows = next.last)
     }
 
-    val (result, nanos) = time {
-      for (work <- iterator) {
-        l2Norm.run(work)
+    for (strategy <- List(l2Norm, l2NormFast)) {
+      val (result, nanos) = time {
+        val i = iterator()
+        for (work <- i) {
+          strategy.run(work)
+        }
       }
-    }
 
-    val avgTime = (nanos.toDouble / 1000000.0) / totalWorkItems.toDouble
-    val totalTime = nanos.toDouble / 1000000000.0
-    println("TIME\ntotal: %8f s".format(totalTime))
-    println("average:%.8f ms\n".format(avgTime))
+      val avgTime = (nanos.toDouble / 1000000.0) / totalWorkItems.toDouble
+      val totalTime = nanos.toDouble / 1000000000.0
+      println(strategy)
+      println("TIME\ntotal: %8f s".format(totalTime))
+      println("average:%.8f ms\n".format(avgTime))
+    }
   }
 
   def main(args: Array[String]): Unit = {
@@ -62,5 +68,8 @@ object L2NormSimpleMain {
     runDataset(size = 80, xLength = 10, yLength = 4)
     runDataset(size = 80, xLength = 20, yLength = 4)
     runDataset(size = 80, xLength = 40, yLength = 4)
+    runDataset(size = 100, xLength = 5, yLength = 4)
+    runDataset(size = 120, xLength = 5, yLength = 4)
+    runDataset(size = 140, xLength = 5, yLength = 4)
   }
 }

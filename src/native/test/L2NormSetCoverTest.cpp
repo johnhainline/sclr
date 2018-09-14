@@ -15,13 +15,13 @@ TEST(L2NormSetCover, simple) {
     auto xyz7x_unique = make_unique<vector<bool>>(*new vector<bool>({true, true, false}));
     auto xyz8x_unique = make_unique<vector<bool>>(*new vector<bool>({true, true, true}));
 
-    auto xyz1y_unique = make_unique<vector<double>>(*new vector<double>({8.0, 0.0}));
+    auto xyz1y_unique = make_unique<vector<double>>(*new vector<double>({8.0, 0.1}));
     auto xyz2y_unique = make_unique<vector<double>>(*new vector<double>({8.0, 3.0}));
-    auto xyz3y_unique = make_unique<vector<double>>(*new vector<double>({5.0, 0.0}));
+    auto xyz3y_unique = make_unique<vector<double>>(*new vector<double>({5.0, 0.1}));
     auto xyz4y_unique = make_unique<vector<double>>(*new vector<double>({5.0, 3.6}));
-    auto xyz5y_unique = make_unique<vector<double>>(*new vector<double>({-2.0, 0.0}));
+    auto xyz5y_unique = make_unique<vector<double>>(*new vector<double>({-2.0, 0.1}));
     auto xyz6y_unique = make_unique<vector<double>>(*new vector<double>({-2.0, 3.2}));
-    auto xyz7y_unique = make_unique<vector<double>>(*new vector<double>({1.0, 0.0}));
+    auto xyz7y_unique = make_unique<vector<double>>(*new vector<double>({1.0, 0.1}));
     auto xyz8y_unique = make_unique<vector<double>>(*new vector<double>({1.0, 3.0}));
 
     auto xyz1 = make_unique<XYZ>(1, std::move(xyz1x_unique), std::move(xyz1y_unique), 0.01);
@@ -46,11 +46,15 @@ TEST(L2NormSetCover, simple) {
 
     auto l2norm = L2NormSetCover(std::move(dataset), 2, 0.1);
     auto work1 = Work(0, {0,1}, {0,1});
+    auto work2 = Work(1, {0,2}, {0,1});
+    auto work3 = Work(2, {1,2}, {0,1});
 
 
-    auto result = l2norm.run(work1);
+    auto result1 = l2norm.run(work1);
+    auto result2 = l2norm.run(work2);
+    auto result3 = l2norm.run(work3);
 
 
     auto expected = Result(work1.index, work1.dimensions, work1.rows, {0.0, 0.0}, nullopt, nullopt);
-    EXPECT_EQ(result.index, expected.index);
+    EXPECT_EQ(result1.index, expected.index);
 }

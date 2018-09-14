@@ -56,57 +56,57 @@ void L2NormSetCover::createAllTerms(unique_ptr<Dataset> &dataset, long long n, l
 
 // PRIVATE STATIC
 
-pair<long double, long double> L2NormSetCover::calculateCoefficients(unique_ptr<Dataset> &dataset, Work &work) {
+pair<double, double> L2NormSetCover::calculateCoefficients(unique_ptr<Dataset> &dataset, Work &work) {
     auto & yDimensions = work.dimensions;
     auto & rows = work.rows;
     unique_ptr<XYZ> & xyz1 = (*dataset->data)[rows[0]];
     unique_ptr<XYZ> & xyz2 = (*dataset->data)[rows[1]];
 
-    long double x1 = (*xyz1->y)[yDimensions[0]];
-    long double y1 = (*xyz1->y)[yDimensions[1]];
-    long double z1 = xyz1->z;
+    double x1 = (*xyz1->y)[yDimensions[0]];
+    double y1 = (*xyz1->y)[yDimensions[1]];
+    double z1 = xyz1->z;
 
-    long double x2 = (*xyz2->y)[yDimensions[0]];
-    long double y2 = (*xyz2->y)[yDimensions[1]];
-    long double z2 = xyz2->z;
-    long double a1 = (z1 * y2 - z2 * y1) / (x1 * y2 - x2 * y1);
-    long double a2 = (x1 * z2 - x2 * z1) / (x1 * y2 - x2 * y1);
+    double x2 = (*xyz2->y)[yDimensions[0]];
+    double y2 = (*xyz2->y)[yDimensions[1]];
+    double z2 = xyz2->z;
+    double a1 = (z1 * y2 - z2 * y1) / (x1 * y2 - x2 * y1);
+    double a2 = (x1 * z2 - x2 * z1) / (x1 * y2 - x2 * y1);
     return make_pair(a1, a2);
 }
 
-bool L2NormSetCover::coefficientsValid(long double a1, long double a2) {
+bool L2NormSetCover::coefficientsValid(double a1, double a2) {
     return isnormal(a1) && isnormal(a2);
 }
 
-bool comparePairs(const std::pair<const Term *, long double>& l, const std::pair<const Term *, long double>& r) {
+bool comparePairs(const std::pair<const Term *, double>& l, const std::pair<const Term *, double>& r) {
     return l.second < r.second;
 }
 
-void L2NormSetCover::deriveRednessMaps(vector<long long> &yDimensions, long double a1, long double a2) {
+void L2NormSetCover::deriveRednessMaps(vector<long long> &yDimensions, double a1, double a2) {
 
     // idToRedness map
-    this->idToRedness = unordered_map<long long, long double>();
+    this->idToRedness = unordered_map<long long, double>();
     for (unique_ptr<XYZ> &xyz : *dataset->data) {
-        long double redness = pow(xyz->z - (a1 * (*xyz->y)[yDimensions[0]]) - a2 * ((*xyz->y)[yDimensions[1]]), 2);
+        double redness = pow(xyz->z - (a1 * (*xyz->y)[yDimensions[0]]) - a2 * ((*xyz->y)[yDimensions[1]]), 2);
         idToRedness[xyz->id] = redness;
     }
 
     // termToAverageRedness map
-    this->termToAverageRedness = unordered_map<const Term *, long double>();
+    this->termToAverageRedness = unordered_map<const Term *, double>();
     for (unique_ptr<Term> & termUnique : allTerms) {
         const Term *term = termUnique.get();
-        long double termRedness = 0.0;
+        double termRedness = 0.0;
         size_t index = term->bitset->find_first();
         while(index != boost::dynamic_bitset<>::npos) {
             termRedness += idToRedness[index];
             index = term->bitset->find_next(index);
         }
-        long double averageRedness = termRedness / (long double)term->bitset->count();
+        double averageRedness = termRedness / (double)term->bitset->count();
         termToAverageRedness[term] = averageRedness;
     }
 
     // sortedTermAndAverageRedness vector
-    this->sortedTermAndAverageRedness = vector<pair<const Term *, long double>>();
+    this->sortedTermAndAverageRedness = vector<pair<const Term *, double>>();
     for (auto pair : termToAverageRedness) {
         sortedTermAndAverageRedness.push_back(pair);
     }
@@ -123,8 +123,8 @@ dynamic_bitset<> L2NormSetCover::bitsetUnion(vector<const Term *> &terms) {
     return u;
 }
 
-long double L2NormSetCover::rednessOfTerm(const Term *term) {
-    long double redness = 0.0;
+double L2NormSetCover::rednessOfTerm(const Term *term) {
+    double redness = 0.0;
     size_t index = term->bitset->find_first();
     while(index != boost::dynamic_bitset<>::npos) {
         redness += idToRedness[index];
@@ -133,20 +133,20 @@ long double L2NormSetCover::rednessOfTerm(const Term *term) {
     return redness;
 }
 
-long double L2NormSetCover::rednessOfTerms(vector<const Term *> &terms) {
-    long double redness = 0.0;
+double L2NormSetCover::rednessOfTerms(vector<const Term *> &terms) {
+    double redness = 0.0;
     for (auto term : terms) {
         redness += rednessOfTerm(term);
     }
     return redness;
 }
 
-long double L2NormSetCover::errorRate(vector<const Term *> &terms) {
+double L2NormSetCover::errorRate(vector<const Term *> &terms) {
     dynamic_bitset<> setUnion = bitsetUnion(terms);
     if (setUnion.count() > 0)
         return rednessOfTerms(terms) / setUnion.count();
     else
-        return numeric_limits<long double>::quiet_NaN();
+        return numeric_limits<double>::quiet_NaN();
 }
 
 // PUBLIC
@@ -172,17 +172,17 @@ Result L2NormSetCover::run(Work &work) {
         // Derive idToRedness, termToAverageRedness, sortedTermAndAverageRedness
         deriveRednessMaps(work.dimensions, a1, a2);
 
-        auto minRedness = std::numeric_limits<long double>::max();
-        long double totalRedness = 0.0;
+        auto minRedness = std::numeric_limits<double>::max();
+        double totalRedness = 0.0;
         for (auto pair : idToRedness) {
             auto redness = pair.second;
             minRedness = std::min(minRedness, redness);
             totalRedness += redness;
         }
 
-        long double min = 0.01;
-        long double rednessThreshold = std::max(min, minRedness);
-        auto minError = std::numeric_limits<long double>::max();
+        double min = 0.01;
+        double rednessThreshold = std::max(min, minRedness);
+        auto minError = std::numeric_limits<double>::max();
         unsigned long idCount = idToRedness.size();
         vector<const Term *> bestTerms;
         while (rednessThreshold < totalRedness) {
@@ -193,7 +193,7 @@ Result L2NormSetCover::run(Work &work) {
                 if (mu * idCount - termUnion.size() <= 0)
                     break;
             }
-            long double newError = errorRate(terms);
+            double newError = errorRate(terms);
             if (minError > newError) {
                 minError = newError;
                 bestTerms = terms;

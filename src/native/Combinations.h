@@ -25,10 +25,10 @@ private:
     long long chooseIterative(long long n, long long k);
     tuple<long long, long long> boundsOfNGivenIndex(long long k, long long a);
     long long findLargestN(long long k, long long index, long long low, long long high);
-    long double newton_loop(long long n, long double y, long double x0);
-    long double nthRoot(long long n, long double y);
-    long double nthRoot_newton(long long n, long double y);
-    long double nthRoot_bsearch(long long n, long double x);
+    double newton_loop(long long n, double y, double x0);
+    double nthRoot(long long n, double y);
+    double nthRoot_newton(long long n, double y);
+    double nthRoot_bsearch(long long n, double x);
     long long findIndex(vector<long long> combination);
 };
 

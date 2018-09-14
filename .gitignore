@@ -1,4 +1,6 @@
 .DS_Store
+.cache-main
+.cache-tests
 .idea/
 target/
 *.class
@@ -7,3 +9,5 @@ target/
 sclr-mysql-access-key.json
 /.project
 cmake-build-debug
+/bin/
+/build/

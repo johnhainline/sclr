@@ -67,7 +67,7 @@ long long Combinations::chooseIterative(long long n, long long k) {
     if (value != cache.end()) {
         return value->second;
     } else {
-        long double accum = 1.0;
+        double accum = 1.0;
         for (long long i = 0; i < k; i++) {
             accum = accum * (n-i) / (k-i);
         }
@@ -121,8 +121,8 @@ vector<long long> Combinations::next(vector<long long> combination) {
  *   whereas our min possible n is k-1.
  */
 tuple<long long, long long> Combinations::boundsOfNGivenIndex(long long k, long long a) {
-    static long double e = std::exp(1.0);
-    long double high = k * nthRoot(k, a) * e;
+    static double e = std::exp(1.0);
+    double high = k * nthRoot(k, a) * e;
     std::tuple<long long, long long> result(k - 1, (long long)std::ceil(high) + k);
     return result;
 }
@@ -134,7 +134,7 @@ long long Combinations::findLargestN(long long k, long long index, long long low
     if (low == high) {
         return low;
     } else {
-        auto middle = (long long)std::ceil(((long double)(high + low)) / 2.0);
+        auto middle = (long long)std::ceil(((double)(high + low)) / 2.0);
         bool upper = choose(middle, k) <= index;
         long long newLow = upper ? middle : low;
         long long newHigh = upper ? high : middle-1;
@@ -142,7 +142,7 @@ long long Combinations::findLargestN(long long k, long long index, long long low
     }
 }
 
-long double Combinations::nthRoot(long long n, long double y) {
+double Combinations::nthRoot(long long n, double y) {
     if (n > 10) {
         return nthRoot_bsearch(n, y);
     } else {
@@ -150,8 +150,8 @@ long double Combinations::nthRoot(long long n, long double y) {
     }
 }
 
-long double Combinations::newton_loop(long long n, long double y, long double x0) {
-    long double x1 = 1.0/n * ((n-1) * x0 + y/std::pow(x0, n-1));
+double Combinations::newton_loop(long long n, double y, double x0) {
+    double x1 = 1.0/n * ((n-1) * x0 + y/std::pow(x0, n-1));
     if (x0 <= x1) {
         return x0;
     } else {
@@ -159,7 +159,7 @@ long double Combinations::newton_loop(long long n, long double y, long double x0
     }
 }
 
-long double Combinations::nthRoot_newton(long long n, long double y) {
+double Combinations::nthRoot_newton(long long n, double y) {
     if (y == 0) {
         return 0.0;
     } else {
@@ -167,11 +167,11 @@ long double Combinations::nthRoot_newton(long long n, long double y) {
     }
 }
 
-long double Combinations::nthRoot_bsearch(long long n, long double x) {
-    long double low = 0.0;
-    long double high = x;
-    long double middle = (high + low) / 2.0;
-    long double result = std::pow(middle, n);
+double Combinations::nthRoot_bsearch(long long n, double x) {
+    double low = 0.0;
+    double high = x;
+    double middle = (high + low) / 2.0;
+    double result = std::pow(middle, n);
 
     while (result != x) {
         middle = (high + low) / 2.0;

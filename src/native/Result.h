@@ -8,13 +8,13 @@ using namespace std;
 
 class Result {
 public:
-    Result(long long index, vector<long long> dimensions, vector<long long> rows, vector<long double> coefficients, optional<long double> someError, optional<string> someKDNF);
+    Result(long long index, vector<long long> dimensions, vector<long long> rows, vector<double> coefficients, optional<double> someError, optional<string> someKDNF);
 
     long long index;
     vector<long long> dimensions;
     vector<long long> rows;
-    vector<long double> coefficients;
-    optional<long double> someError;
+    vector<double> coefficients;
+    optional<double> someError;
     optional<string> someKDNF;
 };
 

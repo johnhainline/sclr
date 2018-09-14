@@ -6,14 +6,14 @@ import combinations.Combinations
 import combinations.iterators.MultipliedIterator
 import org.openjdk.jmh.annotations._
 import sclr.core.Messages.{Work, Workload}
-import sclr.core.database.DatabaseDaoHelper
+import sclr.core.database.FakeDatabaseDao
 
 import scala.util.Random
 
 @State(Scope.Benchmark)
 object L2NormBench {
   val random = new Random(1234)
-  val database = new DatabaseDaoHelper(random)
+  val database = new FakeDatabaseDao(random)
   val workload = Workload("test", 2, 0.24, useLPNorm = true)
 
   val dataset = database.fakeDataset(20, xLength = 10, yLength = 6)

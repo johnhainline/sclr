@@ -2,7 +2,7 @@ package sclr.core.database
 
 import scala.util.Random
 
-class DatabaseDaoHelper(random: Random) {
+class FakeDatabaseDao(random: Random) {
 
   def fakeDataset(size: Int, xLength: Int, yLength: Int): Dataset = {
     Dataset(fakeData(size, xLength, yLength), xLength, yLength)
