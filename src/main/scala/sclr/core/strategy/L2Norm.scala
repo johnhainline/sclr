@@ -9,7 +9,7 @@ import scala.collection.immutable.BitSet
 class L2Norm(val dataset: Dataset, val workload: Workload, simpleAlgorithm: Boolean = true) extends KDNFStrategy {
 
   // Construct all possible dnf set memberships.
-  lazy val termToIndices: Map[BitSet, (Int, Int)] =
+  val termToIndices: Map[BitSet, (Int, Int)] =
     Combinations(dataset.xLength, workload.dnfSize).iterator().flatMap { zeroIndexedIndices =>
     // Our indices are 0-indexed, so increase that to 1-indexed to allow negative indices.
     //      val oneIndexedIndices = zeroIndexedIndices.map(_+1)
@@ -22,8 +22,8 @@ class L2Norm(val dataset: Dataset, val workload: Workload, simpleAlgorithm: Bool
     }
     result
   }.toMap
-  lazy val terms: Vector[BitSet] = termToIndices.keys.toVector
-  lazy val setCover = new SetCover(terms, workload.mu, dataset.xLength, simpleAlgorithm = simpleAlgorithm)
+  val terms: Vector[BitSet] = termToIndices.keys.toVector
+  val setCover = new SetCover(terms, workload.mu, dataset.xLength, simpleAlgorithm = simpleAlgorithm)
 
   def run(work: Work): Result = {
     val (a1, a2) = generateCoefficients(dataset.data, work)

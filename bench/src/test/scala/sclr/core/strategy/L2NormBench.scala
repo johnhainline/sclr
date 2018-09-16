@@ -22,25 +22,40 @@ object L2NormBench {
   val getIterator = () => MultipliedIterator(Vector(selectYDimensions, selectRows)).zipWithIndex.map { case (next, index) =>
     Work(index, selectedDimensions = next.head, selectedRows = next.last)
   }
+  val l2Norm = new L2Norm(L2NormBench.dataset, L2NormBench.workload)
+  val l2NormSetCover = new L2NormSetCover(L2NormBench.dataset, L2NormBench.workload)
 }
 
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
-@BenchmarkMode(Array(Mode.Throughput))
+@BenchmarkMode(Array(Mode.AverageTime))
 class L2NormBench {
+  import L2NormBench._
+
+  @Benchmark
+  def l2NormStartupBench(): Unit = {
+    val l2Norm = new L2Norm(L2NormBench.dataset, L2NormBench.workload)
+    Unit
+  }
+
+  @Benchmark
+  def l2NormSetCoverStartupBench(): Unit = {
+    val l2NormSetCover = new L2NormSetCover(L2NormBench.dataset, L2NormBench.workload)
+    Unit
+  }
 
   @Benchmark
   def l2NormBench(): Unit = {
-    for (combo <- L2NormBench.getIterator()) {
-      val strategy = new L2Norm(L2NormBench.dataset, L2NormBench.workload, simpleAlgorithm = true)
-      strategy.run(combo)
+    val iterator = getIterator()
+    for (combo <- iterator) {
+      l2Norm.run(combo)
     }
   }
 
   @Benchmark
-  def l2NormFastBench(): Unit = {
-    for (combo <- L2NormBench.getIterator()) {
-      val strategy = new L2NormFast(L2NormBench.dataset, L2NormBench.workload)
-      strategy.run(combo)
+  def l2NormSetCoverBench(): Unit = {
+    val iterator = getIterator()
+    for (combo <- iterator) {
+      l2NormSetCover.run(combo)
     }
   }
 }

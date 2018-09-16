@@ -1,0 +1,237 @@
+[info] Running (fork) org.openjdk.jmh.Main -i 20 -wi 20 -f1 -t1 .*L2Norm.*
+[info] # JMH version: 1.21
+[info] # VM version: JDK 1.8.0_181, OpenJDK 64-Bit Server VM, 25.181-b13
+[info] # VM invoker: /usr/lib/jvm/java-8-openjdk-amd64/jre/bin/java
+[info] # VM options: <none>
+[info] # Warmup: 20 iterations, 10 s each
+[info] # Measurement: 20 iterations, 10 s each
+[info] # Timeout: 10 min per iteration
+[info] # Threads: 1 thread, will synchronize iterations
+[info] # Benchmark mode: Average time, time/op
+[info] # Benchmark: sclr.core.strategy.L2NormBench.l2NormBench
+[info] # Run progress: 0.00% complete, ETA 00:26:40
+[info] # Fork: 1 of 1
+[info] # Warmup Iteration   1: 709.539 ms/op
+[info] # Warmup Iteration   2: 650.340 ms/op
+[info] # Warmup Iteration   3: 649.320 ms/op
+[info] # Warmup Iteration   4: 650.030 ms/op
+[info] # Warmup Iteration   5: 656.382 ms/op
+[info] # Warmup Iteration   6: 650.167 ms/op
+[info] # Warmup Iteration   7: 649.371 ms/op
+[info] # Warmup Iteration   8: 656.749 ms/op
+[info] # Warmup Iteration   9: 649.625 ms/op
+[info] # Warmup Iteration  10: 652.433 ms/op
+[info] # Warmup Iteration  11: 694.776 ms/op
+[info] # Warmup Iteration  12: 651.578 ms/op
+[info] # Warmup Iteration  13: 652.645 ms/op
+[info] # Warmup Iteration  14: 652.057 ms/op
+[info] # Warmup Iteration  15: 651.262 ms/op
+[info] # Warmup Iteration  16: 653.321 ms/op
+[info] # Warmup Iteration  17: 652.790 ms/op
+[info] # Warmup Iteration  18: 670.978 ms/op
+[info] # Warmup Iteration  19: 671.992 ms/op
+[info] # Warmup Iteration  20: 659.493 ms/op
+[info] Iteration   1: 655.857 ms/op
+[info] Iteration   2: 656.845 ms/op
+[info] Iteration   3: 653.790 ms/op
+[info] Iteration   4: 653.240 ms/op
+[info] Iteration   5: 654.637 ms/op
+[info] Iteration   6: 654.714 ms/op
+[info] Iteration   7: 656.828 ms/op
+[info] Iteration   8: 656.212 ms/op
+[info] Iteration   9: 650.374 ms/op
+[info] Iteration  10: 655.815 ms/op
+[info] Iteration  11: 656.030 ms/op
+[info] Iteration  12: 657.808 ms/op
+[info] Iteration  13: 655.075 ms/op
+[info] Iteration  14: 656.755 ms/op
+[info] Iteration  15: 652.867 ms/op
+[info] Iteration  16: 652.689 ms/op
+[info] Iteration  17: 652.887 ms/op
+[info] Iteration  18: 654.493 ms/op
+[info] Iteration  19: 656.619 ms/op
+[info] Iteration  20: 715.821 ms/op
+[info] Result "sclr.core.strategy.L2NormBench.l2NormBench":
+[info]   657.968 ±(99.9%) 11.933 ms/op [Average]
+[info]   (min, avg, max) = (650.374, 657.968, 715.821), stdev = 13.742
+[info]   CI (99.9%): [646.035, 669.901] (assumes normal distribution)
+[info] # JMH version: 1.21
+[info] # VM version: JDK 1.8.0_181, OpenJDK 64-Bit Server VM, 25.181-b13
+[info] # VM invoker: /usr/lib/jvm/java-8-openjdk-amd64/jre/bin/java
+[info] # VM options: <none>
+[info] # Warmup: 20 iterations, 10 s each
+[info] # Measurement: 20 iterations, 10 s each
+[info] # Timeout: 10 min per iteration
+[info] # Threads: 1 thread, will synchronize iterations
+[info] # Benchmark mode: Average time, time/op
+[info] # Benchmark: sclr.core.strategy.L2NormBench.l2NormSetCoverBench
+[info] # Run progress: 25.00% complete, ETA 00:20:55
+[info] # Fork: 1 of 1
+[info] # Warmup Iteration   1: 313.906 ms/op
+[info] # Warmup Iteration   2: 283.875 ms/op
+[info] # Warmup Iteration   3: 286.390 ms/op
+[info] # Warmup Iteration   4: 282.576 ms/op
+[info] # Warmup Iteration   5: 284.731 ms/op
+[info] # Warmup Iteration   6: 284.502 ms/op
+[info] # Warmup Iteration   7: 282.769 ms/op
+[info] # Warmup Iteration   8: 281.496 ms/op
+[info] # Warmup Iteration   9: 286.253 ms/op
+[info] # Warmup Iteration  10: 288.363 ms/op
+[info] # Warmup Iteration  11: 284.942 ms/op
+[info] # Warmup Iteration  12: 282.837 ms/op
+[info] # Warmup Iteration  13: 282.836 ms/op
+[info] # Warmup Iteration  14: 282.357 ms/op
+[info] # Warmup Iteration  15: 282.153 ms/op
+[info] # Warmup Iteration  16: 282.408 ms/op
+[info] # Warmup Iteration  17: 283.576 ms/op
+[info] # Warmup Iteration  18: 282.559 ms/op
+[info] # Warmup Iteration  19: 285.272 ms/op
+[info] # Warmup Iteration  20: 283.459 ms/op
+[info] Iteration   1: 283.870 ms/op
+[info] Iteration   2: 292.144 ms/op
+[info] Iteration   3: 286.396 ms/op
+[info] Iteration   4: 285.786 ms/op
+[info] Iteration   5: 283.602 ms/op
+[info] Iteration   6: 282.635 ms/op
+[info] Iteration   7: 284.699 ms/op
+[info] Iteration   8: 282.023 ms/op
+[info] Iteration   9: 281.712 ms/op
+[info] Iteration  10: 297.456 ms/op
+[info] Iteration  11: 282.310 ms/op
+[info] Iteration  12: 283.663 ms/op
+[info] Iteration  13: 286.479 ms/op
+[info] Iteration  14: 282.242 ms/op
+[info] Iteration  15: 283.621 ms/op
+[info] Iteration  16: 280.073 ms/op
+[info] Iteration  17: 289.149 ms/op
+[info] Iteration  18: 287.597 ms/op
+[info] Iteration  19: 293.088 ms/op
+[info] Iteration  20: 281.691 ms/op
+[info] Result "sclr.core.strategy.L2NormBench.l2NormSetCoverBench":
+[info]   285.512 ±(99.9%) 3.870 ms/op [Average]
+[info]   (min, avg, max) = (280.073, 285.512, 297.456), stdev = 4.457
+[info]   CI (99.9%): [281.642, 289.382] (assumes normal distribution)
+[info] # JMH version: 1.21
+[info] # VM version: JDK 1.8.0_181, OpenJDK 64-Bit Server VM, 25.181-b13
+[info] # VM invoker: /usr/lib/jvm/java-8-openjdk-amd64/jre/bin/java
+[info] # VM options: <none>
+[info] # Warmup: 20 iterations, 10 s each
+[info] # Measurement: 20 iterations, 10 s each
+[info] # Timeout: 10 min per iteration
+[info] # Threads: 1 thread, will synchronize iterations
+[info] # Benchmark mode: Average time, time/op
+[info] # Benchmark: sclr.core.strategy.L2NormBench.l2NormSetCoverStartupBench
+[info] # Run progress: 50.00% complete, ETA 00:13:44
+[info] # Fork: 1 of 1
+[info] # Warmup Iteration   1: 0.638 ms/op
+[info] # Warmup Iteration   2: 0.588 ms/op
+[info] # Warmup Iteration   3: 0.586 ms/op
+[info] # Warmup Iteration   4: 0.589 ms/op
+[info] # Warmup Iteration   5: 0.583 ms/op
+[info] # Warmup Iteration   6: 0.579 ms/op
+[info] # Warmup Iteration   7: 0.587 ms/op
+[info] # Warmup Iteration   8: 0.584 ms/op
+[info] # Warmup Iteration   9: 0.585 ms/op
+[info] # Warmup Iteration  10: 0.583 ms/op
+[info] # Warmup Iteration  11: 0.583 ms/op
+[info] # Warmup Iteration  12: 0.582 ms/op
+[info] # Warmup Iteration  13: 0.583 ms/op
+[info] # Warmup Iteration  14: 0.582 ms/op
+[info] # Warmup Iteration  15: 0.581 ms/op
+[info] # Warmup Iteration  16: 0.585 ms/op
+[info] # Warmup Iteration  17: 0.583 ms/op
+[info] # Warmup Iteration  18: 0.588 ms/op
+[info] # Warmup Iteration  19: 0.591 ms/op
+[info] # Warmup Iteration  20: 0.616 ms/op
+[info] Iteration   1: 0.590 ms/op
+[info] Iteration   2: 0.586 ms/op
+[info] Iteration   3: 0.581 ms/op
+[info] Iteration   4: 0.585 ms/op
+[info] Iteration   5: 0.580 ms/op
+[info] Iteration   6: 0.581 ms/op
+[info] Iteration   7: 0.582 ms/op
+[info] Iteration   8: 0.584 ms/op
+[info] Iteration   9: 0.610 ms/op
+[info] Iteration  10: 0.588 ms/op
+[info] Iteration  11: 0.585 ms/op
+[info] Iteration  12: 0.580 ms/op
+[info] Iteration  13: 0.582 ms/op
+[info] Iteration  14: 0.586 ms/op
+[info] Iteration  15: 0.583 ms/op
+[info] Iteration  16: 0.583 ms/op
+[info] Iteration  17: 0.586 ms/op
+[info] Iteration  18: 0.581 ms/op
+[info] Iteration  19: 0.583 ms/op
+[info] Iteration  20: 0.584 ms/op
+[info] Result "sclr.core.strategy.L2NormBench.l2NormSetCoverStartupBench":
+[info]   0.585 ±(99.9%) 0.006 ms/op [Average]
+[info]   (min, avg, max) = (0.580, 0.585, 0.610), stdev = 0.006
+[info]   CI (99.9%): [0.579, 0.590] (assumes normal distribution)
+[info] # JMH version: 1.21
+[info] # VM version: JDK 1.8.0_181, OpenJDK 64-Bit Server VM, 25.181-b13
+[info] # VM invoker: /usr/lib/jvm/java-8-openjdk-amd64/jre/bin/java
+[info] # VM options: <none>
+[info] # Warmup: 20 iterations, 10 s each
+[info] # Measurement: 20 iterations, 10 s each
+[info] # Timeout: 10 min per iteration
+[info] # Threads: 1 thread, will synchronize iterations
+[info] # Benchmark mode: Average time, time/op
+[info] # Benchmark: sclr.core.strategy.L2NormBench.l2NormStartupBench
+[info] # Run progress: 75.00% complete, ETA 00:06:48
+[info] # Fork: 1 of 1
+[info] # Warmup Iteration   1: 0.703 ms/op
+[info] # Warmup Iteration   2: 0.641 ms/op
+[info] # Warmup Iteration   3: 0.641 ms/op
+[info] # Warmup Iteration   4: 0.640 ms/op
+[info] # Warmup Iteration   5: 0.635 ms/op
+[info] # Warmup Iteration   6: 0.638 ms/op
+[info] # Warmup Iteration   7: 0.639 ms/op
+[info] # Warmup Iteration   8: 0.643 ms/op
+[info] # Warmup Iteration   9: 0.642 ms/op
+[info] # Warmup Iteration  10: 0.668 ms/op
+[info] # Warmup Iteration  11: 0.665 ms/op
+[info] # Warmup Iteration  12: 0.641 ms/op
+[info] # Warmup Iteration  13: 0.635 ms/op
+[info] # Warmup Iteration  14: 0.637 ms/op
+[info] # Warmup Iteration  15: 0.637 ms/op
+[info] # Warmup Iteration  16: 0.638 ms/op
+[info] # Warmup Iteration  17: 0.637 ms/op
+[info] # Warmup Iteration  18: 0.635 ms/op
+[info] # Warmup Iteration  19: 0.671 ms/op
+[info] # Warmup Iteration  20: 0.636 ms/op
+[info] Iteration   1: 0.639 ms/op
+[info] Iteration   2: 0.641 ms/op
+[info] Iteration   3: 0.640 ms/op
+[info] Iteration   4: 0.638 ms/op
+[info] Iteration   5: 0.636 ms/op
+[info] Iteration   6: 0.634 ms/op
+[info] Iteration   7: 0.653 ms/op
+[info] Iteration   8: 0.640 ms/op
+[info] Iteration   9: 0.638 ms/op
+[info] Iteration  10: 0.638 ms/op
+[info] Iteration  11: 0.638 ms/op
+[info] Iteration  12: 0.634 ms/op
+[info] Iteration  13: 0.642 ms/op
+[info] Iteration  14: 0.633 ms/op
+[info] Iteration  15: 0.636 ms/op
+[info] Iteration  16: 0.637 ms/op
+[info] Iteration  17: 0.639 ms/op
+[info] Iteration  18: 0.639 ms/op
+[info] Iteration  19: 0.637 ms/op
+[info] Iteration  20: 0.635 ms/op
+[info] Result "sclr.core.strategy.L2NormBench.l2NormStartupBench":
+[info]   0.638 ±(99.9%) 0.004 ms/op [Average]
+[info]   (min, avg, max) = (0.633, 0.638, 0.653), stdev = 0.004
+[info]   CI (99.9%): [0.635, 0.642] (assumes normal distribution)
+[info] # Run complete. Total time: 00:27:05
+[info] REMEMBER: The numbers below are just data. To gain reusable insights, you need to follow up on
+[info] why the numbers are the way they are. Use profilers (see -prof, -lprof), design factorial
+[info] experiments, perform baseline and negative tests that provide experimental control, make sure
+[info] the benchmarking environment is safe on JVM/OS/HW level, ask for reviews from the domain experts.
+[info] Do not assume the numbers tell you what you want them to tell.
+[info] Benchmark                               Mode  Cnt    Score    Error  Units
+[info] L2NormBench.l2NormBench                 avgt   20  657.968 ± 11.933  ms/op
+[info] L2NormBench.l2NormSetCoverBench         avgt   20  285.512 ±  3.870  ms/op
+[info] L2NormBench.l2NormSetCoverStartupBench  avgt   20    0.585 ±  0.006  ms/op
+[info] L2NormBench.l2NormStartupBench          avgt   20    0.638 ±  0.004  ms/op
+[success] Total time: 1630 s, completed Sep 16, 2018 3:19:44 PM

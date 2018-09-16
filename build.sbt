@@ -6,7 +6,7 @@ val doobieVersion = "0.5.3"
 
 organization in ThisBuild := "wustl.engineering"
 scalaVersion in ThisBuild := "2.12.3"
-version in ThisBuild := "1.8.9"
+version in ThisBuild := "2.0.0"
 
 scalacOptions in ThisBuild += "-Ypartial-unification" // 2.11.9+
 scalacOptions in ThisBuild += "-Xlint" // Get more warnings

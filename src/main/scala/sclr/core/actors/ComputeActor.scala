@@ -11,7 +11,7 @@ import akka.stream.scaladsl.{Flow, Keep, Sink, Source, StreamRefs}
 import sclr.core.Messages._
 import sclr.core.actors.LifecycleActor._
 import sclr.core.database.{DatabaseDao, Result}
-import sclr.core.strategy.{KDNFStrategy, L2Norm, SupNorm}
+import sclr.core.strategy.{KDNFStrategy, L2Norm, L2NormSetCover, SupNorm}
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
@@ -62,7 +62,7 @@ class ComputeActor(dao: DatabaseDao, parallelization: Int, computeCountOption: O
     Try(DatabaseDao.makeSingleTransactor()) match {
       case Success(xa) =>
         val dataset = dao.getDataset(xa, workload.name)
-        val strategy: KDNFStrategy = if (workload.useLPNorm) new L2Norm(dataset, workload) else new SupNorm(dataset, workload)
+        val strategy: KDNFStrategy = if (workload.useLPNorm) new L2NormSetCover(dataset, workload) else new SupNorm(dataset, workload)
 
         // obtain the flow you want to attach:
         val flowComputeCount = computeCountOption.map { c => Math.ceil(c / parallelization).toInt }

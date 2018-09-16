@@ -4,7 +4,7 @@ import combinations.Combinations
 import combinations.iterators.MultipliedIterator
 import sclr.core.Messages.{Work, Workload}
 import sclr.core.database.FakeDatabaseDao
-import sclr.core.strategy.{KDNFStrategy, L2Norm, L2NormFast}
+import sclr.core.strategy.{KDNFStrategy, L2Norm, L2NormFast, L2NormSetCover}
 
 import scala.util.Random
 
@@ -39,7 +39,7 @@ object L2NormFastExample {
     val totalWorkItems = printInfo(size, xLength, yLength)
     val workload = Workload("test", dnfSize, 0.24, useLPNorm = true)
     val dataset = database.fakeDataset(size, xLength, yLength)
-    val l2NormFast:KDNFStrategy = new L2NormFast(dataset, workload)
+    val l2NormSetCover:KDNFStrategy = new L2NormSetCover(dataset, workload)
     val l2Norm:KDNFStrategy = new L2Norm(dataset, workload)
     val selectYDimensions = () => Combinations(dataset.yLength, 2).iterator()
     val selectRows = () => Combinations(dataset.data.length, workload.getRowsConstant()).iterator()
@@ -47,7 +47,7 @@ object L2NormFastExample {
       Work(index, selectedDimensions = next.head, selectedRows = next.last)
     }
 
-    for (strategy <- List(l2Norm, l2NormFast)) {
+    for (strategy <- List(l2Norm, l2NormSetCover)) {
       val (result, nanos) = time {
         val i = iterator()
         for (work <- i) {
@@ -64,12 +64,12 @@ object L2NormFastExample {
   }
 
   def main(args: Array[String]): Unit = {
-    runDataset(size = 80, xLength = 5,  yLength = 4)
-    runDataset(size = 80, xLength = 10, yLength = 4)
-    runDataset(size = 80, xLength = 20, yLength = 4)
-    runDataset(size = 80, xLength = 40, yLength = 4)
-    runDataset(size = 100, xLength = 5, yLength = 4)
-    runDataset(size = 120, xLength = 5, yLength = 4)
-    runDataset(size = 140, xLength = 5, yLength = 4)
+//    runDataset(size = 80, xLength = 5,  yLength = 4)
+//    runDataset(size = 80, xLength = 10, yLength = 4)
+//    runDataset(size = 80, xLength = 20, yLength = 4)
+//    runDataset(size = 80, xLength = 40, yLength = 4)
+//    runDataset(size = 100, xLength = 5, yLength = 4)
+//    runDataset(size = 120, xLength = 5, yLength = 4)
+    runDataset(size = 120, xLength = 40, yLength = 4)
   }
 }
