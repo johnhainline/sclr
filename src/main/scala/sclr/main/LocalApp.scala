@@ -6,7 +6,8 @@ object LocalApp {
 //    val json = """{"name":"m500","dnfSize":2,"optionalSubset":100,"useLPNorm":true,"mu":0.24}""" // (-2,-4), (5,10), (-3,7), (1,-6)
 //    val json = """{"name":"m1000","dnfSize":2,"optionalSubset":100,"useLPNorm":true,"mu":0.24}""" // (-2,-4), (5,10), (-3,7), (1,-6)
 //    val json = """{"name":"m10000","dnfSize":2,"useLPNorm":true,"optionalSubset":500,"mu":0.246}"""
-    val json = """{"name":"m5000_noise","dnfSize":2,"useLPNorm":false,"optionalSubset":500,"optionalEpsilon": 1.4,"mu":0.246}"""
+//    val json = """{"name":"m5000_noise2","dnfSize":2,"useLPNorm":false,"optionalSubset":100,"optionalEpsilon": 4,"mu":0.246}"""
+    val json = """{"name":"m10000_noise","dnfSize":2,"useLPNorm":true,"optionalSubset":100,"mu":0.2495}"""
     Sclr.run(Array[String]("-w", json, "-k"))
   }
 }

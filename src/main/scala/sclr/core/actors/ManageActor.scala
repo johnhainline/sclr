@@ -62,14 +62,15 @@ class ManageActor(infoService: SclrService, dao: DatabaseDao, workloadOption: Op
       val info = dao.getDatasetInfo(xa, workload.name)
       val size = workload.optionalSubset.getOrElse(info.rowCount)
       val terms = info.xLength * workload.dnfSize * 4
+      val rows = workload.getRowsConstant()
       val sizeYDim = Combinations(info.yLength, workload.dnfSize).size
-      val sizeRows = Combinations(size, 2).size
+      val sizeRows = Combinations(size, rows).size
       val total = sizeYDim * sizeRows
       log.info(s"ManageActor - dataset: ${workload.name}")
       log.info(s"size: $size xLength: ${info.xLength}, yLength: ${info.yLength}")
       log.info(s"terms (${info.xLength} * ${workload.dnfSize} * 4): $terms")
       log.info(s"yDim combos (${info.yLength} choose 2): $sizeYDim")
-      log.info(s"row combos ($size choose 2): $sizeRows")
+      log.info(s"row combos ($size choose $rows): $sizeRows")
       log.info(s"$total items, $terms terms")
 
       val makeConnection = makeConnectionFunctionSimple(xa, dao, info, workload)
