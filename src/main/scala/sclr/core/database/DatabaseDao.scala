@@ -163,12 +163,15 @@ class DatabaseDao extends LazyLogging {
         statement = connection.prepareStatement(insertString)
         var inserted = 0
         for (result <- results) {
-          // Ex: (work_index, error, dim0, dim1, row0, row1, coeff0, coeff1, kdnf)
+          // Ex L2Norm: (work_index, error, dim0, dim1, row0, row1, coeff0, coeff1, kdnf)
+          // Ex SupNorm: (work_index, error, dim0, dim1, row0, row1, row2, coeff0, coeff1, kdnf)
           var index = 1
           statement.setInt(index, result.index)
           index += 1
-          result.error.foreach { error =>
-            statement.setDouble(index, error)
+          if (result.error.nonEmpty) {
+            statement.setDouble(index, result.error.get)
+          } else {
+            statement.setNull(index, java.sql.Types.DOUBLE)
           }
           index += 1
           for (d <- result.dimensions) {
@@ -183,9 +186,12 @@ class DatabaseDao extends LazyLogging {
             statement.setDouble(index, c)
             index += 1
           }
-          result.kDNF.foreach { kdnf =>
-            statement.setString(index, kdnf)
+          if (result.kDNF.nonEmpty) {
+            statement.setString(index, result.kDNF.get)
+          } else {
+            statement.setNull(index, java.sql.Types.LONGNVARCHAR)
           }
+          index += 1
           statement.addBatch()
 
           inserted += 1

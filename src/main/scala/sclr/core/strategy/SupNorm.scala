@@ -6,23 +6,25 @@ import sclr.core.database.{Dataset, Result, XYZ}
 import combinations.Combinations
 
 class SupNorm(val dataset: Dataset, val workload: Workload) extends KDNFStrategy {
-  def epsilon: Double = workload.optionalEpsilon.get
+  val epsilon: Double = workload.optionalEpsilon.get
+
+  val allDNFTerms = Combinations(dataset.xLength, workload.dnfSize).iterator().flatMap { zeroIndexedIndices =>
+    val (a, b) = (zeroIndexedIndices(0) + 1, zeroIndexedIndices(1) + 1)
+    val combinations = Vector((a, b), (-a, b), (a, -b), (-a, -b))
+    combinations
+  }.toList
 
   def run(work: Work): Result = {
     var kdnf = ""
     var error = 0.0
-    var coeff = Array(0.0)
+    var coeffs = Array(0.0, 0.0)
     val M = dataset.data.length
     val ro = List(-1, 1)
     for (r1 <- ro; r2 <- ro; r3 <- ro) {
       val (coeff1, coeff2, epsilon2) = solveLinearSystem(dataset.data, work.selectedDimensions, work.selectedRows, r1, r2, r3)
 
       if (epsilon2 <= epsilon && epsilon2 > 0) {
-        var allDNFTerms = Combinations(dataset.xLength, workload.dnfSize).iterator().flatMap { zeroIndexedIndices =>
-          val (a, b) = (zeroIndexedIndices(0) + 1, zeroIndexedIndices(1) + 1)
-          val combinations = Vector((a, b), (-a, b), (a, -b), (-a, -b))
-          combinations
-        }.toList
+        var dnfTerms = allDNFTerms
 
         for (i <- 0 until M) {
           val xyz = dataset.data(i)
@@ -30,7 +32,7 @@ class SupNorm(val dataset: Dataset, val workload: Workload) extends KDNFStrategy
           val y2 = xyz.y(work.selectedDimensions(1))
 
           if (Math.abs(coeff1 * y1 + coeff2 * y2 - xyz.z) > epsilon) {
-            allDNFTerms = allDNFTerms.filterNot(p =>
+            dnfTerms = dnfTerms.filterNot(p =>
               ((xyz.x(Math.abs(p._1) - 1) && p._1 > 0) || (!xyz.x(Math.abs(p._1) - 1) && p._1 < 0)) &&
                 ((xyz.x(Math.abs(p._2) - 1) && p._2 > 0) || (!xyz.x(Math.abs(p._2) - 1) && p._2 < 0))
             )
@@ -38,24 +40,25 @@ class SupNorm(val dataset: Dataset, val workload: Workload) extends KDNFStrategy
 
         }
 
-        if (allDNFTerms.nonEmpty) {
+        if (dnfTerms.nonEmpty) {
           val points = dataset.data.filter(xyz =>
-            allDNFTerms.exists(p =>
+            dnfTerms.exists(p =>
               ((xyz.x(Math.abs(p._1) - 1) && p._1 > 0) || (!xyz.x(Math.abs(p._1) - 1) && p._1 < 0)) &&
                 ((xyz.x(Math.abs(p._2) - 1) && p._2 > 0) || (!xyz.x(Math.abs(p._2) - 1) && p._2 < 0))
             )
           )
 
           if (points.length > workload.mu * M) {
-            kdnf = allDNFTerms.toString()
+            kdnf = dnfTerms.toString()
             error = epsilon2
-            coeff = Array(coeff1, points.length)
+            coeffs = Array(coeff1, coeff2)
           }
         }
       }
     }
     val realKdnf = if (kdnf.length > 0) Some(kdnf) else None
-    Result(work.index, work.selectedDimensions, work.selectedRows, coeff, Some(error), realKdnf)
+    val realError = if (realKdnf.nonEmpty) Some(error) else None
+    Result(work.index, work.selectedDimensions, work.selectedRows, coeffs, realError, realKdnf)
   }
 
   private def solveLinearSystem(data: Array[XYZ], yDimensions: Array[Int], rows: Array[Int], r1: Int, r2: Int, r3: Int) = {
