@@ -1,80 +1,43 @@
-Install kvm2 driver
-https://github.com/kubernetes/minikube/blob/master/docs/drivers.md#kvm2-driver
-minikube config set vm-driver kvm2
-minikube start
-minikube start --vm-driver=none
-eval $(minikube docker-env)
+# Create a cluster using n1-standard-8 instances (because they're big enough to give decent resources)
+...
 
+# Get authorization and link to WASHU account
 gcloud auth login
 gcloud config set project washu-seas-mltheory
 gcloud config set compute/zone us-central1-a
 
-
-gcloud container clusters create cluster-1  --zone us-central1-a --num-nodes 8 --cluster-version=1.9.7-gke.5
-gcloud container clusters delete cluster-1
-
-gcloud compute project-info describe --project washu-seas-mltheory
+# Get credentials to the new cluster you just created
 gcloud container clusters get-credentials cluster-1
+# Set the MySQL password, so that all our .yaml created servers can access MySQL
 kubectl create secret generic mysql-password --from-literal=password=KO4eD0BrP2PC19jO
 
-kubectl scale statefulsets compute --replicas=2
+# instantiate MySQL server (1/2 of a n1-standard-8), single manage instance (1/2 of a n1-standard-8), and a bunch of compute instances (1 n1-standard-8 each)
+cd src/main/resources/kubernetes/; kubectl create -f mysql.yaml; cd ../../../..;
+cd src/main/resources/kubernetes/; kubectl create -f manage-pods.yaml; cd ../../../..;
+cd src/main/resources/kubernetes/; kubectl create -f compute-pods.yaml; cd ../../../..;
 
-docker images
-docker rmi -f $(docker images -a -q)
+# compute-pods.yaml defaults to "replicas: 1" which gives only a single compute instance. Increase that to the number of free n1-standard-8 nodes you have.
+kubectl scale statefulsets compute --replicas=29
 
-// give docker access to us.gcr.io
-gcloud auth configure-docker
-cd src/main/resources/docker/; docker build -t local/openjdk-custom:latest .; cd ../../../../;
-sbt docker:publish
-sbt docker:publishLocal
+# connect to compute-0 and pushes a job (via JSON) to http-service endpoint (the manage instance)
+kubectl exec -ti compute-0 -- curl -vH "Content-Type: application/json" -d '{"name":"m10000_noise","dnfSize":2,"useLPNorm":true,"optionalSubset":100,"mu":0.2495}' http-service.default.svc.cluster.local:8080/begin
 
-
+# check servers are running correctly, etc.
 kubectl get all -o wide
 kubectl get pods
 kubectl describe pods compute-0
 kubectl logs -v=5 -f compute-0
 kubectl logs -v=5 -f $(kubectl get pods -o name | grep "manage")
 
-kubectl config get-contexts
-kubectl config use-context gke_washu-seas-mltheory_us-central1-a_cluster-1
-
-cd src/main/resources/kubernetes/; kubectl create -f mysql.yaml; cd ../../../..;
-cd src/main/resources/kubernetes/; kubectl create -f manage-pods.yaml; cd ../../../..;
-cd src/main/resources/kubernetes/; kubectl create -f compute-pods.yaml; cd ../../../..;
-kubectl scale statefulsets compute --replicas=2
-cd src/main/resources/kubernetes/; kubectl create -f compute-pods.yaml; kubectl create -f mysql.yaml; kubectl create -f manage-pods.yaml; cd ../../../..;
-
-kubectl delete pvc mysql-pv-claim; kubectl delete statefulset --all; kubectl delete replicaset --all; kubectl delete deployment --all; kubectl delete all -l app=sclr
-
-
-kubectl exec -ti compute-0 -- curl -vH "Content-Type: application/json" -d '{"name":"tiny","dnfSize":2,"useLPNorm":true,"mu":0.24}' http-service.default.svc.cluster.local:8080/begin
-kubectl exec -ti compute-0 -- curl -vH "Content-Type: application/json" -d '{"name":"m10000_noise","dnfSize":2,"useLPNorm":true,"optionalSubset":100,"mu":0.2495}' http-service.default.svc.cluster.local:8080/begin
-
-**** DEBUG ****
-kubectl port-forward compute-0 9010 9011
-service:jmx:jmxmp://localhost:9010
-
-
-**** MYSQL ****
-kubectl exec -it compute-0 -- /bin/bash
-
+# connect to database and check progress
+# if we don't already have a mysql-client running (which will most likely be the case) use this:
 kubectl run -it --rm --image=mysql:5.7 --restart=Never mysql-client -- mysql -h mysql-service -pKO4eD0BrP2PC19jO
+
+# if we already have a mysql-client running use this to re-connect to it:
 kubectl exec -it mysql-client -- mysql -h mysql-service -pKO4eD0BrP2PC19jO
 
-kubectl exec -ti mysql-7ff7d4b6f9-bwf2x -- mysqldump --add-drop-database --databases m10000 -pKO4eD0BrP2PC19jO > backup.sql
-
-mysqldump --databases m10000_noise -h mysql-service.default.svc.cluster.local -pKO4eD0BrP2PC19jO > m10000_noise.sql
-
-/usr/local/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/
-sudo ln -s /usr/local/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/bin/kubectl /usr/local/bin/kubectl
-sudo ln -s /usr/local/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/bin/docker-credential-gcr /usr/local/bin/docker-credential-gcr
-sudo ln -s /usr/local/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/bin/container-builder-local /usr/local/bin/container-builder-local
-
-
-docker pull us.gcr.io/washu-seas-mltheory/sclr:latest
-
+# SQL examples:
 select work_index,dim0,dim1,row0,row1,error from results order by work_index;
-
 SELECT count(*) from results;
 select id, error, kdnf, created_at from results order by error limit 1;
 select id, created_at from results order by created_at limit 1;
@@ -83,4 +46,52 @@ SELECT * FROM results WHERE error = (SELECT MIN(error) FROM results);
 SELECT * FROM results WHERE created_at = ( SELECT MIN( created_at ) FROM results ) LIMIT 1;
 SELECT * FROM results WHERE created_at = ( SELECT MAX( created_at ) FROM results ) LIMIT 1;
 
-m10000_noise kdnf: (1, 29) (-4, 30) (13, -35) (-17, 22) (25, 42) (-37, 46) (8, -40) (-6, -36) (2, 26) (-3, -24) (-11, 39) (-27, 43) (31, 48) (9, 23) (-17, 32) (21, 45)
+# after everything has run, save the database locally so we can shut down the cluster and stop costing money
+mysqldump --databases m10000_noise -h mysql-service.default.svc.cluster.local -pKO4eD0BrP2PC19jO > m10000_noise.sql
+
+# after we are sure we have all the data we need we can destroy the servers if we want. This does NOT shut down the cluster.
+kubectl delete pvc mysql-pv-claim; kubectl delete statefulset --all; kubectl delete replicaset --all; kubectl delete deployment --all; kubectl delete all -l app=sclr
+
+# Get into the gcloud website and actually delete the cluster by hand.
+
+# or do (make CERTAIN you verify this really worked):
+gcloud container clusters delete cluster-1
+
+
+
+
+
+
+# publish the code to us.gcr.io (google cloud)
+// give docker access to us.gcr.io
+gcloud auth configure-docker
+cd src/main/resources/docker/; docker build -t local/openjdk-custom:latest .; cd ../../../../;
+sbt docker:publish
+
+# publish the code locally
+cd src/main/resources/docker/; docker build -t local/openjdk-custom:latest .; cd ../../../../;
+sbt docker:publishLocal
+
+
+# Describe the project if you want
+gcloud compute project-info describe --project washu-seas-mltheory
+
+# Creates a cluster in the console instead of using the web UI.
+gcloud container clusters create cluster-1  --zone us-central1-a --num-nodes 8 --cluster-version=1.9.7-gke.5
+gcloud container clusters delete cluster-1
+
+# See which context is being used for kubectl commands.
+kubectl config get-contexts
+kubectl config use-context gke_washu-seas-mltheory_us-central1-a_cluster-1
+
+
+**** DEBUG ****
+kubectl port-forward compute-0 9010 9011
+service:jmx:jmxmp://localhost:9010
+
+
+# does a MySQL dump from some specific container in the cloud. Use the other mysqldump command above if possible.
+kubectl exec -ti mysql-7ff7d4b6f9-bwf2x -- mysqldump --add-drop-database --databases m10000 -pKO4eD0BrP2PC19jO > backup.sql
+
+# pulls latest sclr package into local docker repo
+docker pull us.gcr.io/washu-seas-mltheory/sclr:latest
