@@ -107,21 +107,17 @@ class L2NormSetCover(val dataset: Dataset, val workload: Workload) extends KDNFS
       val totalRedness = idToRedness.values.sum
 
       var minError = Double.MaxValue
-      var rednessThreshold = Math.max(0.01, idToRedness.values.min)
       var bestTerms = List.empty[Term]
       val currentTerms = ListBuffer[Term]()
-      while (rednessThreshold < totalRedness) {
-        var i = 0
-        while (workload.mu * idCount - termsUnionAsBitset(currentTerms).size > 0) {
-          currentTerms.append(sortedTerms(i)._1)
-          i += 1
-        }
-        val newError = errorRate(idToRedness, currentTerms)
-        if (minError > newError) {
-          minError = newError
-          bestTerms = currentTerms.toList
-        }
-        rednessThreshold *= 1.1
+      var i = 0
+      while (workload.mu * idCount - termsUnionAsBitset(currentTerms).size > 0) {
+        currentTerms.append(sortedTerms(i)._1)
+        i += 1
+      }
+      val newError = errorRate(idToRedness, currentTerms)
+      if (minError > newError) {
+        minError = newError
+        bestTerms = currentTerms.toList
       }
       val kdnfString = bestTerms.map(term => s"(${term.i1}, ${term.i2})").mkString
       val kdnf = if (bestTerms.nonEmpty) Some(kdnfString) else None
